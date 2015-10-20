@@ -16,8 +16,8 @@ import StringIO
 import os
 import sys
 import re
-# import warnings
 import ConfigParser
+import signal
 
 from colorama import init, Fore, Back, Style
 
@@ -93,7 +93,6 @@ elif 'SCARLETT_PATH' in os.environ:
     ScarlettConfigLocations = []
     for path in os.environ['SCARLETT_PATH'].split(":"):
         ScarlettConfigLocations.append(expanduser(path))
-
 
 class Config(ConfigParser.SafeConfigParser):
 
@@ -257,6 +256,7 @@ class ScarlettListener(dbus.service.Object):
     @dbus.service.method("com.example.service.Quit", in_signature='', out_signature='')
     def quit(self):
         print "  shutting down"
+        self.pipeline.set_state(gst.STATE_NULL)
         self._loop.quit()
 
     def partial_result(self, asr, text, uttid):
@@ -265,15 +265,13 @@ class ScarlettListener(dbus.service.Object):
 
     def result(self, hyp, uttid):
         """Forward result signals on the bus to the main thread."""
-        logger.debug(Fore.YELLOW + "Inside result function")
+        logger.debug("Inside result function")
         if hyp in self.config.get('scarlett', 'keywords'):
             logger.debug(
-                Fore.YELLOW +
                 "HYP-IS-SOMETHING: " +
                 hyp +
                 "\n\n\n")
             logger.debug(
-                Fore.YELLOW +
                 "UTTID-IS-SOMETHING:" +
                 uttid +
                 "\n")
@@ -287,7 +285,6 @@ class ScarlettListener(dbus.service.Object):
             failed_temp = self.failed + 1
             self.failed = failed_temp
             logger.debug(
-                Fore.YELLOW +
                 "self.failed = %i" %
                 (self.failed))
             if self.failed > 4:
@@ -299,10 +296,9 @@ class ScarlettListener(dbus.service.Object):
                 #     (self.config.get('scarlett', 'owner')))
 
     def run_cmd(self, hyp, uttid):
-        logger.debug(Fore.YELLOW + "Inside run_cmd function")
-        logger.debug(Fore.YELLOW + "KEYWORD IDENTIFIED BABY")
+        logger.debug("Inside run_cmd function")
+        logger.debug("KEYWORD IDENTIFIED BABY")
         logger.debug(
-            Fore.RED +
             "self.kw_found = %i" %
             (self.kw_found))
         if hyp == 'CANCEL':
@@ -319,7 +315,6 @@ class ScarlettListener(dbus.service.Object):
             self.kw_found = current_kw_identified
 
             logger.debug(
-                Fore.RED +
                 "AFTER run_cmd, self.kw_found = %i" %
                 (self.kw_found))
 
@@ -327,18 +322,17 @@ class ScarlettListener(dbus.service.Object):
         print 'hello hello hello!'
 
     def listen(self, valve, vader):
-        logger.debug(Fore.YELLOW + "Inside listen function")
+        logger.debug("Inside listen function")
         # TODO: have this emit pi-listening to mainthread
         # scarlett.basics.voice.play_block('pi-listening')
         valve.set_property('drop', False)
         valve.set_property('drop', True)
 
     def cancel_listening(self):
-        logger.debug(Fore.YELLOW + "Inside cancel_listening function")
+        logger.debug("Inside cancel_listening function")
         self.scarlett_reset_listen()
-        logger.debug(Fore.YELLOW + "self.failed = %i" % (self.failed))
+        logger.debug("self.failed = %i" % (self.failed))
         logger.debug(
-            Fore.RED +
             "self.keyword_identified = %i" %
             (self.kw_found))
 
@@ -367,14 +361,14 @@ class ScarlettListener(dbus.service.Object):
         return _dict_full_path
 
     def get_pipeline(self):
-        logger.debug(Fore.YELLOW + "Inside get_pipeline")
+        logger.debug("Inside get_pipeline")
         return self.pipeline
 
     def get_pipeline_state(self):
         return self.pipeline.get_state()
 
     def _get_pocketsphinx_definition(self, override_parse):
-        logger.debug(Fore.YELLOW + "Inside _get_pocketsphinx_definition")
+        logger.debug("Inside _get_pocketsphinx_definition")
         """Return ``pocketsphinx`` definition for :func:`gst.parse_launch`."""
         # default, use what we have set
         if override_parse == '':
@@ -402,7 +396,7 @@ class ScarlettListener(dbus.service.Object):
             return override_parse
 
     def _get_vader_definition(self):
-        logger.debug(Fore.YELLOW + "Inside _get_vader_definition")
+        logger.debug("Inside _get_vader_definition")
         """Return ``vader`` definition for :func:`gst.parse_launch`."""
         # source: https://github.com/bossjones/eshayari/blob/master/eshayari/application.py # noqa
         # Convert noise level from spin button range [0,32768] to gstreamer
@@ -421,7 +415,7 @@ class ScarlettListener(dbus.service.Object):
                 )
 
     def _on_vader_start(self, vader, pos):
-        logger.debug(Fore.YELLOW + "Inside _on_vader_start")
+        logger.debug("Inside _on_vader_start")
         """Send start position as a message on the bus."""
         import gst
         struct = gst.Structure("start")
@@ -430,7 +424,7 @@ class ScarlettListener(dbus.service.Object):
         vader.post_message(gst.message_new_application(vader, struct))
 
     def _on_vader_stop(self, vader, pos):
-        logger.debug(Fore.YELLOW + "Inside _on_vader_stop")
+        logger.debug("Inside _on_vader_stop")
         """Send stop position as a message on the bus."""
         import gst
         struct = gst.Structure("stop")
@@ -439,7 +433,7 @@ class ScarlettListener(dbus.service.Object):
 
     def __result__(self, listener, text, uttid):
         """We're inside __result__"""
-        logger.debug(Fore.YELLOW + "Inside __result__")
+        logger.debug("Inside __result__")
         import gst
         struct = gst.Structure('result')
         struct.set_value('hyp', text)
@@ -448,7 +442,7 @@ class ScarlettListener(dbus.service.Object):
 
     def __partial_result__(self, listener, text, uttid):
         """We're inside __partial_result__"""
-        logger.debug(Fore.YELLOW + "Inside __partial_result__")
+        logger.debug("Inside __partial_result__")
         struct = gst.Structure('partial_result')
         struct.set_value('hyp', text)
         struct.set_value('uttid', uttid)
@@ -457,7 +451,7 @@ class ScarlettListener(dbus.service.Object):
     def __run_cmd__(self, listener, text, uttid):
         """We're inside __run_cmd__"""
         import gst
-        logger.debug(Fore.YELLOW + "Inside __run_cmd__")
+        logger.debug("Inside __run_cmd__")
         struct = gst.Structure('result')
         struct.set_value('hyp', text)
         struct.set_value('uttid', uttid)
@@ -465,7 +459,7 @@ class ScarlettListener(dbus.service.Object):
 
     def __application_message__(self, bus, msg):
         msgtype = msg.structure.get_name()
-        logger.debug(Fore.YELLOW + "msgtype: " + msgtype)
+        logger.debug("msgtype: " + msgtype)
         if msgtype == 'partial_result':
             self.partial_result(msg.structure['hyp'], msg.structure['uttid'])
         elif msgtype == 'result':
@@ -481,9 +475,23 @@ class ScarlettListener(dbus.service.Object):
             # self.pipeline.set_state(gst.STATE_NULL)
         elif msgtype == gst.MESSAGE_ERROR:
             (err, debug) = msgtype.parse_error()
-            logger.debug(Fore.RED + "Error: %s" % err, debug)
+            logger.debug("Error: %s" % err, debug)
             pass
 
 if __name__ == "__main__":
     logger = setup_logger()
-    ScarlettListener("This is the ScarlettListener").run()
+    global logger
+
+    sl = ScarlettListener("This is the ScarlettListener")
+
+    def sigint_handler(*args):
+        """Exit on Ctrl+C"""
+
+        # Unregister handler, next Ctrl-C will kill app
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+        sl.quit()
+
+    signal.signal(signal.SIGINT, sigint_handler)
+
+    sl.run()
