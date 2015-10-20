@@ -1,19 +1,26 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 # source: https://github.com/patrys/daemontools-ng
 
 from time import time
-import dbus, dbus.service, gobject, os, signal, sys, threading
+import dbus
+import dbus.service
+import gobject
+import os
+import signal
+import sys
+import threading
 from dbus.mainloop.glib import DBusGMainLoop
+
 
 class Service(dbus.service.Object):
     pid = 0
     path = ''
-    dead = True # do we need to check the pid?
+    dead = True  # do we need to check the pid?
     paused = False
-    lastDied = time() # last death timestamp
+    lastDied = time()  # last death timestamp
     respawn = True
-    interval = 5.0 # avoid infinite restart loops
+    interval = 5.0  # avoid infinite restart loops
     parent = None
     name = ''
     okpipe = None
@@ -54,16 +61,16 @@ class Service(dbus.service.Object):
         del fifo
         f = open(os.path.join(dir, 'status.new'), 'wb')
         f.write(self.taia_now())
-        for i in range(4): # write pid
+        for i in range(4):  # write pid
             if self.dead:
                 f.write(chr(0))
             else:
                 f.write(chr(self.pid >> (i * 8) & 0xff))
-        if self.dead: # write paused flag
+        if self.dead:  # write paused flag
             f.write(chr(0))
         else:
             f.write(chr(self.paused))
-        if not self.respawn: # write status
+        if not self.respawn:  # write status
             f.write('d')
         else:
             f.write('u')
@@ -105,7 +112,7 @@ class Service(dbus.service.Object):
             self.kill(signal.SIGCONT)
         return True
 
-    @dbus.service.signal(dbus_interface = 'com.github.patrys.Supervisor.Service', signature = 's')
+    @dbus.service.signal(dbus_interface='com.github.patrys.Supervisor.Service', signature='s')
     def changed(self, status):
         self.announce()
 
@@ -118,15 +125,18 @@ class Service(dbus.service.Object):
         if not os.path.exists(runner):
             self.lastDied = time()
             self.dead = True
-            self.parent.log('unable to start %s: run does not exist' % self.path)
+            self.parent.log(
+                'unable to start %s: run does not exist' % self.path)
             return
         if not os.access(runner, os.X_OK):
             self.lastDied = time()
             self.dead = True
-            self.parent.log('unable to start %s: run is not executable' % self.path)
+            self.parent.log(
+                'unable to start %s: run is not executable' % self.path)
             return
         self.parent.log('starting service: %s' % self.path)
-        (self.pid, stdin, stdout, stderr) = gobject.spawn_async([runner], working_directory = self.path, flags = gobject.SPAWN_DO_NOT_REAP_CHILD)
+        (self.pid, stdin, stdout, stderr) = gobject.spawn_async(
+            [runner], working_directory=self.path, flags=gobject.SPAWN_DO_NOT_REAP_CHILD)
         if self.pid <= 0:
             self.lastDied = time()
             self.dead = True
@@ -142,7 +152,7 @@ class Service(dbus.service.Object):
         self.respawn = respawn
         self.announce()
 
-    @dbus.service.method(dbus_interface = 'com.github.patrys.Supervisor.Service', in_signature = 'u')
+    @dbus.service.method(dbus_interface='com.github.patrys.Supervisor.Service', in_signature='u')
     def kill(self, sig):
         '''
         Send a signal
@@ -156,7 +166,7 @@ class Service(dbus.service.Object):
                 self.changed('up')
             os.kill(self.pid, sig)
 
-    @dbus.service.method(dbus_interface = 'com.github.patrys.Supervisor.Service', out_signature = 'uusb')
+    @dbus.service.method(dbus_interface='com.github.patrys.Supervisor.Service', out_signature='uusb')
     def status(self):
         '''
         Return status info
@@ -170,7 +180,7 @@ class Service(dbus.service.Object):
         uptime = time() - self.lastDied
         return self.pid, uptime, msg, self.respawn
 
-    def died(self, pid, cond, data = None):
+    def died(self, pid, cond, data=None):
         '''
         Catch a dying child
         '''
@@ -182,7 +192,8 @@ class Service(dbus.service.Object):
             if time() - self.lastDied > self.interval:
                 self.launch()
             else:
-                self.parent.log('service %s respawning too fast, delaying' % self.path)
+                self.parent.log(
+                    'service %s respawning too fast, delaying' % self.path)
         else:
             self.parent.log('service %s will not be restarted' % self.path)
         self.lastDied = time()
@@ -196,6 +207,7 @@ class Service(dbus.service.Object):
                 self.parent.log('respawning dead service: %s' % self.path)
                 self.launch()
 
+
 class Supervisor(dbus.service.Object):
     finished = False
     interval = 5
@@ -204,8 +216,9 @@ class Supervisor(dbus.service.Object):
     services = {}
     busName = None
 
-    def __init__(self, directory = '/service', maxServices = 1000):
-        self.busName = dbus.service.BusName('com.github.patrys.Supervisor', bus = dbus.SessionBus())
+    def __init__(self, directory='/service', maxServices=1000):
+        self.busName = dbus.service.BusName(
+            'com.github.patrys.Supervisor', bus=dbus.SessionBus())
         super(Supervisor, self).__init__(self.busName, '/Manager')
         self.directory = directory
         self.maxServices = maxServices
@@ -244,7 +257,7 @@ class Supervisor(dbus.service.Object):
             service = Service(path, self, name)
             self.services[path] = service
 
-    @dbus.service.method(dbus_interface = 'com.github.patrys.Supervisor', in_signature = 's', out_signature = 's')
+    @dbus.service.method(dbus_interface='com.github.patrys.Supervisor', in_signature='s', out_signature='s')
     def find(self, path):
         path = os.realpath(path)
         if self.services.has_key(path):
@@ -252,7 +265,7 @@ class Supervisor(dbus.service.Object):
         else:
             return ''
 
-    @dbus.service.method(dbus_interface = 'com.github.patrys.Supervisor', in_signature = '', out_signature = 'as')
+    @dbus.service.method(dbus_interface='com.github.patrys.Supervisor', in_signature='', out_signature='as')
     def list(self):
         return ['/Services/' + self.services[path].name for path in self.services.keys()]
 
@@ -277,7 +290,7 @@ class Supervisor(dbus.service.Object):
         return True
 
 if __name__ == '__main__':
-    DBusGMainLoop(set_as_default = True)
+    DBusGMainLoop(set_as_default=True)
     s = Supervisor()
     try:
         gobject.MainLoop().run()
