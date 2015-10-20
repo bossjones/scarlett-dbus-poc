@@ -19,16 +19,20 @@ import re
 import ConfigParser
 import signal
 
-from colorama import init, Fore, Back, Style
+# from colorama import init, Fore, Back, Style
 
 from IPython.core.debugger import Tracer
 from IPython.core import ultratb
+
 sys.excepthook = ultratb.FormattedTB(mode='Verbose',
-                                     color_scheme='Linux', call_pdb=True, ostream=sys.__stdout__)
+                                     color_scheme='Linux',
+                                     call_pdb=True,
+                                     ostream=sys.__stdout__)
 
 from colorlog import ColoredFormatter
 
 import logging
+
 
 def setup_logger():
     """Return a logger with a default ColoredFormatter."""
@@ -61,13 +65,10 @@ def setup_logger():
 
     return logger
 
-
 # dbus.mainloop.glib.threads_init()
 # import threading
 
-# If running in Google App Engine there is no "user" and
-# os.path.expanduser() will fail. Attempt to detect this case and use a
-# no-op expanduser function in this case.
+# Config
 try:
     os.path.expanduser('~')
     expanduser = os.path.expanduser
@@ -93,6 +94,7 @@ elif 'SCARLETT_PATH' in os.environ:
     ScarlettConfigLocations = []
     for path in os.environ['SCARLETT_PATH'].split(":"):
         ScarlettConfigLocations.append(expanduser(path))
+
 
 class Config(ConfigParser.SafeConfigParser):
 
@@ -214,6 +216,12 @@ class ScarlettListener(dbus.service.Object):
         self.failed = 0
         self.kw_found = 0
 
+        self._status_ready = "  ScarlettListener is ready"
+        self._status_kw_match = "  Keyword Match"
+        self._status_failed = "  Failure Max Met"
+        self._status_cmd_start = "  Command Start"
+        self._status_cmd_fin = "  Command Run Finish"
+
     def ready(self):
         self.ps_hmm = self.get_hmm_full_path()
         self.ps_dict = self.get_dict_full_path()
@@ -258,6 +266,41 @@ class ScarlettListener(dbus.service.Object):
         print "  shutting down"
         self.pipeline.set_state(gst.STATE_NULL)
         self._loop.quit()
+
+    # # Keyword Match
+    # @dbus.service.signal('com.example.service.KeywordSig')
+    # def KeywordSignal(self, message):
+    #     # The signal is emitted when this method exits
+    #     # You can have code here if you wish
+    #     pass
+
+    # @dbus.service.method('com.example.service.Keyword', in_signature='', out_signature='')
+    # def emitKeywordSignal(self):
+    #     # you emit signals by calling the signal's skeleton method
+    #     self.KeywordSignal('Keyword Match')
+    #     return 'KeywordSignal emitted'
+
+    @dbus.service.method("com.example.service.StatusReady", in_signature='', out_signature='s')
+    def listener_ready(self):
+        print "{}".format(self._status_ready)
+        return self._status_ready
+
+    # # ReadySignal Match
+    # @dbus.service.signal('com.example.service.ReadySig')
+    # def ReadySignal(self, message):
+    #     # The signal is emitted when this method exits
+    #     # You can have code here if you wish
+    #     pass
+
+    # @dbus.service.method('com.example.service.Ready', in_signature='', out_signature='')
+    # def emitReadySignal(self):
+    #     # you emit signals by calling the signal's skeleton method
+    #     self.ReadySignal('Scarlett Listener Ready')
+    #     return 'ReadySignal emitted'
+
+    def scarlett_reset_listen(self):
+        self.failed = 0
+        self.kw_found = 0
 
     def partial_result(self, asr, text, uttid):
         """Forward partial result signals on the bus to the main thread."""
@@ -471,8 +514,6 @@ class ScarlettListener(dbus.service.Object):
             self.run_cmd(msg.structure['hyp'], msg.structure['uttid'])
         elif msgtype == gst.MESSAGE_EOS:
             pass
-            # TODO: SEE IF WE NEED THIS
-            # self.pipeline.set_state(gst.STATE_NULL)
         elif msgtype == gst.MESSAGE_ERROR:
             (err, debug) = msgtype.parse_error()
             logger.debug("Error: %s" % err, debug)
