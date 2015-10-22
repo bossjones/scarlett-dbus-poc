@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: UTF-8 -*-
 
 import dbus
 import dbus.service
@@ -217,10 +218,12 @@ class ScarlettListener(dbus.service.Object):
         self.kw_found = 0
 
         self._status_ready = "  ScarlettListener is ready"
-        self._status_kw_match = "  Keyword Match"
-        self._status_failed = "  Failure Max Met"
-        self._status_cmd_start = "  Command Start"
-        self._status_cmd_fin = "  Command Run Finish"
+        self._status_kw_match = "  ScarlettListener caught a keyword match"
+        self._status_cmd_match = "  ScarlettListener caught a command match"
+        self._status_stt_failed = "  ScarlettListener hit Max STT failures"
+        self._status_cmd_start = "  ScarlettListener emitting start command"
+        self._status_cmd_fin = "  ScarlettListener Emitting Command run finish"
+        self._status_cmd_cancel = "  ScarlettListener cancel speech Recognition"
 
     def ready(self):
         self.ps_hmm = self.get_hmm_full_path()
@@ -253,50 +256,109 @@ class ScarlettListener(dbus.service.Object):
 
         self._loop = gobject.MainLoop()
         print "ScarlettListener running..."
+        self.emitListenerReadySignal()
         self._loop.run()
         print "ScarlettListener stopped"
 
-    @dbus.service.method("com.example.service.Message", in_signature='', out_signature='s')
+    #########################################################
+    # Scarlett signals
+    #########################################################
+    @dbus.service.signal("com.example.service.KeywordRecognizedSignal")
+    def KeywordRecognizedSignal(self, message):
+        logger.debug(" sending message: {}".format(message))
+
+    @dbus.service.signal("com.example.service.CommandRecognizedSignal")
+    def CommandRecognizedSignal(self, message):
+        logger.debug(" sending message: {}".format(message))
+
+    @dbus.service.signal("com.example.service.SttFailedSignal")
+    def SttFailedSignal(self, message):
+        logger.debug(" sending message: {}".format(message))
+
+    @dbus.service.signal("com.example.service.ListenerCancelSignal")
+    def ListenerCancelSignal(self, message):
+        logger.debug(" sending message: {}".format(message))
+
+    @dbus.service.signal("com.example.service.ListenerReadySignal")
+    def ListenerReadySignal(self, message):
+        logger.debug(" sending message: {}".format(message))
+
+    @dbus.service.signal("com.example.service.ConnectedToListener")
+    def ConnectedToListener(self, scarlett_plugin):
+        pass
+        # logger.debug(
+        #     " {} is connected to ScarlettListener".format(scarlett_plugin))
+
+    #########################################################
+    # Scarlett dbus methods
+    #########################################################
+    @dbus.service.method("com.example.service.emitKeywordRecognizedSignal",
+                         in_signature='',
+                         out_signature='s')
+    def emitKeywordRecognizedSignal(self):
+        # you emit signals by calling the signal's skeleton method
+        self.KeywordRecognizedSignal(self._status_kw_match)
+        return self._status_kw_match
+
+    @dbus.service.method("com.example.service.emitCommandRecognizedSignal",
+                         in_signature='',
+                         out_signature='s')
+    def emitCommandRecognizedSignal(self):
+        self.CommandRecognizedSignal(self._status_cmd_match)
+        return self._status_cmd_match
+
+    @dbus.service.method("com.example.service.emitSttFailedSignal",
+                         in_signature='',
+                         out_signature='s')
+    def emitSttFailedSignal(self):
+        print "  sending message"
+        self.SttFailedSignal(self._status_stt_failed)
+        return self._status_stt_failed
+
+    @dbus.service.method("com.example.service.emitListenerCancelSignal",
+                         in_signature='',
+                         out_signature='s')
+    def emitListenerCancelSignal(self):
+        print "  sending message"
+        self.ListenerCancelSignal(self._status_cmd_cancel)
+        return self._status_cmd_cancel
+
+    @dbus.service.method("com.example.service.emitListenerReadySignal",
+                         in_signature='',
+                         out_signature='s')
+    def emitListenerReadySignal(self):
+        self.ListenerReadySignal(self._status_ready)
+        return self._status_ready
+
+    @dbus.service.method("com.example.service.emitConnectedToListener",
+                         in_signature='',
+                         out_signature='s')
+    def emitConnectedToListener(self, scarlett_plugin):
+        print "  sending message"
+        self.ConnectedToListener(scarlett_plugin)
+        return " {} is connected to ScarlettListener".format(scarlett_plugin)
+
+    @dbus.service.method("com.example.service.Message",
+                         in_signature='',
+                         out_signature='s')
     def get_message(self):
         print "  sending message"
         return self._message
 
-    @dbus.service.method("com.example.service.Quit", in_signature='', out_signature='')
+    @dbus.service.method("com.example.service.Quit",
+                         in_signature='',
+                         out_signature='')
     def quit(self):
         print "  shutting down"
         self.pipeline.set_state(gst.STATE_NULL)
         self._loop.quit()
 
-    # # Keyword Match
-    # @dbus.service.signal('com.example.service.KeywordSig')
-    # def KeywordSignal(self, message):
-    #     # The signal is emitted when this method exits
-    #     # You can have code here if you wish
-    #     pass
-
-    # @dbus.service.method('com.example.service.Keyword', in_signature='', out_signature='')
-    # def emitKeywordSignal(self):
-    #     # you emit signals by calling the signal's skeleton method
-    #     self.KeywordSignal('Keyword Match')
-    #     return 'KeywordSignal emitted'
-
-    @dbus.service.method("com.example.service.StatusReady", in_signature='', out_signature='s')
+    @dbus.service.method("com.example.service.StatusReady",
+                         in_signature='',
+                         out_signature='s')
     def listener_ready(self):
-        print "{}".format(self._status_ready)
+        print " {}".format(self._status_ready)
         return self._status_ready
-
-    # # ReadySignal Match
-    # @dbus.service.signal('com.example.service.ReadySig')
-    # def ReadySignal(self, message):
-    #     # The signal is emitted when this method exits
-    #     # You can have code here if you wish
-    #     pass
-
-    # @dbus.service.method('com.example.service.Ready', in_signature='', out_signature='')
-    # def emitReadySignal(self):
-    #     # you emit signals by calling the signal's skeleton method
-    #     self.ReadySignal('Scarlett Listener Ready')
-    #     return 'ReadySignal emitted'
 
     def scarlett_reset_listen(self):
         self.failed = 0
@@ -320,6 +382,7 @@ class ScarlettListener(dbus.service.Object):
                 "\n")
             self.failed = 0
             self.kw_found = 1
+            self.emitKeywordRecognizedSignal()
 
             # TODO: Change this to emit to main thread
             # scarlett.basics.voice.play_block('pi-listening')
@@ -332,6 +395,7 @@ class ScarlettListener(dbus.service.Object):
                 (self.failed))
             if self.failed > 4:
                 # reset pipline
+                self.emitSttFailedSignal()
                 self.scarlett_reset_listen()
                 # TODO: Change this to emit text data to main thread
                 # ScarlettTalk.speak(
@@ -345,18 +409,12 @@ class ScarlettListener(dbus.service.Object):
             "self.kw_found = %i" %
             (self.kw_found))
         if hyp == 'CANCEL':
+            self.emitListenerCancelSignal()
             self.cancel_listening()
         else:
-            # TODO: Change this to dbus signal
-            # TODO: hyp_event = scarlett_event(
-            # TODO:     "listener_hyp",
-            # TODO:     data=hyp
-            # TODO: )
-            # TODO: self.emit('kw-found-ps', hyp_event)
-
             current_kw_identified = self.kw_found
             self.kw_found = current_kw_identified
-
+            self.CommandRecognizedSignal()
             logger.debug(
                 "AFTER run_cmd, self.kw_found = %i" %
                 (self.kw_found))
