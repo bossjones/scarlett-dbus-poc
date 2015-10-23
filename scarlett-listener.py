@@ -20,8 +20,6 @@ import re
 import ConfigParser
 import signal
 
-# from colorama import init, Fore, Back, Style
-
 from IPython.core.debugger import Tracer
 from IPython.core import ultratb
 
@@ -216,6 +214,7 @@ class ScarlettListener(dbus.service.Object):
         self.override_parse = ''
         self.failed = 0
         self.kw_found = 0
+        self.debug = True
 
         self._status_ready = "  ScarlettListener is ready"
         self._status_kw_match = "  ScarlettListener caught a keyword match"
@@ -224,6 +223,12 @@ class ScarlettListener(dbus.service.Object):
         self._status_cmd_start = "  ScarlettListener emitting start command"
         self._status_cmd_fin = "  ScarlettListener Emitting Command run finish"
         self._status_cmd_cancel = "  ScarlettListener cancel speech Recognition"
+
+        if self.debug:
+            # for testing puposes
+            self.kw_to_find = ['yo', 'hello', 'man', 'children']
+        else:
+            self.kw_to_find = self.config.get('scarlett', 'keywords')
 
     def ready(self):
         self.ps_hmm = self.get_hmm_full_path()
@@ -371,7 +376,7 @@ class ScarlettListener(dbus.service.Object):
     def result(self, hyp, uttid):
         """Forward result signals on the bus to the main thread."""
         logger.debug("Inside result function")
-        if hyp in self.config.get('scarlett', 'keywords'):
+        if hyp in self.kw_to_find:
             logger.debug(
                 "HYP-IS-SOMETHING: " +
                 hyp +

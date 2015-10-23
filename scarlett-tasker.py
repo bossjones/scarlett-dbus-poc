@@ -27,8 +27,6 @@ import pprint
 
 from dbus import DBusException
 
-# from colorama import init, Fore, Back, Style
-
 from IPython.core.debugger import Tracer
 from IPython.core import ultratb
 
