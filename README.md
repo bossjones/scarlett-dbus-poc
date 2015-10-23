@@ -2,8 +2,17 @@
 
 Scarlett Dbus Listener Service implementation Proof-Of-Concept. 
 
-
 Source: https://www.reddit.com/r/gnome/comments/3owhp6/python_help_critique_my_application_design_home/
+
+# How to test scarlett_player
+
+Open ipython and type the following:
+
+```
+In [1]: import scarlett_player
+
+In [2]: scarlett_player.ScarlettPlayer("pi-listening").run()
+```
 
 
 ### Simple python dbus example
