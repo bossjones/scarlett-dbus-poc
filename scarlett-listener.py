@@ -263,27 +263,27 @@ class ScarlettListener(dbus.service.Object):
     #########################################################
     # Scarlett signals
     #########################################################
-    @dbus.service.signal("com.example.service.KeywordRecognizedSignal")
+    @dbus.service.signal("com.example.service.event")
     def KeywordRecognizedSignal(self, message):
         logger.debug(" sending message: {}".format(message))
 
-    @dbus.service.signal("com.example.service.CommandRecognizedSignal")
+    @dbus.service.signal("com.example.service.event")
     def CommandRecognizedSignal(self, message):
         logger.debug(" sending message: {}".format(message))
 
-    @dbus.service.signal("com.example.service.SttFailedSignal")
+    @dbus.service.signal("com.example.service.event")
     def SttFailedSignal(self, message):
         logger.debug(" sending message: {}".format(message))
 
-    @dbus.service.signal("com.example.service.ListenerCancelSignal")
+    @dbus.service.signal("com.example.service.event")
     def ListenerCancelSignal(self, message):
         logger.debug(" sending message: {}".format(message))
 
-    @dbus.service.signal("com.example.service.ListenerReadySignal")
+    @dbus.service.signal("com.example.service.event")
     def ListenerReadySignal(self, message):
         logger.debug(" sending message: {}".format(message))
 
-    @dbus.service.signal("com.example.service.ConnectedToListener")
+    @dbus.service.signal("com.example.service.event")
     def ConnectedToListener(self, scarlett_plugin):
         pass
         # logger.debug(
@@ -414,7 +414,7 @@ class ScarlettListener(dbus.service.Object):
         else:
             current_kw_identified = self.kw_found
             self.kw_found = current_kw_identified
-            self.CommandRecognizedSignal()
+            self.CommandRecognizedSignal(self.kw_found)
             logger.debug(
                 "AFTER run_cmd, self.kw_found = %i" %
                 (self.kw_found))

@@ -23,6 +23,7 @@ import sys
 import re
 import ConfigParser
 import signal
+import pprint
 
 # from colorama import init, Fore, Back, Style
 
@@ -95,18 +96,36 @@ class ScarlettTasker():
 
         # Function which will run when signal is received
         def callback_function(*args):
-            logger.debug('Received something .. ', args)
+            logger.debug('Received something .. ', str(args))
 
         def catchall_handler(*args, **kwargs):
-            logger.debug("Caught signal: "
-                         + kwargs['dbus_interface'] + "." + kwargs['member'])
+            pp = pprint.PrettyPrinter(indent=4)
+            pp.pprint(kwargs)
+            # logger.debug("Caught signal: "
+            #              + kwargs['dbus_interface'] + "." + kwargs['member_keyword'])
             for arg in args:
                 logger.debug("        " + str(arg))
 
         # SIGNAL: When someone says Scarlett
         bus.add_signal_receiver(catchall_handler,
-                                signal_name='KeywordRecognizedSignal',
-                                dbus_interface='com.example.service.KeywordRecognizedSignal'
+                                dbus_interface='com.example.service.event',
+                                signal_name='KeywordRecognizedSignal'
+                                )
+        bus.add_signal_receiver(catchall_handler,
+                                dbus_interface='com.example.service.event',
+                                signal_name='CommandRecognizedSignal'
+                                )
+        bus.add_signal_receiver(catchall_handler,
+                                dbus_interface='com.example.service.event',
+                                signal_name='SttFailedSignal'
+                                )
+        bus.add_signal_receiver(catchall_handler,
+                                dbus_interface='com.example.service.event',
+                                signal_name='ListenerCancelSignal'
+                                )
+        bus.add_signal_receiver(catchall_handler,
+                                dbus_interface='com.example.service.event',
+                                signal_name='ConnectedToListener'
                                 )
 
     def go(self):
