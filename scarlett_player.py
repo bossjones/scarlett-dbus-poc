@@ -83,7 +83,9 @@ class ScarlettPlayer():
         # Element playbin automatic plays any sound
         self.player = gst.element_factory_make("playbin2", "player")
         # Set the uri to the sound
-        self.player.set_property("uri", "sound://" + sound)
+
+        filename = '%s/static/sounds/%s.wav' % (PWD, sound)
+        self.player.set_property('uri', 'file://%s' % filename)
         # __PLAYER__ = self.player
 
         # Enable message bus to check for errors in the pipeline
