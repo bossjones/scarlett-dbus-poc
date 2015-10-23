@@ -414,7 +414,7 @@ class ScarlettListener(dbus.service.Object):
         else:
             current_kw_identified = self.kw_found
             self.kw_found = current_kw_identified
-            self.CommandRecognizedSignal(self.kw_found)
+            self.emitCommandRecognizedSignal(self.kw_found)
             logger.debug(
                 "AFTER run_cmd, self.kw_found = %i" %
                 (self.kw_found))
@@ -578,8 +578,8 @@ class ScarlettListener(dbus.service.Object):
             pass
 
 if __name__ == "__main__":
-    logger = setup_logger()
     global logger
+    logger = setup_logger()
 
     sl = ScarlettListener("This is the ScarlettListener")
 

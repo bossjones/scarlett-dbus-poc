@@ -25,6 +25,8 @@ import ConfigParser
 import signal
 import pprint
 
+from dbus import DBusException
+
 # from colorama import init, Fore, Back, Style
 
 from IPython.core.debugger import Tracer
@@ -99,12 +101,9 @@ class ScarlettTasker():
             logger.debug('Received something .. ', str(args))
 
         def catchall_handler(*args, **kwargs):
+            logger.debug("catchall_handler PrettyPrinter: ")
             pp = pprint.PrettyPrinter(indent=4)
-            pp.pprint(kwargs)
-            # logger.debug("Caught signal: "
-            #              + kwargs['dbus_interface'] + "." + kwargs['member_keyword'])
-            for arg in args:
-                logger.debug("        " + str(arg))
+            pp.pprint(args)
 
         # SIGNAL: When someone says Scarlett
         bus.add_signal_receiver(catchall_handler,
@@ -137,8 +136,6 @@ class ScarlettTasker():
         logger.debug(
             "{}".format(self._tasker_connected(ScarlettTasker().__class__.__name__)))
         logger.debug("Mesage from Master service: {}".format(self._message()))
-        # logger.debug("Master Status: {}".format(self._status_ready()))
-        # self._quit()
 
     def quit(self):
         logger.debug("  shutting down ScarlettTasker")
@@ -171,11 +168,13 @@ if __name__ == "__main__":
     stored_exception = None
 
     # And our program will continue in this pointless loop
+    # DBusException
+    # KeyboardInterrupt
     while True:
         try:
             time.sleep(1)
             logger.info("tralala")
-        except KeyboardInterrupt:
+        except DBusException:
             stored_exception = sys.exc_info()
 
     logger.debug('Bye')
