@@ -42,6 +42,8 @@ import logging
 import threading
 import time
 
+import scarlett_player
+
 
 def setup_logger():
     """Return a logger with a default ColoredFormatter."""
@@ -83,13 +85,13 @@ class ScarlettTasker():
 
         # NOTE: This is a proxy dbus command
         service = bus.get_object('com.example.service', "/com/example/service")
-        self._message = service.get_dbus_method(
-            'get_message', 'com.example.service.Message')
+        # self._message = service.get_dbus_method(
+        #     'get_message', 'com.example.service.Message')
         self._quit = service.get_dbus_method(
             'quit', 'com.example.service.Quit')
-        self._status_ready = service.get_dbus_method(
-            'emitListenerReadySignal',
-            'com.example.service.emitListenerReadySignal')
+        # self._status_ready = service.get_dbus_method(
+        #     'emitListenerReadySignal',
+        #     'com.example.service.emitListenerReadySignal')
         self._tasker_connected = service.get_dbus_method(
             'emitConnectedToListener',
             'com.example.service.emitConnectedToListener')
@@ -103,27 +105,40 @@ class ScarlettTasker():
             pp = pprint.PrettyPrinter(indent=4)
             pp.pprint(args)
 
+        def player_cb(*args, **kwargs):
+            logger.debug("player_cb PrettyPrinter: ")
+            pp = pprint.PrettyPrinter(indent=4)
+            pp.pprint(args)
+            msg, scarlett_sound = args
+            logger.warning(" msg: {}".format(msg))
+            logger.warning(" scarlett_sound: {}".format(scarlett_sound))
+
+            # Our thread will run start_listening
+            thread = threading.Thread(target=scarlett_player.ScarlettPlayer(scarlett_sound).run())
+            thread.daemon = True
+            thread.start()
+
         # SIGNAL: When someone says Scarlett
-        bus.add_signal_receiver(catchall_handler,
+        bus.add_signal_receiver(player_cb,
                                 dbus_interface='com.example.service.event',
                                 signal_name='KeywordRecognizedSignal'
                                 )
-        bus.add_signal_receiver(catchall_handler,
-                                dbus_interface='com.example.service.event',
-                                signal_name='CommandRecognizedSignal'
-                                )
-        bus.add_signal_receiver(catchall_handler,
-                                dbus_interface='com.example.service.event',
-                                signal_name='SttFailedSignal'
-                                )
-        bus.add_signal_receiver(catchall_handler,
-                                dbus_interface='com.example.service.event',
-                                signal_name='ListenerCancelSignal'
-                                )
-        bus.add_signal_receiver(catchall_handler,
-                                dbus_interface='com.example.service.event',
-                                signal_name='ConnectedToListener'
-                                )
+        # bus.add_signal_receiver(catchall_handler,
+        #                         dbus_interface='com.example.service.event',
+        #                         signal_name='CommandRecognizedSignal'
+        #                         )
+        # bus.add_signal_receiver(catchall_handler,
+        #                         dbus_interface='com.example.service.event',
+        #                         signal_name='SttFailedSignal'
+        #                         )
+        # bus.add_signal_receiver(catchall_handler,
+        #                         dbus_interface='com.example.service.event',
+        #                         signal_name='ListenerCancelSignal'
+        #                         )
+        # bus.add_signal_receiver(catchall_handler,
+        #                         dbus_interface='com.example.service.event',
+        #                         signal_name='ConnectedToListener'
+        #                         )
 
     def go(self):
         logger.debug("ScarlettTasker running...")
@@ -133,7 +148,7 @@ class ScarlettTasker():
     def run(self):
         logger.debug(
             "{}".format(self._tasker_connected(ScarlettTasker().__class__.__name__)))
-        logger.debug("Mesage from Master service: {}".format(self._message()))
+        # logger.debug("Mesage from Master service: {}".format(self._message()))
 
     def quit(self):
         logger.debug("  shutting down ScarlettTasker")

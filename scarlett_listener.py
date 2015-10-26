@@ -32,6 +32,10 @@ from colorlog import ColoredFormatter
 
 import logging
 
+SCARLETT_CANCEL = "pi-cancel"
+SCARLETT_LISTENING = "pi-listening"
+SCARLETT_RESPONSE = "pi-response"
+
 
 def setup_logger():
     """Return a logger with a default ColoredFormatter."""
@@ -63,9 +67,6 @@ def setup_logger():
     logger.setLevel(logging.DEBUG)
 
     return logger
-
-# dbus.mainloop.glib.threads_init()
-# import threading
 
 # Config
 try:
@@ -214,7 +215,7 @@ class ScarlettListener(dbus.service.Object):
         self.override_parse = ''
         self.failed = 0
         self.kw_found = 0
-        self.debug = True
+        self.debug = False
 
         self._status_ready = "  ScarlettListener is ready"
         self._status_kw_match = "  ScarlettListener caught a keyword match"
@@ -269,11 +270,11 @@ class ScarlettListener(dbus.service.Object):
     # Scarlett signals
     #########################################################
     @dbus.service.signal("com.example.service.event")
-    def KeywordRecognizedSignal(self, message):
+    def KeywordRecognizedSignal(self, message, scarlett_sound):
         logger.debug(" sending message: {}".format(message))
 
     @dbus.service.signal("com.example.service.event")
-    def CommandRecognizedSignal(self, message):
+    def CommandRecognizedSignal(self, message, scarlett_cmd):
         logger.debug(" sending message: {}".format(message))
 
     @dbus.service.signal("com.example.service.event")
@@ -301,16 +302,22 @@ class ScarlettListener(dbus.service.Object):
                          in_signature='',
                          out_signature='s')
     def emitKeywordRecognizedSignal(self):
+        global SCARLETT_LISTENING
         # you emit signals by calling the signal's skeleton method
-        self.KeywordRecognizedSignal(self._status_kw_match)
-        return self._status_kw_match
+        self.KeywordRecognizedSignal(self._status_kw_match, SCARLETT_LISTENING)
+        # return self._status_kw_match
+        return SCARLETT_LISTENING
 
     @dbus.service.method("com.example.service.emitCommandRecognizedSignal",
                          in_signature='',
                          out_signature='s')
-    def emitCommandRecognizedSignal(self):
-        self.CommandRecognizedSignal(self._status_cmd_match)
-        return self._status_cmd_match
+    def emitCommandRecognizedSignal(self, command):
+        global SCARLETT_RESPONSE, SCARLETT_LISTENING
+        self.KeywordRecognizedSignal(self._status_kw_match, SCARLETT_RESPONSE)
+        self.CommandRecognizedSignal(self._status_cmd_match, command)
+        # return self._status_cmd_match
+        return SCARLETT_RESPONSE
+        # return SCARLETT_RESPONSE, command
 
     @dbus.service.method("com.example.service.emitSttFailedSignal",
                          in_signature='',
@@ -389,9 +396,6 @@ class ScarlettListener(dbus.service.Object):
             self.kw_found = 1
             self.emitKeywordRecognizedSignal()
 
-            # TODO: Change this to emit to main thread
-            # scarlett.basics.voice.play_block('pi-listening')
-
         else:
             failed_temp = self.failed + 1
             self.failed = failed_temp
@@ -419,7 +423,9 @@ class ScarlettListener(dbus.service.Object):
         else:
             current_kw_identified = self.kw_found
             self.kw_found = current_kw_identified
-            self.emitCommandRecognizedSignal(self.kw_found)
+            self.emitCommandRecognizedSignal(hyp)
+            logger.debug(
+                " Command = {}".format(hyp))
             logger.debug(
                 "AFTER run_cmd, self.kw_found = %i" %
                 (self.kw_found))

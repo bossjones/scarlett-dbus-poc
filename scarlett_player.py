@@ -76,23 +76,17 @@ class ScarlettPlayer():
         global logger
         self._loop = gobject.MainLoop()
 
-        # def eos_handler(bus, message, *args):
-        #     __PLAYER__.set_state(gst.STATE_READY)
-        #     self._loop.quit()
-
         # Element playbin automatic plays any sound
         self.player = gst.element_factory_make("playbin2", "player")
         # Set the uri to the sound
 
         filename = '%s/static/sounds/%s.wav' % (PWD, sound)
         self.player.set_property('uri', 'file://%s' % filename)
-        # __PLAYER__ = self.player
 
         # Enable message bus to check for errors in the pipeline
         bus = self.player.get_bus()
         bus.add_signal_watch()
         bus.connect("message", self.on_message)
-        # bus.connect('message::eos', eos_handler)
 
     def run(self):
         self.player.set_state(gst.STATE_PLAYING)
@@ -103,13 +97,13 @@ class ScarlettPlayer():
         if t == gst.MESSAGE_EOS:
             self.player.set_state(gst.STATE_NULL)
             self._loop.quit()
+            self.quit()
         elif t == gst.MESSAGE_ERROR:
             self.player.set_state(gst.STATE_NULL)
             err, debug = message.parse_error()
             print "Error: %s" % err, debug
             self._loop.quit()
+            self.quit()
 
     def quit(self):
         logger.debug("  shutting down ScarlettPlayer")
-        self._loop.quit()
-        self._quit()
