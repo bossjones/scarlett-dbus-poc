@@ -32,6 +32,10 @@ from colorlog import ColoredFormatter
 
 import logging
 
+SCARLETT_CANCEL = "pi-cancel"
+SCARLETT_LISTENING = "pi-listening"
+SCARLETT_RESPONSE = "pi-response"
+
 
 def setup_logger():
     """Return a logger with a default ColoredFormatter."""
@@ -214,7 +218,7 @@ class ScarlettListener(dbus.service.Object):
         self.override_parse = ''
         self.failed = 0
         self.kw_found = 0
-        self.debug = True
+        self.debug = False
 
         self._status_ready = "  ScarlettListener is ready"
         self._status_kw_match = "  ScarlettListener caught a keyword match"
@@ -269,7 +273,7 @@ class ScarlettListener(dbus.service.Object):
     # Scarlett signals
     #########################################################
     @dbus.service.signal("com.example.service.event")
-    def KeywordRecognizedSignal(self, message):
+    def KeywordRecognizedSignal(self, message, scarlett_sound):
         logger.debug(" sending message: {}".format(message))
 
     @dbus.service.signal("com.example.service.event")
@@ -301,16 +305,20 @@ class ScarlettListener(dbus.service.Object):
                          in_signature='',
                          out_signature='s')
     def emitKeywordRecognizedSignal(self):
+        global SCARLETT_LISTENING
         # you emit signals by calling the signal's skeleton method
-        self.KeywordRecognizedSignal(self._status_kw_match)
-        return self._status_kw_match
+        self.KeywordRecognizedSignal(self._status_kw_match, SCARLETT_LISTENING)
+        #return self._status_kw_match
+        return SCARLETT_LISTENING
 
     @dbus.service.method("com.example.service.emitCommandRecognizedSignal",
                          in_signature='',
                          out_signature='s')
-    def emitCommandRecognizedSignal(self):
+    def emitCommandRecognizedSignal(self, command):
+        global SCARLETT_RESPONSE
         self.CommandRecognizedSignal(self._status_cmd_match)
         return self._status_cmd_match
+        # return SCARLETT_RESPONSE, command
 
     @dbus.service.method("com.example.service.emitSttFailedSignal",
                          in_signature='',
@@ -419,7 +427,9 @@ class ScarlettListener(dbus.service.Object):
         else:
             current_kw_identified = self.kw_found
             self.kw_found = current_kw_identified
-            self.emitCommandRecognizedSignal(self.kw_found)
+            self.emitCommandRecognizedSignal(hyp)
+            logger.debug(
+                " Command = {}".format(hyp))
             logger.debug(
                 "AFTER run_cmd, self.kw_found = %i" %
                 (self.kw_found))

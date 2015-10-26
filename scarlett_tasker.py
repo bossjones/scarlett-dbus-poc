@@ -42,6 +42,8 @@ import logging
 import threading
 import time
 
+import scarlett_player
+
 
 def setup_logger():
     """Return a logger with a default ColoredFormatter."""
@@ -103,8 +105,21 @@ class ScarlettTasker():
             pp = pprint.PrettyPrinter(indent=4)
             pp.pprint(args)
 
+        def player_cb(*args, **kwargs):
+            logger.debug("player_cb PrettyPrinter: ")
+            pp = pprint.PrettyPrinter(indent=4)
+            pp.pprint(args)
+            msg, scarlett_sound = args
+            logger.warning(" msg: {}".format(msg))
+            logger.warning(" scarlett_sound: {}".format(scarlett_sound))
+
+            # Our thread will run start_listening
+            thread = threading.Thread(target=scarlett_player.ScarlettPlayer(scarlett_sound).run())
+            thread.daemon = True
+            thread.start()
+
         # SIGNAL: When someone says Scarlett
-        bus.add_signal_receiver(catchall_handler,
+        bus.add_signal_receiver(player_cb,
                                 dbus_interface='com.example.service.event',
                                 signal_name='KeywordRecognizedSignal'
                                 )
