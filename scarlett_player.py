@@ -87,7 +87,6 @@ class ScarlettPlayer():
         bus = self.player.get_bus()
         bus.add_signal_watch()
         bus.connect("message", self.on_message)
-        # bus.connect('message::eos', eos_handler)
 
     def run(self):
         self.player.set_state(gst.STATE_PLAYING)
@@ -98,13 +97,13 @@ class ScarlettPlayer():
         if t == gst.MESSAGE_EOS:
             self.player.set_state(gst.STATE_NULL)
             self._loop.quit()
+            self.quit()
         elif t == gst.MESSAGE_ERROR:
             self.player.set_state(gst.STATE_NULL)
             err, debug = message.parse_error()
             print "Error: %s" % err, debug
             self._loop.quit()
+            self.quit()
 
     def quit(self):
         logger.debug("  shutting down ScarlettPlayer")
-        self._loop.quit()
-        self._quit()

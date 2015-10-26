@@ -68,9 +68,6 @@ def setup_logger():
 
     return logger
 
-# dbus.mainloop.glib.threads_init()
-# import threading
-
 # Config
 try:
     os.path.expanduser('~')
@@ -277,7 +274,7 @@ class ScarlettListener(dbus.service.Object):
         logger.debug(" sending message: {}".format(message))
 
     @dbus.service.signal("com.example.service.event")
-    def CommandRecognizedSignal(self, message):
+    def CommandRecognizedSignal(self, message, scarlett_cmd):
         logger.debug(" sending message: {}".format(message))
 
     @dbus.service.signal("com.example.service.event")
@@ -308,16 +305,18 @@ class ScarlettListener(dbus.service.Object):
         global SCARLETT_LISTENING
         # you emit signals by calling the signal's skeleton method
         self.KeywordRecognizedSignal(self._status_kw_match, SCARLETT_LISTENING)
-        #return self._status_kw_match
+        # return self._status_kw_match
         return SCARLETT_LISTENING
 
     @dbus.service.method("com.example.service.emitCommandRecognizedSignal",
                          in_signature='',
                          out_signature='s')
     def emitCommandRecognizedSignal(self, command):
-        global SCARLETT_RESPONSE
-        self.CommandRecognizedSignal(self._status_cmd_match)
-        return self._status_cmd_match
+        global SCARLETT_RESPONSE, SCARLETT_LISTENING
+        self.KeywordRecognizedSignal(self._status_kw_match, SCARLETT_RESPONSE)
+        self.CommandRecognizedSignal(self._status_cmd_match, command)
+        # return self._status_cmd_match
+        return SCARLETT_RESPONSE
         # return SCARLETT_RESPONSE, command
 
     @dbus.service.method("com.example.service.emitSttFailedSignal",
@@ -396,9 +395,6 @@ class ScarlettListener(dbus.service.Object):
             self.failed = 0
             self.kw_found = 1
             self.emitKeywordRecognizedSignal()
-
-            # TODO: Change this to emit to main thread
-            # scarlett.basics.voice.play_block('pi-listening')
 
         else:
             failed_temp = self.failed + 1
