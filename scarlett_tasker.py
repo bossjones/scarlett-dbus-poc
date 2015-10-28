@@ -43,6 +43,9 @@ import threading
 import time
 
 import scarlett_player
+import scarlett_constants
+import scarlett_speaker
+import scarlett_forecast
 
 
 def setup_logger():
@@ -96,6 +99,14 @@ class ScarlettTasker():
             'emitConnectedToListener',
             'com.example.service.emitConnectedToListener')
 
+        # def wait_for_t(t):
+        # if not t.is_alive():
+        # t.join() # This won't block, since the thread isn't alive anymore
+        # print 'a'
+        # Do whatever else you would do when join() (or maybe collega_GUI?) returns
+        # else:
+        ####         gobject.timeout_add(200, wait_for_t, t)
+
         # Function which will run when signal is received
         def callback_function(*args):
             logger.debug('Received something .. ', str(args))
@@ -114,16 +125,55 @@ class ScarlettTasker():
             logger.warning(" scarlett_sound: {}".format(scarlett_sound))
 
             # Our thread will run start_listening
-            thread = threading.Thread(target=scarlett_player.ScarlettPlayer(scarlett_sound).run())
-            thread.daemon = True
-            thread.start()
+            player_thread = threading.Thread(
+                target=scarlett_player.ScarlettPlayer(scarlett_sound).run())
+            player_thread.daemon = True
+            player_thread.start()
+
+        def command_cb(*args, **kwargs):
+            logger.debug("player_cb PrettyPrinter: ")
+            pp = pprint.PrettyPrinter(indent=4)
+            pp.pprint(args)
+            msg, scarlett_sound, command = args
+            logger.warning(" msg: {}".format(msg))
+            logger.warning(" scarlett_sound: {}".format(scarlett_sound))
+            logger.warning(" command: {}".format(command))
+
+            # play sound
+
+            # Our thread will run start_listening
+            player_thread = threading.Thread(
+                target=scarlett_player.ScarlettPlayer(scarlett_sound).run())
+            player_thread.daemon = True
+            player_thread.start()
+
+            if command in scarlett_constants.FORECAST_CMDS.keys():
+
+                fio_hourly, fio_summary, fio_day = text = scarlett_forecast.ScarlettForecast(
+                    self.config, command).api()
+                logger.info(" Lets try putting these in one sentance:")
+                logger.info(" text: {}".format(text))
+                logger.warning(" fio_hourly: {}".format(fio_hourly))
+                logger.warning(" fio_summary: {}".format(fio_summary))
+                logger.warning(" fio_day: {}".format(fio_day))
+                logger.debug(" fio_hourly. fio_summary. fio_day. =  {}. {}. {}.".format(
+                    fio_hourly, fio_summary, fio_day))
+
+                # if text > 1:
+#
+                # Our thread will run start_listening
+                # Lets have the threads wait before doing the next thing
+                # see this: http://stackoverflow.com/questions/26172107/gobject-idle-add-thread-join-and-my-program-hangs
+                #     speaker_thread = threading.Thread(target=scarlett_speaker.ScarlettSpeaker(command).run())
+                #     speaker_thread.daemon = True
+                #     speaker_thread.start()
 
         # SIGNAL: When someone says Scarlett
         bus.add_signal_receiver(player_cb,
                                 dbus_interface='com.example.service.event',
                                 signal_name='KeywordRecognizedSignal'
                                 )
-        # bus.add_signal_receiver(catchall_handler,
+        # bus.add_signal_receiver(command_cb,
         #                         dbus_interface='com.example.service.event',
         #                         signal_name='CommandRecognizedSignal'
         #                         )

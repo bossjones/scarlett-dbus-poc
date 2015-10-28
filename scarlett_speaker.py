@@ -72,11 +72,11 @@ logger = setup_logger()
 
 class ScarlettSpeaker():
 
-    def __init__(self, sound):
+    def __init__(self, cmd):
         global logger
         self._loop = gobject.MainLoop()
 
-        # Element playbin automatic plays any sound
+        # Element playbin automatic plays any cmd
         espeak_pipeline = 'espeak name=source ! autoaudiosink'
         self.player = gst.parse_launch(espeak_pipeline)
 
@@ -86,12 +86,12 @@ class ScarlettSpeaker():
         # start it again with new properties pipe.set_state(gst.STATE_PLAYING).
         # source: http://wiki.sugarlabs.org/go/Activity_Team/gst-plugins-espeak
         ####################################################################################
-        # Set the uri to the sound
+        # Set the uri to the cmd
         source = self.player.get_by_name("source")
         source.props.pitch = 50
         source.props.rate = 100
         source.props.voice = "en+f3"
-        source.props.text = _('{}'.format(sound))
+        source.props.text = _('{}'.format(cmd))
 
         # Enable message bus to check for errors in the pipeline
         bus = self.player.get_bus()
