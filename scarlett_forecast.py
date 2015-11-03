@@ -107,4 +107,4 @@ class ScarlettForecast():
             return (fio_hourly, fio_summary, fio_day)
 
     def quit(self):
-        logger.debug("  shutting down ScarlettPlayer")
+        logger.debug("  shutting down ScarlettForecast")

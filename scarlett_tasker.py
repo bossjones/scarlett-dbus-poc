@@ -51,8 +51,8 @@ import scarlett_forecast
 def setup_logger():
     """Return a logger with a default ColoredFormatter."""
     formatter = ColoredFormatter(
-        "(%(threadName)-9s) %(log_color)s%(levelname)-8s%(reset)s %(message_log_color)s%(message)s",
-        datefmt=None,
+        "%(asctime)s.%(msecs)03d (%(threadName)-9s) %(log_color)s%(levelname)-8s%(reset)s %(message_log_color)s%(message)s",
+        datefmt='%Y-%m-%d,%H:%M:%S',
         reset=True,
         log_colors={
             'DEBUG':    'cyan',
@@ -88,33 +88,30 @@ class ScarlettTasker():
 
         # NOTE: This is a proxy dbus command
         service = bus.get_object('com.example.service', "/com/example/service")
-        # self._message = service.get_dbus_method(
-        #     'get_message', 'com.example.service.Message')
         self._quit = service.get_dbus_method(
             'quit', 'com.example.service.Quit')
-        # self._status_ready = service.get_dbus_method(
-        #     'emitListenerReadySignal',
-        #     'com.example.service.emitListenerReadySignal')
         self._tasker_connected = service.get_dbus_method(
             'emitConnectedToListener',
             'com.example.service.emitConnectedToListener')
 
-        # def wait_for_t(t):
-        # if not t.is_alive():
-        # t.join() # This won't block, since the thread isn't alive anymore
-        # print 'a'
-        # Do whatever else you would do when join() (or maybe collega_GUI?) returns
-        # else:
-        ####         gobject.timeout_add(200, wait_for_t, t)
-
         # Function which will run when signal is received
-        def callback_function(*args):
-            logger.debug('Received something .. ', str(args))
+        # def callback_function(*args):
+        #     logger.debug('Received something .. ', str(args))
 
-        def catchall_handler(*args, **kwargs):
-            logger.debug("catchall_handler PrettyPrinter: ")
-            pp = pprint.PrettyPrinter(indent=4)
-            pp.pprint(args)
+        # def catchall_handler(*args, **kwargs):
+        #     logger.debug("catchall_handler PrettyPrinter: ")
+        #     pp = pprint.PrettyPrinter(indent=4)
+        #     pp.pprint(args)
+
+        def wait_for_t(t):
+            if not t.is_alive():
+                # This won't block, since the thread isn't alive anymore
+                t.join()
+                print 'waiting.....'
+                # Do whatever else you would do when join()
+                # (or maybe collega_GUI?) returns
+            else:
+                gobject.timeout_add(200, wait_for_t, t)
 
         def player_cb(*args, **kwargs):
             logger.debug("player_cb PrettyPrinter: ")
@@ -125,10 +122,12 @@ class ScarlettTasker():
             logger.warning(" scarlett_sound: {}".format(scarlett_sound))
 
             # Our thread will run start_listening
-            player_thread = threading.Thread(
-                target=scarlett_player.ScarlettPlayer(scarlett_sound).run())
-            player_thread.daemon = True
-            player_thread.start()
+            pt = scarlett_player.ScarlettPlayer(scarlett_sound)
+            #### player_thread = threading.Thread(
+            ####     target=pt.run())
+            #### player_thread.daemon = True
+            #### player_thread.start()
+            # wait_for_t(player_thread)
 
         def command_cb(*args, **kwargs):
             logger.debug("player_cb PrettyPrinter: ")
@@ -198,7 +197,6 @@ class ScarlettTasker():
     def run(self):
         logger.debug(
             "{}".format(self._tasker_connected(ScarlettTasker().__class__.__name__)))
-        # logger.debug("Mesage from Master service: {}".format(self._message()))
 
     def quit(self):
         logger.debug("  shutting down ScarlettTasker")

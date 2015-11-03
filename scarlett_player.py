@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
+import pprint
 import dbus
 import dbus.service
 import dbus.mainloop.glib
@@ -31,13 +32,15 @@ sys.excepthook = ultratb.FormattedTB(mode='Verbose',
 from colorlog import ColoredFormatter
 
 import logging
+import time
+import scarlett_gstutils
 
 
 def setup_logger():
     """Return a logger with a default ColoredFormatter."""
     formatter = ColoredFormatter(
-        "(%(threadName)-9s) %(log_color)s%(levelname)-8s%(reset)s %(message_log_color)s%(message)s",
-        datefmt=None,
+        "%(asctime)s.%(msecs)03d (%(threadName)-9s) %(filename)s %(funcName)s %(module)s %(processName)s %(log_color)s%(levelname)-8s%(reset)s %(message_log_color)s%(message)s",
+        datefmt='%Y-%m-%d,%H:%M:%S',
         reset=True,
         log_colors={
             'DEBUG':    'cyan',
@@ -68,6 +71,8 @@ def setup_logger():
 PWD = '/home/pi/dev/bossjones-github/scarlett-dbus-poc'
 logger = setup_logger()
 
+import threading
+
 
 class ScarlettPlayer():
 
@@ -75,35 +80,106 @@ class ScarlettPlayer():
         global PWD
         global logger
         self._loop = gobject.MainLoop()
+        self.debug = False
 
         # Element playbin automatic plays any sound
         self.player = gst.element_factory_make("playbin2", "player")
-        # Set the uri to the sound
+        self.end_cond = threading.Condition(threading.Lock())
 
+        # Set the uri to the sound
         filename = '%s/static/sounds/%s.wav' % (PWD, sound)
         self.player.set_property('uri', 'file://%s' % filename)
+        self.sound = sound
 
         # Enable message bus to check for errors in the pipeline
         bus = self.player.get_bus()
         bus.add_signal_watch()
-        bus.connect("message", self.on_message)
+        # bus.enable_sync_message_emission()
+        bus.connect("message", self._on_message_cb)
+        # bus.connect("message::eos", self.on_finish)
+        # bus.connect('message::error', self.on_error)
+        logger.debug("ScarlettPlayer __init__ finished")
+
+        self.mainloopthread = scarlett_gstutils.MainloopThread(self._loop)
+        self.mainloopthread.start()
+
+        # start pipeline
+        self.player.set_state(gst.STATE_PLAYING)
+
+    def release(self):
+        if hasattr(self, 'eod') and hasattr(self, '_loop'):
+            self.end_cond.acquire()
+            while not hasattr(self, 'end_reached'):
+                self.end_cond.wait()
+            self.end_cond.release()
+        if hasattr(self, 'error_msg'):
+            raise IOError(self.error_msg)
 
     def run(self):
-        self.player.set_state(gst.STATE_PLAYING)
+        logger.debug("ScarlettPlayer sound: {}".format(self.sound))
+        # self.player.set_state(gst.STATE_PLAYING)
         self._loop.run()
 
     def on_message(self, bus, message):
+        pp = pprint.PrettyPrinter(indent=4)
+        pp.pprint(bus)
+        pp.pprint(message)
         t = message.type
         if t == gst.MESSAGE_EOS:
+            logger.debug("OKAY, MESSAGE_EOS: ".format(gst.MESSAGE_EOS))
             self.player.set_state(gst.STATE_NULL)
             self._loop.quit()
             self.quit()
         elif t == gst.MESSAGE_ERROR:
+            logger.debug("OKAY, MESSAGE_ERROR: ".format(gst.MESSAGE_ERROR))
             self.player.set_state(gst.STATE_NULL)
             err, debug = message.parse_error()
             print "Error: %s" % err, debug
             self._loop.quit()
             self.quit()
+
+    def finish_request(self):
+        self.player.set_state(gst.STATE_NULL)
+        self._loop.quit()
+        self.quit()
+        time.sleep(2)
+        return
+
+    def _on_message_cb(self, bus, message):
+        if self.debug:
+            pp = pprint.PrettyPrinter(indent=4)
+            pp.pprint(bus)
+            pp.pprint(message)
+        t = message.type
+        if t == gst.MESSAGE_EOS:
+            logger.debug("OKAY, MESSAGE_EOS: ".format(gst.MESSAGE_EOS))
+            self.end_cond.acquire()
+            self.player.set_state(gst.STATE_NULL)
+            self._loop.quit()
+            self.end_reached = True
+            self.end_cond.notify()
+            self.end_cond.release()
+            self.quit()
+
+        elif t == gst.MESSAGE_ERROR:
+            logger.debug("OKAY, MESSAGE_ERROR: ".format(gst.MESSAGE_ERROR))
+            self.end_cond.acquire()
+            self.player.set_state(gst.STATE_NULL)
+            self._loop.quit()
+            self.end_reached = True
+            err, debug = message.parse_error()
+            self.error_msg = "Error: %s" % err, debug
+            self.end_cond.notify()
+            self.end_cond.release()
+            self.quit()
+
+    def on_finish(self, bus, message):
+        logger.debug("OKAY, on_finish. Setting state to STATE_NULL")
+        self.finish_request()
+
+    def on_error(self, bus, message):
+        logger.debug("OKAY, on_error. Setting state to STATE_NULL")
+        self.finish_request()
 
     def quit(self):
         logger.debug("  shutting down ScarlettPlayer")
