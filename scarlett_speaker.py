@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
+import pprint
 import dbus
 import dbus.service
 import dbus.mainloop.glib
@@ -38,8 +39,8 @@ import logging
 def setup_logger():
     """Return a logger with a default ColoredFormatter."""
     formatter = ColoredFormatter(
-        "(%(threadName)-9s) %(log_color)s%(levelname)-8s%(reset)s %(message_log_color)s%(message)s",
-        datefmt=None,
+        "%(asctime)s.%(msecs)03d (%(threadName)-9s) %(filename)s %(funcName)s %(module)s %(processName)s %(log_color)s%(levelname)-8s%(reset)s %(message_log_color)s%(message)s",
+        datefmt='%Y-%m-%d,%H:%M:%S',
         reset=True,
         log_colors={
             'DEBUG':    'cyan',
@@ -69,37 +70,53 @@ def setup_logger():
 # Create a player
 logger = setup_logger()
 
+import threading
+import time
+import scarlett_gstutils
+
 
 class ScarlettSpeaker():
 
     def __init__(self, cmd):
         global logger
         self._loop = gobject.MainLoop()
+        self.debug = False
 
         # Element playbin automatic plays any cmd
         espeak_pipeline = 'espeak name=source ! autoaudiosink'
         self.player = gst.parse_launch(espeak_pipeline)
+        self.end_cond = threading.Condition(threading.Lock())
 
-        ####################################################################################
+        #######################################################################
         # all writable properties(including text) make sense only at start playing;
         # to apply new values you need to stop pipe.set_state(gst.STATE_NULL) pipe and
         # start it again with new properties pipe.set_state(gst.STATE_PLAYING).
         # source: http://wiki.sugarlabs.org/go/Activity_Team/gst-plugins-espeak
-        ####################################################################################
+        #######################################################################
         # Set the uri to the cmd
         source = self.player.get_by_name("source")
         source.props.pitch = 50
         source.props.rate = 100
         source.props.voice = "en+f3"
         source.props.text = _('{}'.format(cmd))
+        self.text = source.props.text
 
         # Enable message bus to check for errors in the pipeline
         bus = self.player.get_bus()
         bus.add_signal_watch()
-        bus.connect("message", self.on_message)
+        # bus.connect("message", self.on_message)
+        bus.connect("message", self._on_message_cb)
+        logger.debug("ScarlettSpeaker __init__ finished")
+
+        self.mainloopthread = scarlett_gstutils.MainloopThread(self._loop)
+        self.mainloopthread.start()
+
+        # start pipeline
+        self.player.set_state(gst.STATE_PLAYING)
 
     def run(self):
-        self.player.set_state(gst.STATE_PLAYING)
+        logger.debug("ScarlettSpeaker text: {}".format(self.self.text))
+        # self.player.set_state(gst.STATE_PLAYING)
         self._loop.run()
 
     def on_message(self, bus, message):
@@ -114,6 +131,49 @@ class ScarlettSpeaker():
             print "Error: %s" % err, debug
             self._loop.quit()
             self.quit()
+
+    def _on_message_cb(self, bus, message):
+        if self.debug:
+            pp = pprint.PrettyPrinter(indent=4)
+            pp.pprint(bus)
+            pp.pprint(message)
+        t = message.type
+        if t == gst.MESSAGE_EOS:
+            logger.debug("OKAY, MESSAGE_EOS: ".format(gst.MESSAGE_EOS))
+            self.end_cond.acquire()
+            self.player.set_state(gst.STATE_NULL)
+            self._loop.quit()
+            self.end_reached = True
+            self.end_cond.notify()
+            self.end_cond.release()
+            self.quit()
+
+        elif t == gst.MESSAGE_ERROR:
+            logger.debug("OKAY, MESSAGE_ERROR: ".format(gst.MESSAGE_ERROR))
+            self.end_cond.acquire()
+            self.player.set_state(gst.STATE_NULL)
+            self._loop.quit()
+            self.end_reached = True
+            err, debug = message.parse_error()
+            self.error_msg = "Error: %s" % err, debug
+            self.end_cond.notify()
+            self.end_cond.release()
+            self.quit()
+
+    def finish_request(self):
+        self.player.set_state(gst.STATE_NULL)
+        self._loop.quit()
+        self.quit()
+        time.sleep(2)
+        return
+
+    def on_finish(self, bus, message):
+        logger.debug("OKAY, on_finish. Setting state to STATE_NULL")
+        self.finish_request()
+
+    def on_error(self, bus, message):
+        logger.debug("OKAY, on_error. Setting state to STATE_NULL")
+        self.finish_request()
 
     def quit(self):
         logger.debug("  shutting down ScarlettSpeaker")

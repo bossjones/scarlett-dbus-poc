@@ -38,14 +38,15 @@ sys.excepthook = ultratb.FormattedTB(mode='Verbose',
 from colorlog import ColoredFormatter
 
 import logging
+import scarlett_constants
 
 import threading
 import time
 
 import scarlett_player
-import scarlett_constants
 import scarlett_speaker
 import scarlett_forecast
+import scarlett_config
 
 
 def setup_logger():
@@ -94,6 +95,8 @@ class ScarlettTasker():
             'emitConnectedToListener',
             'com.example.service.emitConnectedToListener')
 
+        self.config = scarlett_config.Config()
+
         # Function which will run when signal is received
         # def callback_function(*args):
         #     logger.debug('Received something .. ', str(args))
@@ -122,11 +125,11 @@ class ScarlettTasker():
             logger.warning(" scarlett_sound: {}".format(scarlett_sound))
 
             # Our thread will run start_listening
-            pt = scarlett_player.ScarlettPlayer(scarlett_sound)
-            #### player_thread = threading.Thread(
-            ####     target=pt.run())
+            scarlett_player.ScarlettPlayer(scarlett_sound)
+            # player_thread = threading.Thread(
+            # target=pt.run())
             #### player_thread.daemon = True
-            #### player_thread.start()
+            # player_thread.start()
             # wait_for_t(player_thread)
 
         def command_cb(*args, **kwargs):
@@ -141,10 +144,11 @@ class ScarlettTasker():
             # play sound
 
             # Our thread will run start_listening
-            player_thread = threading.Thread(
-                target=scarlett_player.ScarlettPlayer(scarlett_sound).run())
-            player_thread.daemon = True
-            player_thread.start()
+            scarlett_player.ScarlettPlayer(scarlett_sound)
+            # player_thread = threading.Thread(
+            #     target=scarlett_player.ScarlettPlayer(scarlett_sound).run())
+            # player_thread.daemon = True
+            # player_thread.start()
 
             if command in scarlett_constants.FORECAST_CMDS.keys():
 
@@ -172,10 +176,10 @@ class ScarlettTasker():
                                 dbus_interface='com.example.service.event',
                                 signal_name='KeywordRecognizedSignal'
                                 )
-        # bus.add_signal_receiver(command_cb,
-        #                         dbus_interface='com.example.service.event',
-        #                         signal_name='CommandRecognizedSignal'
-        #                         )
+        bus.add_signal_receiver(command_cb,
+                                dbus_interface='com.example.service.event',
+                                signal_name='CommandRecognizedSignal'
+                                )
         # bus.add_signal_receiver(catchall_handler,
         #                         dbus_interface='com.example.service.event',
         #                         signal_name='SttFailedSignal'
