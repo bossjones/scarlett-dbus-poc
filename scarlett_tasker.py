@@ -38,18 +38,22 @@ sys.excepthook = ultratb.FormattedTB(mode='Verbose',
 from colorlog import ColoredFormatter
 
 import logging
+import scarlett_constants
 
 import threading
 import time
 
 import scarlett_player
+import scarlett_speaker
+import scarlett_forecast
+import scarlett_config
 
 
 def setup_logger():
     """Return a logger with a default ColoredFormatter."""
     formatter = ColoredFormatter(
-        "(%(threadName)-9s) %(log_color)s%(levelname)-8s%(reset)s %(message_log_color)s%(message)s",
-        datefmt=None,
+        "%(asctime)s.%(msecs)03d (%(threadName)-9s) %(log_color)s%(levelname)-8s%(reset)s %(message_log_color)s%(message)s",
+        datefmt='%Y-%m-%d,%H:%M:%S',
         reset=True,
         log_colors={
             'DEBUG':    'cyan',
@@ -85,25 +89,32 @@ class ScarlettTasker():
 
         # NOTE: This is a proxy dbus command
         service = bus.get_object('com.example.service', "/com/example/service")
-        # self._message = service.get_dbus_method(
-        #     'get_message', 'com.example.service.Message')
         self._quit = service.get_dbus_method(
             'quit', 'com.example.service.Quit')
-        # self._status_ready = service.get_dbus_method(
-        #     'emitListenerReadySignal',
-        #     'com.example.service.emitListenerReadySignal')
         self._tasker_connected = service.get_dbus_method(
             'emitConnectedToListener',
             'com.example.service.emitConnectedToListener')
 
-        # Function which will run when signal is received
-        def callback_function(*args):
-            logger.debug('Received something .. ', str(args))
+        self.config = scarlett_config.Config()
 
-        def catchall_handler(*args, **kwargs):
-            logger.debug("catchall_handler PrettyPrinter: ")
-            pp = pprint.PrettyPrinter(indent=4)
-            pp.pprint(args)
+        # Function which will run when signal is received
+        # def callback_function(*args):
+        #     logger.debug('Received something .. ', str(args))
+
+        # def catchall_handler(*args, **kwargs):
+        #     logger.debug("catchall_handler PrettyPrinter: ")
+        #     pp = pprint.PrettyPrinter(indent=4)
+        #     pp.pprint(args)
+
+        def wait_for_t(t):
+            if not t.is_alive():
+                # This won't block, since the thread isn't alive anymore
+                t.join()
+                print 'waiting.....'
+                # Do whatever else you would do when join()
+                # (or maybe collega_GUI?) returns
+            else:
+                gobject.timeout_add(200, wait_for_t, t)
 
         def player_cb(*args, **kwargs):
             logger.debug("player_cb PrettyPrinter: ")
@@ -114,19 +125,61 @@ class ScarlettTasker():
             logger.warning(" scarlett_sound: {}".format(scarlett_sound))
 
             # Our thread will run start_listening
-            thread = threading.Thread(target=scarlett_player.ScarlettPlayer(scarlett_sound).run())
-            thread.daemon = True
-            thread.start()
+            scarlett_player.ScarlettPlayer(scarlett_sound)
+            # player_thread = threading.Thread(
+            # target=pt.run())
+            #### player_thread.daemon = True
+            # player_thread.start()
+            # wait_for_t(player_thread)
+
+        def command_cb(*args, **kwargs):
+            logger.debug("player_cb PrettyPrinter: ")
+            pp = pprint.PrettyPrinter(indent=4)
+            pp.pprint(args)
+            msg, scarlett_sound, command = args
+            logger.warning(" msg: {}".format(msg))
+            logger.warning(" scarlett_sound: {}".format(scarlett_sound))
+            logger.warning(" command: {}".format(command))
+
+            # play sound
+
+            # Our thread will run start_listening
+            scarlett_player.ScarlettPlayer(scarlett_sound)
+            # player_thread = threading.Thread(
+            #     target=scarlett_player.ScarlettPlayer(scarlett_sound).run())
+            # player_thread.daemon = True
+            # player_thread.start()
+
+            if command in scarlett_constants.FORECAST_CMDS.keys():
+
+                fio_hourly, fio_summary, fio_day = text = scarlett_forecast.ScarlettForecast(
+                    self.config, command).api()
+                logger.info(" Lets try putting these in one sentance:")
+                logger.info(" text: {}".format(text))
+                logger.warning(" fio_hourly: {}".format(fio_hourly))
+                logger.warning(" fio_summary: {}".format(fio_summary))
+                logger.warning(" fio_day: {}".format(fio_day))
+                logger.debug(" fio_hourly. fio_summary. fio_day. =  {}. {}. {}.".format(
+                    fio_hourly, fio_summary, fio_day))
+
+                # if text > 1:
+#
+                # Our thread will run start_listening
+                # Lets have the threads wait before doing the next thing
+                # see this: http://stackoverflow.com/questions/26172107/gobject-idle-add-thread-join-and-my-program-hangs
+                #     speaker_thread = threading.Thread(target=scarlett_speaker.ScarlettSpeaker(command).run())
+                #     speaker_thread.daemon = True
+                #     speaker_thread.start()
 
         # SIGNAL: When someone says Scarlett
         bus.add_signal_receiver(player_cb,
                                 dbus_interface='com.example.service.event',
                                 signal_name='KeywordRecognizedSignal'
                                 )
-        # bus.add_signal_receiver(catchall_handler,
-        #                         dbus_interface='com.example.service.event',
-        #                         signal_name='CommandRecognizedSignal'
-        #                         )
+        bus.add_signal_receiver(command_cb,
+                                dbus_interface='com.example.service.event',
+                                signal_name='CommandRecognizedSignal'
+                                )
         # bus.add_signal_receiver(catchall_handler,
         #                         dbus_interface='com.example.service.event',
         #                         signal_name='SttFailedSignal'
@@ -148,7 +201,6 @@ class ScarlettTasker():
     def run(self):
         logger.debug(
             "{}".format(self._tasker_connected(ScarlettTasker().__class__.__name__)))
-        # logger.debug("Mesage from Master service: {}".format(self._message()))
 
     def quit(self):
         logger.debug("  shutting down ScarlettTasker")
