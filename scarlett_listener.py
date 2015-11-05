@@ -37,6 +37,7 @@ import scarlett_config
 SCARLETT_CANCEL = "pi-cancel"
 SCARLETT_LISTENING = "pi-listening"
 SCARLETT_RESPONSE = "pi-response"
+SCARLETT_FAILED = "pi-response.2"
 
 
 def setup_logger():
@@ -142,15 +143,15 @@ class ScarlettListener(dbus.service.Object):
         logger.debug(" sending message: {}".format(message))
 
     @dbus.service.signal("com.example.service.event")
-    def SttFailedSignal(self, message):
+    def SttFailedSignal(self, message, scarlett_sound):
         logger.debug(" sending message: {}".format(message))
 
     @dbus.service.signal("com.example.service.event")
-    def ListenerCancelSignal(self, message):
+    def ListenerCancelSignal(self, message, scarlett_sound):
         logger.debug(" sending message: {}".format(message))
 
     @dbus.service.signal("com.example.service.event")
-    def ListenerReadySignal(self, message):
+    def ListenerReadySignal(self, message, scarlett_sound):
         logger.debug(" sending message: {}".format(message))
 
     @dbus.service.signal("com.example.service.event")
@@ -185,23 +186,24 @@ class ScarlettListener(dbus.service.Object):
                          in_signature='',
                          out_signature='s')
     def emitSttFailedSignal(self):
-        print "  sending message"
-        self.SttFailedSignal(self._status_stt_failed)
+        global SCARLETT_FAILED
+        self.SttFailedSignal(self._status_stt_failed, SCARLETT_FAILED)
         return self._status_stt_failed
 
     @dbus.service.method("com.example.service.emitListenerCancelSignal",
                          in_signature='',
                          out_signature='s')
     def emitListenerCancelSignal(self):
-        print "  sending message"
-        self.ListenerCancelSignal(self._status_cmd_cancel)
+        global SCARLETT_CANCEL
+        self.ListenerCancelSignal(self._status_cmd_cancel, SCARLETT_CANCEL)
         return self._status_cmd_cancel
 
     @dbus.service.method("com.example.service.emitListenerReadySignal",
                          in_signature='',
                          out_signature='s')
     def emitListenerReadySignal(self):
-        self.ListenerReadySignal(self._status_ready)
+        global SCARLETT_LISTENING
+        self.ListenerReadySignal(self._status_ready, SCARLETT_LISTENING)
         return self._status_ready
 
     @dbus.service.method("com.example.service.emitConnectedToListener",

@@ -180,14 +180,14 @@ class ScarlettTasker():
                                 dbus_interface='com.example.service.event',
                                 signal_name='CommandRecognizedSignal'
                                 )
-        # bus.add_signal_receiver(catchall_handler,
-        #                         dbus_interface='com.example.service.event',
-        #                         signal_name='SttFailedSignal'
-        #                         )
-        # bus.add_signal_receiver(catchall_handler,
-        #                         dbus_interface='com.example.service.event',
-        #                         signal_name='ListenerCancelSignal'
-        #                         )
+        bus.add_signal_receiver(player_cb,
+                                dbus_interface='com.example.service.event',
+                                signal_name='SttFailedSignal'
+                                )
+        bus.add_signal_receiver(player_cb,
+                                dbus_interface='com.example.service.event',
+                                signal_name='ListenerCancelSignal'
+                                )
         # bus.add_signal_receiver(catchall_handler,
         #                         dbus_interface='com.example.service.event',
         #                         signal_name='ConnectedToListener'
