@@ -188,7 +188,7 @@ class ScarlettListener(dbus.service.Object):
     def emitSttFailedSignal(self):
         global SCARLETT_FAILED
         self.SttFailedSignal(self._status_stt_failed, SCARLETT_FAILED)
-        return self._status_stt_failed
+        return SCARLETT_FAILED
 
     @dbus.service.method("com.example.service.emitListenerCancelSignal",
                          in_signature='',
@@ -196,7 +196,7 @@ class ScarlettListener(dbus.service.Object):
     def emitListenerCancelSignal(self):
         global SCARLETT_CANCEL
         self.ListenerCancelSignal(self._status_cmd_cancel, SCARLETT_CANCEL)
-        return self._status_cmd_cancel
+        return SCARLETT_CANCEL
 
     @dbus.service.method("com.example.service.emitListenerReadySignal",
                          in_signature='',
@@ -204,7 +204,7 @@ class ScarlettListener(dbus.service.Object):
     def emitListenerReadySignal(self):
         global SCARLETT_LISTENING
         self.ListenerReadySignal(self._status_ready, SCARLETT_LISTENING)
-        return self._status_ready
+        return SCARLETT_LISTENING
 
     @dbus.service.method("com.example.service.emitConnectedToListener",
                          in_signature='',
