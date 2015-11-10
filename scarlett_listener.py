@@ -37,7 +37,7 @@ import scarlett_config
 SCARLETT_CANCEL = "pi-cancel"
 SCARLETT_LISTENING = "pi-listening"
 SCARLETT_RESPONSE = "pi-response"
-SCARLETT_FAILED = "pi-response.2"
+SCARLETT_FAILED = "pi-response2"
 
 
 def setup_logger():
