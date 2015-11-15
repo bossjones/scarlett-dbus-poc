@@ -1,5 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
+import os
+import sys
+
+SCARLETT_DEBUG = 1
+
+if SCARLETT_DEBUG:
+    # Setting GST_DEBUG_DUMP_DOT_DIR environment variable enables us to have a
+    # dotfile generated
+    os.environ["GST_DEBUG_DUMP_DOT_DIR"] = "/home/pi/dev/bossjones-github/scarlett-dbus-poc/_debug"
+    os.putenv('GST_DEBUG_DUMP_DIR_DIR', '/home/pi/dev/bossjones-github/scarlett-dbus-poc/_debug')
 
 import dbus
 import dbus.service
@@ -14,8 +24,7 @@ pygst.require('0.10')
 import gst
 
 import StringIO
-import os
-import sys
+
 import re
 import ConfigParser
 import signal
@@ -80,7 +89,8 @@ class ScarlettListener(dbus.service.Object):
         self.override_parse = ''
         self.failed = 0
         self.kw_found = 0
-        self.debug = False
+        self.debug = True
+        self.create_dot = False
 
         self._status_ready = "  ScarlettListener is ready"
         self._status_kw_match = "  ScarlettListener caught a keyword match"
@@ -107,6 +117,25 @@ class ScarlettListener(dbus.service.Object):
         self.pipeline = gst.parse_launch(
             ' ! '.join(self.parse_launch_array))
 
+    # this function generates the dot file, checks that graphviz in installed and
+    # then finally generates a png file, which it then displays
+    def on_debug_activate(self):
+        dotfile = "/home/pi/dev/bossjones-github/scarlett-dbus-poc/_debug/scarlett-debug-graph.dot"
+        pngfile = "/home/pi/dev/bossjones-github/scarlett-dbus-poc/_debug/scarlett-pipeline.png"
+        if os.access(dotfile, os.F_OK):
+            os.remove(dotfile)
+        if os.access(pngfile, os.F_OK):
+            os.remove(pngfile)
+        gst.DEBUG_BIN_TO_DOT_FILE(self.pipeline,
+                                  gst.DEBUG_GRAPH_SHOW_ALL, 'scarlett-debug-graph')
+        # check if graphviz is installed with a simple test
+        try:
+            os.system('/usr/bin/dot' + " -Tpng -o " + pngfile + " " + dotfile)
+            # Gtk.show_uri(None, "file://"+pngfile, 0)
+        except:
+            print "The debug feature requires graphviz (dot) to be installed."
+            print "Transmageddon can not find the (dot) binary."
+
     def run(self):
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
         bus_name = dbus.service.BusName(
@@ -128,6 +157,8 @@ class ScarlettListener(dbus.service.Object):
         self._loop = gobject.MainLoop()
         print "ScarlettListener running..."
         self.emitListenerReadySignal()
+        if self.create_dot:
+            self.on_debug_activate()
         self._loop.run()
         print "ScarlettListener stopped"
 

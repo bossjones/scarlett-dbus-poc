@@ -4,3 +4,4 @@ alias keyword-found-signal='dbus-send --session --print-reply --dest="com.exampl
 alias keyword-cancel-signal='dbus-send --session --print-reply --dest="com.example.service" "/com/example/service" "com.example.service.emitListenerCancelSignal.emitListenerCancelSignal"'
 alias command-weather-signal='dbus-send --session --print-reply --dest="com.example.service" "/com/example/service" "com.example.service.emitCommandRecognizedSignal.emitCommandRecognizedSignal" string:"WHAT IS THE WEATHER"'
 alias command-failed-signal='dbus-send --session --print-reply --dest="com.example.service" "/com/example/service" "com.example.service.emitSttFailedSignal.emitSttFailedSignal"'
+alias open_dot='eog /home/pi/dev/bossjones-github/scarlett-dbus-poc/_debug/scarlett-pipeline.png'
