@@ -114,6 +114,8 @@ class ScarlettListener(dbus.service.Object):
         self.speech_system = self.config.get('speech', 'system')
         self.parse_launch_array = self._get_pocketsphinx_definition(
             self.override_parse)
+        logger.debug("GST-PARSE-LAUNCH: " + ' ! '.join(self.parse_launch_array))
+
         self.pipeline = gst.parse_launch(
             ' ! '.join(self.parse_launch_array))
 
