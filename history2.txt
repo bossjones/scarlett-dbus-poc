@@ -1,0 +1,79 @@
+
+### visudo
+### apt-get install vim
+### vim /etc/sudoers
+### exit
+### vim /etc/ssh/sshd_config
+### service sshd restart
+### service ssh restart
+### vim /etc/ssh/ssh_config
+### sudo apt-get install ntp ntpdate
+### vim /etc/ntp.conf
+### shutdown -r now
+### vim /etc/ssh/sshd_config
+### service ssh restart
+### ufw status
+### sudo su - pi
+### apt-get install git
+### apt-get install build-essential libssl-dev libreadline-dev wget curl openssh-server
+### apt-get install gcc make linux-headers-$(uname -r)
+### apt-get install ca-certificates bash
+### apt-get install python-setuptools perl pkg-config software-properties-common python python-pip python-dev
+### easy_install --upgrade pip && easy_install --upgrde setuptools
+### easy_install --upgrade pip && easy_install --upgarde setuptools
+### easy_install --upgrade pip && easy_install --upgrade setuptools
+### clear
+### add-apt-repository ppa:git-core/ppa -y && apt-get update && apt-get install -yqq git
+
+apt-get install alsa-tools alsa-utils alsa-firmware-loaders libasound2-plugin-equal libasound2-plugins -y && \
+apt-get install alsa-tools alsa-oss flex zlib1g-dev libc-bin libc-dev-bin python-pexpect libasound2 libasound2-dev cvs -y && \
+apt-get install lame sox mplayer alsa-oss alsaplayer mpg321 alsaplayer-alsa alsa-base -y && \
+apt-get install moc-ffmpeg-plugin -y && \
+apt-get install alsa-oss alsaplayer mpg321 alsaplayer-alsa alsa-base -y && \
+apt-get install youtube-dl axel curl xterm libcurl4-gnutls-dev mpg123 flac sox -y && \
+apt-cache search libpulse-mainloop-glib
+apt-get install libao4 libasound2-plugins libgconfmm-2.6-1c2 libglademm-2.4-1c2a libpulse-dev libpulse-mainloop-glib0 libpulse-mainloop-glib0-dbg libpulse0 libpulse0-dbg libsox-fmt-pulse paman paprefs pavucontrol pavumeter pulseaudio pulseaudio-dbg pulseaudio-esound-compat pulseaudio-esound-compat-dbg pulseaudio-module-bluetooth pulseaudio-module-gconf pulseaudio-module-jack pulseaudio-module-lirc pulseaudio-module-lirc-dbg pulseaudio-module-x11 pulseaudio-module-zeroconf pulseaudio-module-zeroconf-dbg pulseaudio-utils -y
+
+pip install ipython
+apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D
+echo "deb https://apt.dockerproject.org/repo ubuntu-trusty main" > /etc/apt/sources.list.d/docker.list
+apt-get update
+apt-get install -y linux-image-extra-$(uname -r) && \
+apt-get install -y docker-engine && \
+service docker start && \
+usermod -aG docker pi
+
+apt-get install htop -y
+
+
+echo 'pcm.pulse {
+    type pulse
+}
+
+ctl.pulse {
+    type pulse
+}
+
+pcm.!default {
+    type pulse
+}
+
+ctl.!default {
+    type pulse
+}' > /etc/asound.conf
+
+# ipv6
+vim /etc/avahi/avahi-daemon.conf
+
+# s/alsa/pulse/
+vim /etc/libao.conf
+
+vim /etc/pulse/daemon.conf
+
+# echo "scarlett "  > /etc/motd
+
+adduser pi pulse-access
+
+dd if=/dev/zero of=/EMPTY bs=1M
+rm -f /EMPTY
+shutdown -h now

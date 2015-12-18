@@ -30,3 +30,26 @@ Then you can either
 * run the emitter, which will emit a test signal and a quit signal.
 
 After running either of them, the receiver should be stopped.
+
+### Vagrant packaging
+
+# package the box
+vagrant package --base scarlett-dbus-poc_default_1449512156423_85046 --output ~/ubuntu_14_04_base_w_gst_pulseaudio_guestadd2.box
+
+# NOTE: WE SHOULD TRY RUNNING PACKAGE LIKE THIS
+vagrant package --base scarlett-dbus-poc_default_1449512156423_85046 --output ~/ubuntu_14_04_base_w_gst_pulseaudio_guestadd3.box --vagrantfile ~/dev/bossjones/scarlett-dbus-poc/Vagrantfile
+
+# add the box
+vagrant box add --name "scarlettpi-base-ubuntu-14-04-pulse" /Users/malcolm/ubuntu_14_04_base_w_gst_pulseaudio_guestadd3.box
+
+# reinstalling unity to make desktop work correctly again
+http://askubuntu.com/questions/502224/dash-wont-launch-applications-after-upgrade-to-14-04
+
+# new way to install
+https://github.com/cmusphinx/pocketsphinx
+https://github.com/cmusphinx/cmudict
+https://github.com/cmusphinx/pocketsphinx-python
+https://github.com/cmusphinx/sphinxbase
+https://github.com/cmusphinx/sphinxtrain
+https://github.com/cmusphinx/cmudict-tools
+https://github.com/cmusphinx/kaldi

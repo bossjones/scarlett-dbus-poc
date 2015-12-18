@@ -1,0 +1,106 @@
+
+apt-get upgrade
+add-apt-repository ppa:gstreamer-developers/ppa -y
+apt-get update
+apt-get install gstreamer1.0* -y
+
+apt-get install -y gstreamer1.0-plugins-base gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-bad-faad gstreamer1.0-plugins-bad-videoparsers gstreamer1.0-plugins-ugly
+
+apt-get install -y python-scipy python-nose python-numpy-dbg python-numpy-doc python-coverage
+apt-get install -y python python-dev python-pip build-essential swig git
+apt-get install -y gobject-introspection
+
+apt-get install -y build-essential autotools-dev automake autoconf libtool autopoint libxml2-dev zlib1g-dev libglib2.0-dev pkg-config bison flex python git gtk-doc-tools libasound2-dev libgudev-1.0-dev libxt-dev libvorbis-dev libcdparanoia-dev libpango1.0-dev libtheora-dev libvisual-0.4-dev iso-codes libgtk-3-dev libraw1394-dev libiec61883-dev libavc1394-dev libv4l-dev libcairo2-dev libcaca-dev libspeex-dev libpng-dev libshout3-dev libjpeg-dev libaa1-dev libflac-dev libdv4-dev libtag1-dev libwavpack-dev libpulse-dev libsoup2.4-dev libbz2-dev libcdaudio-dev libdc1394-22-dev ladspa-sdk libass-dev libcurl4-gnutls-dev libdca-dev libdirac-dev libdvdnav-dev libexempi-dev libexif-dev libfaad-dev libgme-dev libgsm1-dev libiptcdata0-dev libkate-dev libmimic-dev libmms-dev libmodplug-dev libmpcdec-dev libofa0-dev libopus-dev librsvg2-dev librtmp-dev libschroedinger-dev libslv2-dev libsndfile1-dev libsoundtouch-dev libspandsp-dev libx11-dev libxvidcore-dev libzbar-dev libzvbi-dev liba52-0.7.4-dev libcdio-dev libdvdread-dev libmad0-dev libmp3lame-dev libmpeg2-4-dev libopencore-amrnb-dev libopencore-amrwb-dev libsidplay1-dev libtwolame-dev libx264-dev
+
+apt-get install -y libgirepository1.0-dev gstreamer1.0-plugins-good gir1.2-clutter-1.0 gir1.2-clutter-gst-1.0 gir1.2-gtkclutter-1.0 gir1.2-gtksource-3.0 gir1.2-vte-2.90 gir1.2-webkit-1.0 gir1.2-webkit-3.0
+apt-get install git libcairo2-dev libgtk2.0-dev libglib2.0-dev libtool libpango1.0-dev libatk1.0-dev libffi-dev libpq-dev
+
+apt-get install -y libglib2.0-*
+
+apt-get install -y git libcairo2-dev libgtk2.0-dev libglib2.0-dev libtool libpango1.0-dev libatk1.0-dev libffi-dev libpq-dev libmysqlclient-dev
+apt-get install git build-essential automake libtool itstool gtk-doc-tools gnome-common gnome-doc-utils yasm flex bison
+
+apt-get install python-gst-1.0* -y
+apt-get install gstreamer1.0* -y
+
+apt-get install libgstreamer1.0* -y && \
+apt-get install libnice-dev -y && \
+apt-get install gstreamer1.0-pulseaudio -y && \
+apt-get install pavucontrol pulseaudio -y && \
+apt-get install pavucontrol pulseaudio libao4 -y
+
+apt-get install libasound2-plugins -y && \
+apt-get install libgconfmm-2.6-1c2 libglademm-2.4-1c2a libpulse-dev -y && \
+apt-get install libpulse-mainloop-glib0 libpulse-mainloop-glib0-dbg libpulse0 libpulse0-dbg libsox-fmt-pulse paman paprefs pavucontrol pavumeter pulseaudio pulseaudio-dbg pulseaudio-esound-compat pulseaudio-esound-compat-dbg pulseaudio-module-bluetooth pulseaudio-module-gconf pulseaudio-module-jack pulseaudio-module-lirc pulseaudio-module-lirc-dbg pulseaudio-module-x11 pulseaudio-module-zeroconf pulseaudio-module-zeroconf-dbg pulseaudio-utils -y
+
+apt-get install -y autoconf automake bison build-essential libtool python-pyside python-iplib python-simplejson && \
+apt-get install -y python2.7-dev && \
+apt-get install -y libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev && \
+apt-get install -y libusb-1.0
+
+apt-get install yelp-tools python-libxml2 -y && \
+apt-get install gnome-core-devel gnome-devel -y && \
+apt-get install anjuta glade devhelp -y && \
+apt-get install libgtk-3-dev libgstreamer0.10-dev libclutter-1.0-dev libwebkitgtk-3.0-dev libgda-5.0-dev -y
+
+apt-get install g++ libgtkmm-3.0-dev libgdamm5.0-dev -y && \
+apt-get install git build-essential automake libtool itstool gtk-doc-tools gnome-common gnome-doc-utils yasm flex bison -y
+
+apt-get install -y libgirepository1.0-dev python-gi-dev libcairo2-dev python-gi-cairo libgdk-pixbuf2.0-dev libpulse-dev libgtk-3-dev libclutter-1.0-dev libclutter-gtk-1.0-dev libclutter-gst-1.0-0 libclutter-gst-1.0-dbg libclutter-gst-dev gir1.2-clutter-gst-1.0 libxml2-dev python-numpy gir1.2-clutter-1.0
+apt-get install gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-alsa gstreamer1.0-pulseaudio libgstreamer-plugins-bad1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer1.0-dev libgstreamer1.0-0
+
+apt-get install python-gi gstreamer1.0-tools gir1.2-gstreamer-1.0 gir1.2-gst-plugins-base-1.0 gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-plugins-bad gstreamer1.0-libav -y
+
+apt-get build-dep gstreamer1.0-plugins-base -y && \
+apt-get build-dep gstreamer1.0-plugins-base -y && \
+apt-get build-dep gstreamer1.0-plugins-good -y && \
+apt-get build-dep gstreamer1.0-plugins-ugly -y && \
+apt-get build-dep gstreamer1.0-plugins-ugly -y && \
+apt-get install gstreamer1.0-alsa gstreamer1.0-doc gstreamer1.0-libav gstreamer1.0-libav-dbg gstreamer1.0-plugins-bad gstreamer1.0-plugins-bad-dbg gstreamer1.0-plugins-bad-doc gstreamer1.0-plugins-base gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-base-dbg gstreamer1.0-plugins-base-doc gstreamer1.0-plugins-good gstreamer1.0-plugins-good-dbg gstreamer1.0-plugins-good-doc gstreamer1.0-plugins-ugly gstreamer1.0-plugins-ugly-dbg gstreamer1.0-plugins-ugly-doc gstreamer1.0-pulseaudio gstreamer1.0-tools gstreamer1.0-x libgstreamer1.0-0 libgstreamer1.0-0-dbg libgstreamer1.0-dev -y
+
+apt-get install libglu1-mesa-dev -y && \
+apt-get install libglib3.0* -y && \
+apt-get install anjuta glade devhelp -y && \
+apt-get install libgtk-3-dev libgstreamer0.10-dev libclutter-1.0-dev libwebkitgtk-3.0-dev libgda-5.0-dev -y && \
+apt-get install libgtk-3-doc gstreamer0.10-doc libclutter-1.0-doc libgda-5.0-doc -y && \
+apt-get install libgtkmm-3.0-dev -y && \
+apt-get install python python-gobject -y && \
+apt-get install python python-gobject -y
+
+
+apt-get install -y build-essential autotools-dev automake autoconf libtool autopoint libxml2-dev zlib1g-dev libglib2.0-dev pkg-config bison flex python git gtk-doc-tools libasound2-dev libgudev-1.0-dev libxt-dev libvorbis-dev libcdparanoia-dev libpango1.0-dev libtheora-dev libvisual-0.4-dev iso-codes libgtk-3-dev libraw1394-dev libiec61883-dev libavc1394-dev libv4l-dev libcairo2-dev libcaca-dev libspeex-dev libpng-dev libshout3-dev libjpeg-dev libaa1-dev libflac-dev libdv4-dev libtag1-dev libwavpack-dev libpulse-dev libsoup2.4-dev libbz2-dev libcdaudio-dev libdc1394-22-dev ladspa-sdk libass-dev libcurl4-gnutls-dev libdca-dev libdirac-dev libdvdnav-dev libexempi-dev libexif-dev libfaad-dev libgme-dev libgsm1-dev libiptcdata0-dev libkate-dev libmimic-dev libmms-dev libmodplug-dev libmpcdec-dev libofa0-dev libopus-dev librsvg2-dev librtmp-dev libschroedinger-dev libslv2-dev libsndfile1-dev libsoundtouch-dev libspandsp-dev libx11-dev libxvidcore-dev libzbar-dev libzvbi-dev liba52-0.7.4-dev libcdio-dev libdvdread-dev libmad0-dev libmp3lame-dev libmpeg2-4-dev libopencore-amrnb-dev libopencore-amrwb-dev libsidplay1-dev libtwolame-dev libx264-dev
+
+apt-get install -y libgirepository1.0-dev gstreamer1.0-plugins-good gir1.2-clutter-1.0 gir1.2-clutter-gst-1.0 gir1.2-gtkclutter-1.0 gir1.2-gtksource-3.0 gir1.2-vte-2.90 gir1.2-webkit-1.0 gir1.2-webkit-3.0
+apt-get install libgirepository1.0-dev gstreamer1.0-plugins-good gir1.2-clutter-1.0 gir1.2-clutter-gst-1.0 gir1.2-gtkclutter-1.0 gir1.2-gtksource-3.0 gir1.2-vte-2.90 gir1.2-webkit-1.0 gir1.2-webkit-3.0
+
+apt-get install -y libpoppler-glib-dev python-gtk2 python-cairo-dev python-gobject-dev python-gobject && \
+apt-get install -y automake pkg-config libpcre3-dev zlib1g-dev liblzma-dev && \
+apt-get install -y libtheora-dev libogg-dev libvorbis-dev libasound2-dev libjack-dev
+
+apt-get install libcups2 libcups2-dev -y
+
+apt-get install -y libcups2 libcups2-dev
+
+apt-get install libpython2.7 -y
+
+apt-get install libvala-0.22* -y
+apt-get install bogofilter-bdb bogofilter-common dbus-x11 dh-autoreconf faad gir1.2-gda-5.0 gnome-pkg-tools graphviz highlight highlight-common libacl1-dev libattr1-dev libavl-dev libavl1 libcap-dev libclutter-gst-1.0-dbg libclutter-gst-dev libcupsdriver1 libdigest-hmac-perl libgda-5.0-dev libgda-5.0-doc libgdamm-5.0-13 libgdamm5.0-dev libgdamm5.0-doc libgpgme11-dev libgsl0ldbl libiw-dev libjasper1 libmagic1 libmail-spf-perl libmpfr-dev libnet-dns-perl libnet-ip-perl libnetaddr-ip-perl libosmgpsmap-dev libosmgpsmap2 libpam0g-dev libpth-dev libpython3.2 libsasl2-dev libusb-1.0-0-dev libvala-0.12-0 libvala-0.14-0 libvaladoc0 libvpx-dev libwebp-dev libwebp2 libxml++2.6-2 libxml++2.6-dev libxv1 libyaml-dev ppp-dev python-osmgpsmap ragel re2c spamassassin spamc texinfo texlive texlive-bibtex-extra texlive-math-extra valac valac-0.14 valadoc x11proto-xext-dev xmlto yelp-tools -y
+
+apt-get install libvalad* -y && \
+apt-get install -y libwebp5 libwebp-dev && \
+apt-get install bogofilter-bdb bogofilter-common dbus-x11 dh-autoreconf faad gir1.2-gda-5.0 gnome-pkg-tools graphviz highlight highlight-common libacl1-dev libattr1-dev libavl-dev libavl1 libcap-dev libclutter-gst-1.0-dbg libclutter-gst-dev libdigest-hmac-perl libgda-5.0-dev libgda-5.0-doc libgdamm-5.0-13 libgdamm5.0-dev libgdamm5.0-doc libgpgme11-dev libgsl0ldbl libiw-dev libjasper1 libmagic1 -y
+
+apt-get install -y libmail-spf-perl libmpfr-dev libnet-dns-perl libnet-ip-perl libnetaddr-ip-perl libosmgpsmap-dev libosmgpsmap2 libpam0g-dev libpth-dev libsasl2-dev libusb-1.0-0-dev && \
+apt-get install libvpx-dev libwebp-dev libxml++2.6-2 libxml++2.6-dev libxv1 libyaml-dev ppp-dev python-osmgpsmap ragel re2c spamassassin spamc texinfo texlive texlive-bibtex-extra texlive-math-extra valac -y && \
+apt-get install libvpx-dev libwebp-dev libxml++2.6-2 libxml++2.6-dev libxv1 libyaml-dev ppp-dev python-osmgpsmap ragel re2c spamassassin spamc texinfo texlive texlive-bibtex-extra texlive-math-extra valac -y && \
+apt-get install valadoc x11proto-xext-dev xmlto yelp-tools -y && \
+apt-get install libvpx-dev libwebp-dev libxml++2.6-2 libxml++2.6-dev libxv1 libyaml-dev ppp-dev python-osmgpsmap ragel re2c spamassassin spamc texinfo texlive texlive-bibtex-extra texlive-math-extra valac -y && \
+apt-get install valadoc x11proto-xext-dev xmlto yelp-tools -y && \
+apt-get install libxv1 libxv-dev libxvidcore4 libxvidcore-dev faac libfaac-dev libfaad-dev bison libavl-dev yasm flex zlib1g-dev libffi-dev gettext -y
+apt-get install libxv1 libxv-dev libxvidcore4 libxvidcore-dev faac faad libfaac-dev libfaad-dev bison libavl-dev yasm flex zlib1g-dev libffi-dev gettext -y && \
+apt-get install libmpg123-dev gstreamer1.0-plugins-ugly -y && \
+apt-get install freeglut3-dev libasound2-dev libxmu-dev libxxf86vm-dev g++ libgl1-mesa-dev libglu1-mesa-dev libraw1394-dev libudev-dev libdrm-dev libglew-dev libopenal-dev libsndfile-dev libfreeimage-dev libcairo2-dev python-lxml python-argparse libfreetype6-dev libssl-dev libpulse-dev libusb-1.0-0-dev libgtk-3-dev -y && \
+apt-get install gir1.2-gtk-3.0 -y && \
+apt-get install python-dbus python-dbus-dev -y
+
+apt-get update
