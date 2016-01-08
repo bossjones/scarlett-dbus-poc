@@ -126,11 +126,6 @@ class ScarlettTasker():
 
             # Our thread will run start_listening
             scarlett_player.ScarlettPlayer(scarlett_sound)
-            # player_thread = threading.Thread(
-            # target=pt.run())
-            #### player_thread.daemon = True
-            # player_thread.start()
-            # wait_for_t(player_thread)
 
         def command_cb(*args, **kwargs):
             logger.debug("player_cb PrettyPrinter: ")
@@ -145,10 +140,6 @@ class ScarlettTasker():
 
             # Our thread will run start_listening
             scarlett_player.ScarlettPlayer(scarlett_sound)
-            # player_thread = threading.Thread(
-            #     target=scarlett_player.ScarlettPlayer(scarlett_sound).run())
-            # player_thread.daemon = True
-            # player_thread.start()
 
             if command in scarlett_constants.FORECAST_CMDS.keys():
 
@@ -180,14 +171,14 @@ class ScarlettTasker():
                                 dbus_interface='com.example.service.event',
                                 signal_name='CommandRecognizedSignal'
                                 )
-        # bus.add_signal_receiver(catchall_handler,
-        #                         dbus_interface='com.example.service.event',
-        #                         signal_name='SttFailedSignal'
-        #                         )
-        # bus.add_signal_receiver(catchall_handler,
-        #                         dbus_interface='com.example.service.event',
-        #                         signal_name='ListenerCancelSignal'
-        #                         )
+        bus.add_signal_receiver(player_cb,
+                                dbus_interface='com.example.service.event',
+                                signal_name='SttFailedSignal'
+                                )
+        bus.add_signal_receiver(player_cb,
+                                dbus_interface='com.example.service.event',
+                                signal_name='ListenerCancelSignal'
+                                )
         # bus.add_signal_receiver(catchall_handler,
         #                         dbus_interface='com.example.service.event',
         #                         signal_name='ConnectedToListener'

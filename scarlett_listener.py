@@ -1,5 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
+import os
+import sys
+
+SCARLETT_DEBUG = 1
+
+if SCARLETT_DEBUG:
+    # Setting GST_DEBUG_DUMP_DOT_DIR environment variable enables us to have a
+    # dotfile generated
+    os.environ["GST_DEBUG_DUMP_DOT_DIR"] = "/home/pi/dev/bossjones-github/scarlett-dbus-poc/_debug"
+    os.putenv('GST_DEBUG_DUMP_DIR_DIR', '/home/pi/dev/bossjones-github/scarlett-dbus-poc/_debug')
 
 import dbus
 import dbus.service
@@ -14,8 +24,7 @@ pygst.require('0.10')
 import gst
 
 import StringIO
-import os
-import sys
+
 import re
 import ConfigParser
 import signal
@@ -37,6 +46,7 @@ import scarlett_config
 SCARLETT_CANCEL = "pi-cancel"
 SCARLETT_LISTENING = "pi-listening"
 SCARLETT_RESPONSE = "pi-response"
+SCARLETT_FAILED = "pi-response2"
 
 
 def setup_logger():
@@ -79,7 +89,8 @@ class ScarlettListener(dbus.service.Object):
         self.override_parse = ''
         self.failed = 0
         self.kw_found = 0
-        self.debug = False
+        self.debug = True
+        self.create_dot = False
 
         self._status_ready = "  ScarlettListener is ready"
         self._status_kw_match = "  ScarlettListener caught a keyword match"
@@ -103,8 +114,29 @@ class ScarlettListener(dbus.service.Object):
         self.speech_system = self.config.get('speech', 'system')
         self.parse_launch_array = self._get_pocketsphinx_definition(
             self.override_parse)
+        logger.debug("GST-PARSE-LAUNCH: " + ' ! '.join(self.parse_launch_array))
+
         self.pipeline = gst.parse_launch(
             ' ! '.join(self.parse_launch_array))
+
+    # this function generates the dot file, checks that graphviz in installed and
+    # then finally generates a png file, which it then displays
+    def on_debug_activate(self):
+        dotfile = "/home/pi/dev/bossjones-github/scarlett-dbus-poc/_debug/scarlett-debug-graph.dot"
+        pngfile = "/home/pi/dev/bossjones-github/scarlett-dbus-poc/_debug/scarlett-pipeline.png"
+        if os.access(dotfile, os.F_OK):
+            os.remove(dotfile)
+        if os.access(pngfile, os.F_OK):
+            os.remove(pngfile)
+        gst.DEBUG_BIN_TO_DOT_FILE(self.pipeline,
+                                  gst.DEBUG_GRAPH_SHOW_ALL, 'scarlett-debug-graph')
+        # check if graphviz is installed with a simple test
+        try:
+            os.system('/usr/bin/dot' + " -Tpng -o " + pngfile + " " + dotfile)
+            # Gtk.show_uri(None, "file://"+pngfile, 0)
+        except:
+            print "The debug feature requires graphviz (dot) to be installed."
+            print "Transmageddon can not find the (dot) binary."
 
     def run(self):
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
@@ -127,6 +159,8 @@ class ScarlettListener(dbus.service.Object):
         self._loop = gobject.MainLoop()
         print "ScarlettListener running..."
         self.emitListenerReadySignal()
+        if self.create_dot:
+            self.on_debug_activate()
         self._loop.run()
         print "ScarlettListener stopped"
 
@@ -142,15 +176,15 @@ class ScarlettListener(dbus.service.Object):
         logger.debug(" sending message: {}".format(message))
 
     @dbus.service.signal("com.example.service.event")
-    def SttFailedSignal(self, message):
+    def SttFailedSignal(self, message, scarlett_sound):
         logger.debug(" sending message: {}".format(message))
 
     @dbus.service.signal("com.example.service.event")
-    def ListenerCancelSignal(self, message):
+    def ListenerCancelSignal(self, message, scarlett_sound):
         logger.debug(" sending message: {}".format(message))
 
     @dbus.service.signal("com.example.service.event")
-    def ListenerReadySignal(self, message):
+    def ListenerReadySignal(self, message, scarlett_sound):
         logger.debug(" sending message: {}".format(message))
 
     @dbus.service.signal("com.example.service.event")
@@ -185,24 +219,25 @@ class ScarlettListener(dbus.service.Object):
                          in_signature='',
                          out_signature='s')
     def emitSttFailedSignal(self):
-        print "  sending message"
-        self.SttFailedSignal(self._status_stt_failed)
-        return self._status_stt_failed
+        global SCARLETT_FAILED
+        self.SttFailedSignal(self._status_stt_failed, SCARLETT_FAILED)
+        return SCARLETT_FAILED
 
     @dbus.service.method("com.example.service.emitListenerCancelSignal",
                          in_signature='',
                          out_signature='s')
     def emitListenerCancelSignal(self):
-        print "  sending message"
-        self.ListenerCancelSignal(self._status_cmd_cancel)
-        return self._status_cmd_cancel
+        global SCARLETT_CANCEL
+        self.ListenerCancelSignal(self._status_cmd_cancel, SCARLETT_CANCEL)
+        return SCARLETT_CANCEL
 
     @dbus.service.method("com.example.service.emitListenerReadySignal",
                          in_signature='',
                          out_signature='s')
     def emitListenerReadySignal(self):
-        self.ListenerReadySignal(self._status_ready)
-        return self._status_ready
+        global SCARLETT_LISTENING
+        self.ListenerReadySignal(self._status_ready, SCARLETT_LISTENING)
+        return SCARLETT_LISTENING
 
     @dbus.service.method("com.example.service.emitConnectedToListener",
                          in_signature='',

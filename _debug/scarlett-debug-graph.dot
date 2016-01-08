@@ -1,0 +1,139 @@
+digraph pipeline {
+  rankdir=LR;
+  fontname="sans";
+  fontsize="10";
+  labelloc=t;
+  nodesep=.1;
+  ranksep=.2;
+  label="<GstPipeline>\npipeline0\n[=] -> [>]";
+  node [style=filled, shape=box, fontsize="9", fontname="sans", margin="0.0,0.0"];
+  edge [labelfontsize="6", fontsize="9", fontname="monospace"];
+
+  subgraph cluster_capsfilter1_0x94c73f8 {
+    fontname="Bitstream Vera Sans";
+    fontsize="8";
+    style=filled;
+    color=black;
+
+    label="GstCapsFilter\ncapsfilter1\n[>]\ncaps=audio/x-raw-int, rate=(int)8000";
+    capsfilter1_0x94c73f8_sink_0x96104c0 [color=black, fillcolor="#aaaaff", label="sink\n[>][bfgsb]", height="0.2", style="filled,solid"];
+    capsfilter1_0x94c73f8_src_0x9610588 [color=black, fillcolor="#ffaaaa", label="src\n[>][bfgsb]", height="0.2", style="filled,solid"];
+    fillcolor="#aaffaa";
+  }
+
+  capsfilter1_0x94c73f8_src_0x9610588 -> vader_0x9614058_sink_0x94c1718 [labeldistance="10", labelangle="0", label="                                                  ", headlabel="ANY", taillabel="audio/x-raw-int\l                rate: 8000\l            channels: 1\l          endianness: 1234\l               width: 16\l               depth: 16\l              signed: true\l"]
+  subgraph cluster_capsfilter0_0x94c7220 {
+    fontname="Bitstream Vera Sans";
+    fontsize="8";
+    style=filled;
+    color=black;
+
+    label="GstCapsFilter\ncapsfilter0\n[>]\ncaps=audio/x-raw-int, rate=(int)16000, width=(int)16, depth=(int)16, channels=(int)1";
+    capsfilter0_0x94c7220_sink_0x9610330 [color=black, fillcolor="#aaaaff", label="sink\n[>][bfgsb]", height="0.2", style="filled,solid"];
+    capsfilter0_0x94c7220_src_0x96103f8 [color=black, fillcolor="#ffaaaa", label="src\n[>][bfgsb]", height="0.2", style="filled,solid"];
+    fillcolor="#aaffaa";
+  }
+
+  capsfilter0_0x94c7220_src_0x96103f8 -> audioresample1_0x960e280_sink_0x94c1588 [labeldistance="10", labelangle="0", label="                                                  ", headlabel="ANY", taillabel="audio/x-raw-float\l                rate: [ 1, 2147483647 ]\l            channels: [ 1, 2147483647 ]\l          endianness: 1234\l               width: { 32, 64 }\laudio/x-raw-int\l                rate: [ 1, 2147483647 ]\l            channels: [ 1, 2147483647 ]\l          endianness: 1234\l               width: 32\l               depth: 32\l              signed: true\laudio/x-raw-int\l                rate: [ 1, 2147483647 ]\l            channels: [ 1, 2147483647 ]\l          endianness: 1234\l               width: 24\l               depth: 24\l              signed: true\laudio/x-raw-int\l                rate: [ 1, 2147483647 ]\l            channels: [ 1, 2147483647 ]\l          endianness: 1234\l               width: 16\l               depth: 16\l              signed: true\laudio/x-raw-int\l                rate: [ 1, 2147483647 ]\l            channels: [ 1, 2147483647 ]\l          endianness: 1234\l               width: 8\l               depth: 8\l              signed: true\l"]
+  subgraph cluster_fakesink0_0x961a0f8 {
+    fontname="Bitstream Vera Sans";
+    fontsize="8";
+    style=filled;
+    color=black;
+
+    label="GstFakeSink\nfakesink0\n[-] -> [=]\nsync=FALSE\ndump=TRUE";
+    fakesink0_0x961a0f8_sink_0x9610268 [color=black, fillcolor="#aaaaff", label="sink\n[>][bfgsb]", height="0.2", style="filled,solid"];
+    fillcolor="#aaaaff";
+  }
+
+  subgraph cluster_listener_0x9616010 {
+    fontname="Bitstream Vera Sans";
+    fontsize="8";
+    style=filled;
+    color=black;
+
+    label="GstPocketSphinx\nlistener\n[>]\nhmm=\"/usr/local/share/pocketsphinx/model/hmm/en_US/hub4wsj_sc_8k\"\nlm=\"/home/pi/dev/bossjones-github/scarlett/scarlett/static/speech/lm/1602.lm\"\nlmname=\"default\"\ndict=\"/home/pi/dev/bossjones-github/scarlett/scarlett/static/speech/dict/1602.dic\"\nmaxhmmpf=2000\nmaxwpf=20\nwbeam=0.000000\nnbest=((GValueArray*) 0x9780e70)\ndecoder=((PSDecoder*) 0x9622358)\nconfigured=TRUE";
+    listener_0x9616010_sink_0x96100d8 [color=black, fillcolor="#aaaaff", label="sink\n[>][bfgsb]", height="0.2", style="filled,solid"];
+    listener_0x9616010_src_0x96101a0 [color=black, fillcolor="#ffaaaa", label="src\n[>][bfgsb]", height="0.2", style="filled,solid"];
+    fillcolor="#aaffaa";
+  }
+
+  listener_0x9616010_src_0x96101a0 -> fakesink0_0x961a0f8_sink_0x9610268 [labeldistance="10", labelangle="0", label="                                                  ", headlabel="text/plain\l", taillabel="ANY"]
+  subgraph cluster_vader_0x9614058 {
+    fontname="Bitstream Vera Sans";
+    fontsize="8";
+    style=filled;
+    color=black;
+
+    label="GstVader\nvader\n[>]\nthreshold=-0.000031\nauto-threshold=TRUE";
+    vader_0x9614058_sink_0x94c1718 [color=black, fillcolor="#aaaaff", label="sink\n[>][bfgsb]", height="0.2", style="filled,solid"];
+    vader_0x9614058_src_0x9610010 [color=black, fillcolor="#ffaaaa", label="src\n[>][bfgsb]", height="0.2", style="filled,solid"];
+    fillcolor="#aaffaa";
+  }
+
+  vader_0x9614058_src_0x9610010 -> listener_0x9616010_sink_0x96100d8 [labeldistance="10", labelangle="0", label="                                                  ", headlabel="audio/x-raw-int\l                rate: [ 1, 2147483647 ]\l            channels: [ 1, 2147483647 ]\l          endianness: 1234\l               width: 16\l               depth: 16\l              signed: true\l", taillabel="audio/x-raw-int\l               width: 16\l               depth: 16\l              signed: true\l          endianness: 1234\l            channels: 1\l                rate: 8000\l"]
+  subgraph cluster_audioresample1_0x960e280 {
+    fontname="Bitstream Vera Sans";
+    fontsize="8";
+    style=filled;
+    color=black;
+
+    label="GstAudioResample\naudioresample1\n[>]";
+    audioresample1_0x960e280_sink_0x94c1588 [color=black, fillcolor="#aaaaff", label="sink\n[>][bfgsb]", height="0.2", style="filled,solid"];
+    audioresample1_0x960e280_src_0x94c1650 [color=black, fillcolor="#ffaaaa", label="src\n[>][bfgsb]", height="0.2", style="filled,solid"];
+    fillcolor="#aaffaa";
+  }
+
+  audioresample1_0x960e280_src_0x94c1650 -> capsfilter1_0x94c73f8_sink_0x96104c0 [labeldistance="10", labelangle="0", label="                                                  ", headlabel="audio/x-raw-float\l                rate: [ 1, 2147483647 ]\l            channels: [ 1, 2147483647 ]\l          endianness: 1234\l               width: { 32, 64 }\laudio/x-raw-int\l                rate: [ 1, 2147483647 ]\l            channels: [ 1, 2147483647 ]\l          endianness: 1234\l               width: 32\l               depth: 32\l              signed: true\laudio/x-raw-int\l                rate: [ 1, 2147483647 ]\l            channels: [ 1, 2147483647 ]\l          endianness: 1234\l               width: 24\l               depth: 24\l              signed: true\laudio/x-raw-int\l                rate: [ 1, 2147483647 ]\l            channels: [ 1, 2147483647 ]\l          endianness: 1234\l               width: 16\l               depth: 16\l              signed: true\laudio/x-raw-int\l                rate: [ 1, 2147483647 ]\l            channels: [ 1, 2147483647 ]\l          endianness: 1234\l               width: 8\l               depth: 8\l              signed: true\l", taillabel="ANY"]
+  subgraph cluster_audioresample0_0x960e038 {
+    fontname="Bitstream Vera Sans";
+    fontsize="8";
+    style=filled;
+    color=black;
+
+    label="GstAudioResample\naudioresample0\n[>]";
+    audioresample0_0x960e038_sink_0x94c13f8 [color=black, fillcolor="#aaaaff", label="sink\n[>][bfgsb]", height="0.2", style="filled,solid"];
+    audioresample0_0x960e038_src_0x94c14c0 [color=black, fillcolor="#ffaaaa", label="src\n[>][bfgsb]", height="0.2", style="filled,solid"];
+    fillcolor="#aaffaa";
+  }
+
+  audioresample0_0x960e038_src_0x94c14c0 -> capsfilter0_0x94c7220_sink_0x9610330 [labeldistance="10", labelangle="0", label="                                                  ", headlabel="audio/x-raw-float\l                rate: [ 1, 2147483647 ]\l            channels: [ 1, 2147483647 ]\l          endianness: 1234\l               width: { 32, 64 }\laudio/x-raw-int\l                rate: [ 1, 2147483647 ]\l            channels: [ 1, 2147483647 ]\l          endianness: 1234\l               width: 32\l               depth: 32\l              signed: true\laudio/x-raw-int\l                rate: [ 1, 2147483647 ]\l            channels: [ 1, 2147483647 ]\l          endianness: 1234\l               width: 24\l               depth: 24\l              signed: true\laudio/x-raw-int\l                rate: [ 1, 2147483647 ]\l            channels: [ 1, 2147483647 ]\l          endianness: 1234\l               width: 16\l               depth: 16\l              signed: true\laudio/x-raw-int\l                rate: [ 1, 2147483647 ]\l            channels: [ 1, 2147483647 ]\l          endianness: 1234\l               width: 8\l               depth: 8\l              signed: true\l", taillabel="ANY"]
+  subgraph cluster_audioconvert0_0x94c2280 {
+    fontname="Bitstream Vera Sans";
+    fontsize="8";
+    style=filled;
+    color=black;
+
+    label="GstAudioConvert\naudioconvert0\n[>]";
+    audioconvert0_0x94c2280_sink_0x94c1268 [color=black, fillcolor="#aaaaff", label="sink\n[>][bfgsb]", height="0.2", style="filled,solid"];
+    audioconvert0_0x94c2280_src_0x94c1330 [color=black, fillcolor="#ffaaaa", label="src\n[>][bfgsb]", height="0.2", style="filled,solid"];
+    fillcolor="#aaffaa";
+  }
+
+  audioconvert0_0x94c2280_src_0x94c1330 -> audioresample0_0x960e038_sink_0x94c13f8 [labeldistance="10", labelangle="0", label="                                                  ", headlabel="audio/x-raw-float\l                rate: [ 1, 2147483647 ]\l            channels: [ 1, 2147483647 ]\l          endianness: { 1234, 4321 }\l               width: 64\laudio/x-raw-float\l                rate: [ 1, 2147483647 ]\l            channels: [ 1, 2147483647 ]\l          endianness: { 1234, 4321 }\l               width: 32\laudio/x-raw-int\l                rate: [ 1, 2147483647 ]\l            channels: [ 1, 2147483647 ]\l          endianness: { 1234, 4321 }\l               width: 32\l               depth: [ 1, 32 ]\l              signed: { true, false }\laudio/x-raw-int\l                rate: [ 1, 2147483647 ]\l            channels: [ 1, 2147483647 ]\l          endianness: { 1234, 4321 }\l               width: 24\l               depth: [ 1, 24 ]\l              signed: { true, false }\laudio/x-raw-int\l                rate: [ 1, 2147483647 ]\l            channels: [ 1, 2147483647 ]\l          endianness: { 1234, 4321 }\l               width: 16\l               depth: [ 1, 16 ]\l              signed: { true, false }\laudio/x-raw-int\l                rate: [ 1, 2147483647 ]\l            channels: [ 1, 2147483647 ]\l          endianness: { 1234, 4321 }\l               width: 8\l               depth: [ 1, 8 ]\l              signed: { true, false }\l", taillabel="audio/x-raw-float\l                rate: [ 1, 2147483647 ]\l            channels: [ 1, 2147483647 ]\l          endianness: 1234\l               width: { 32, 64 }\laudio/x-raw-int\l                rate: [ 1, 2147483647 ]\l            channels: [ 1, 2147483647 ]\l          endianness: 1234\l               width: 32\l               depth: 32\l              signed: true\laudio/x-raw-int\l                rate: [ 1, 2147483647 ]\l            channels: [ 1, 2147483647 ]\l          endianness: 1234\l               width: 24\l               depth: 24\l              signed: true\laudio/x-raw-int\l                rate: [ 1, 2147483647 ]\l            channels: [ 1, 2147483647 ]\l          endianness: 1234\l               width: 16\l               depth: 16\l              signed: true\laudio/x-raw-int\l                rate: [ 1, 2147483647 ]\l            channels: [ 1, 2147483647 ]\l          endianness: 1234\l               width: 8\l               depth: 8\l              signed: true\l"]
+  subgraph cluster_queue0_0x94c7048 {
+    fontname="Bitstream Vera Sans";
+    fontsize="8";
+    style=filled;
+    color=black;
+
+    label="GstQueue\nqueue0\n[>]\nmax-size-buffers=0\nmax-size-bytes=0\nmax-size-time=0\nleaky=((GstQueueLeaky) Leaky on downstream (old buffers))";
+    queue0_0x94c7048_sink_0x94c10d8 [color=black, fillcolor="#aaaaff", label="sink\n[>][bfgsb]", height="0.2", style="filled,solid"];
+    queue0_0x94c7048_src_0x94c11a0 [color=black, fillcolor="#ffaaaa", label="src\n[>][bfgsb]", height="0.2", style="filled,solid"];
+    fillcolor="#aaffaa";
+  }
+
+  queue0_0x94c7048_src_0x94c11a0 -> audioconvert0_0x94c2280_sink_0x94c1268 [labeldistance="10", labelangle="0", label="                                                  ", headlabel="ANY", taillabel="audio/x-raw-float\l                rate: [ 1, 2147483647 ]\l            channels: [ 1, 2147483647 ]\l          endianness: { 1234, 4321 }\l               width: 64\laudio/x-raw-float\l                rate: [ 1, 2147483647 ]\l            channels: [ 1, 2147483647 ]\l          endianness: { 1234, 4321 }\l               width: 32\laudio/x-raw-int\l                rate: [ 1, 2147483647 ]\l            channels: [ 1, 2147483647 ]\l          endianness: { 1234, 4321 }\l               width: 32\l               depth: [ 1, 32 ]\l              signed: { true, false }\laudio/x-raw-int\l                rate: [ 1, 2147483647 ]\l            channels: [ 1, 2147483647 ]\l          endianness: { 1234, 4321 }\l               width: 24\l               depth: [ 1, 24 ]\l              signed: { true, false }\laudio/x-raw-int\l                rate: [ 1, 2147483647 ]\l            channels: [ 1, 2147483647 ]\l          endianness: { 1234, 4321 }\l               width: 16\l               depth: [ 1, 16 ]\l              signed: { true, false }\laudio/x-raw-int\l                rate: [ 1, 2147483647 ]\l            channels: [ 1, 2147483647 ]\l          endianness: { 1234, 4321 }\l               width: 8\l               depth: [ 1, 8 ]\l              signed: { true, false }\l"]
+  subgraph cluster_alsasrc0_0x94c2010 {
+    fontname="Bitstream Vera Sans";
+    fontsize="8";
+    style=filled;
+    color=black;
+
+    label="GstAlsaSrc\nalsasrc0\n[>]\nblocksize=0\nactual-buffer-time=200000\nactual-latency-time=10000\ndevice=\"hw:1\"\ndevice-name=\"USB Audio\"\ncard-name=\"USB Camera-B4.09.24.1\"";
+    alsasrc0_0x94c2010_src_0x94c1010 [color=black, fillcolor="#ffaaaa", label="src\n[>][bfgsb]", height="0.2", style="filled,solid"];
+    fillcolor="#ffaaaa";
+  }
+
+  alsasrc0_0x94c2010_src_0x94c1010 -> queue0_0x94c7048_sink_0x94c10d8 [labeldistance="10", labelangle="0", label="                                                  ", headlabel="audio/x-raw-int\l               width: 16\l               depth: 16\l                rate: 16000\l            channels: 4\l          endianness: 1234\l              signed: true\l   channel-positions: < GST_AUDIO_CHANNEL_... >\l", taillabel="ANY"]
+}
