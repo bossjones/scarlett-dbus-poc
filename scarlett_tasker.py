@@ -4,18 +4,44 @@
 # NOTE: dbus signals have no return value
 # NOTE: dbus methods can return a value
 
+# import dbus
+# import dbus.service
+# import dbus.mainloop.glib
+# from dbus.mainloop.glib import threads_init, DBusGMainLoop
+# import gobject
+# gobject.threads_init()
+# threads_init()
+# DBusGMainLoop(set_as_default=True)
+
+# import pygst
+# pygst.require('0.10')
+# import gst
+
 import dbus
 import dbus.service
-import dbus.mainloop.glib
-from dbus.mainloop.glib import threads_init, DBusGMainLoop
-import gobject
-gobject.threads_init()
+from dbus.mainloop.glib import DBusGMainLoop
+from dbus.mainloop.glib import threads_init
+
+
+import argparse
+import pprint
+pp = pprint.PrettyPrinter(indent=4)
+
+import gi
+gi.require_version('Gst', '1.0')
+from gi.repository import GObject
+from gi.repository import Gst
+from gi.repository import GLib
+from gi.repository import Gio
+import threading
+
+GObject.threads_init()
+Gst.init(None)
 threads_init()
 DBusGMainLoop(set_as_default=True)
 
-import pygst
-pygst.require('0.10')
-import gst
+Gst.debug_set_active(True)
+Gst.debug_set_default_threshold(3)
 
 import StringIO
 import os
@@ -40,12 +66,11 @@ from colorlog import ColoredFormatter
 import logging
 import scarlett_constants
 
-import threading
 import time
 
 import scarlett_player
-import scarlett_speaker
-import scarlett_forecast
+# BOSSJONES DISABLE # import scarlett_speaker
+# BOSSJONES DISABLE # import scarlett_forecast
 import scarlett_config
 
 
@@ -84,16 +109,46 @@ def setup_logger():
 class ScarlettTasker():
 
     def __init__(self):
-        self._loop = gobject.MainLoop()
+        # NOTE USE THIS AS AN EXAMPLE ON HOW TO DO CLIENT
+        # source: https://github.com/hexchat/hexchat/blob/master/src/common/dbus/example-gdbus.py
+        try:
+            self.bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+            self.proxy = Gio.DBusProxy.new_sync(self.bus,
+                                                Gio.DBusProxyFlags.NONE,
+                                                None,
+                                                'com.example.service',
+                                                '/com/example/service',
+                                                'com.example.service',
+                                                None)
+        except:
+            print "Exception: %s" % sys.exec_info()[1]
+
+        # source: https://git.gnome.org/browse/glib/tree/gio/gdbusproxy.c?h=2.46.2#n2957
+        self._quit = self.proxy.call('com.example.service.Quit',
+                                     None,
+                                     Gio.DBusCallFlags.NO_AUTO_START,
+                                     500,
+                                     None,
+                                     None)
+
+        self._tasker_connected = self.proxy.call('com.example.service.emitConnectedToListener',
+                                                 None,
+                                                 Gio.DBusCallFlags.NO_AUTO_START,
+                                                 500,
+                                                 None,
+                                                 None)
+        # -------------------
+
+        self._loop = GLib.MainLoop()
         bus = dbus.SessionBus()
 
-        # NOTE: This is a proxy dbus command
-        service = bus.get_object('com.example.service', "/com/example/service")
-        self._quit = service.get_dbus_method(
-            'quit', 'com.example.service.Quit')
-        self._tasker_connected = service.get_dbus_method(
-            'emitConnectedToListener',
-            'com.example.service.emitConnectedToListener')
+        # DISABLED # # NOTE: This is a proxy dbus command
+        # DISABLED # service = bus.get_object('com.example.service', "/com/example/service")
+        # DISABLED # self._quit = service.get_dbus_method(
+        # DISABLED #     'quit', 'com.example.service.Quit')
+        # DISABLED # self._tasker_connected = service.get_dbus_method(
+        # DISABLED #     'emitConnectedToListener',
+        # DISABLED #     'com.example.service.emitConnectedToListener')
 
         self.config = scarlett_config.Config()
 
@@ -114,7 +169,7 @@ class ScarlettTasker():
                 # Do whatever else you would do when join()
                 # (or maybe collega_GUI?) returns
             else:
-                gobject.timeout_add(200, wait_for_t, t)
+                GLib.timeout_add(200, wait_for_t, t)
 
         def player_cb(*args, **kwargs):
             logger.debug("player_cb PrettyPrinter: ")
@@ -127,62 +182,65 @@ class ScarlettTasker():
             # Our thread will run start_listening
             scarlett_player.ScarlettPlayer(scarlett_sound)
 
-        def command_cb(*args, **kwargs):
-            logger.debug("player_cb PrettyPrinter: ")
-            pp = pprint.PrettyPrinter(indent=4)
-            pp.pprint(args)
-            msg, scarlett_sound, command = args
-            logger.warning(" msg: {}".format(msg))
-            logger.warning(" scarlett_sound: {}".format(scarlett_sound))
-            logger.warning(" command: {}".format(command))
-
-            # play sound
-
-            # Our thread will run start_listening
-            scarlett_player.ScarlettPlayer(scarlett_sound)
-
-            if command in scarlett_constants.FORECAST_CMDS.keys():
-
-                fio_hourly, fio_summary, fio_day = text = scarlett_forecast.ScarlettForecast(
-                    self.config, command).api()
-                logger.info(" Lets try putting these in one sentance:")
-                logger.info(" text: {}".format(text))
-                logger.warning(" fio_hourly: {}".format(fio_hourly))
-                logger.warning(" fio_summary: {}".format(fio_summary))
-                logger.warning(" fio_day: {}".format(fio_day))
-                logger.debug(" fio_hourly. fio_summary. fio_day. =  {}. {}. {}.".format(
-                    fio_hourly, fio_summary, fio_day))
-
-                # if text > 1:
-#
-                # Our thread will run start_listening
-                # Lets have the threads wait before doing the next thing
-                # see this: http://stackoverflow.com/questions/26172107/gobject-idle-add-thread-join-and-my-program-hangs
-                #     speaker_thread = threading.Thread(target=scarlett_speaker.ScarlettSpeaker(command).run())
-                #     speaker_thread.daemon = True
-                #     speaker_thread.start()
+#### BOSSJONES DISABLED #         def command_cb(*args, **kwargs):
+#### BOSSJONES DISABLED #             logger.debug("player_cb PrettyPrinter: ")
+#### BOSSJONES DISABLED #             pp = pprint.PrettyPrinter(indent=4)
+#### BOSSJONES DISABLED #             pp.pprint(args)
+#### BOSSJONES DISABLED #             msg, scarlett_sound, command = args
+#### BOSSJONES DISABLED #             logger.warning(" msg: {}".format(msg))
+#### BOSSJONES DISABLED #             logger.warning(" scarlett_sound: {}".format(scarlett_sound))
+#### BOSSJONES DISABLED #             logger.warning(" command: {}".format(command))
+#### BOSSJONES DISABLED #
+#### BOSSJONES DISABLED #             # play sound
+#### BOSSJONES DISABLED #
+#### BOSSJONES DISABLED #             # Our thread will run start_listening
+#### BOSSJONES DISABLED #             scarlett_player.ScarlettPlayer(scarlett_sound)
+#### BOSSJONES DISABLED #
+#### BOSSJONES DISABLED #             if command in scarlett_constants.FORECAST_CMDS.keys():
+#### BOSSJONES DISABLED #
+#### BOSSJONES DISABLED #                 fio_hourly, fio_summary, fio_day = text = scarlett_forecast.ScarlettForecast(
+#### BOSSJONES DISABLED #                     self.config, command).api()
+#### BOSSJONES DISABLED #                 logger.info(" Lets try putting these in one sentance:")
+#### BOSSJONES DISABLED #                 logger.info(" text: {}".format(text))
+#### BOSSJONES DISABLED #                 logger.warning(" fio_hourly: {}".format(fio_hourly))
+#### BOSSJONES DISABLED #                 logger.warning(" fio_summary: {}".format(fio_summary))
+#### BOSSJONES DISABLED #                 logger.warning(" fio_day: {}".format(fio_day))
+#### BOSSJONES DISABLED #                 logger.debug(" fio_hourly. fio_summary. fio_day. =  {}. {}. {}.".format(
+#### BOSSJONES DISABLED #                     fio_hourly, fio_summary, fio_day))
+#### BOSSJONES DISABLED #
+#### BOSSJONES DISABLED #                 # if text > 1:
+#### BOSSJONES DISABLED # #
+#### BOSSJONES DISABLED #                 # Our thread will run start_listening
+#### BOSSJONES DISABLED #                 # Lets have the threads wait before doing the next thing
+#### BOSSJONES DISABLED #                 # see this: http://stackoverflow.com/questions/26172107/gobject-idle-add-thread-join-and-my-program-hangs
+#### BOSSJONES DISABLED #                 #     speaker_thread = threading.Thread(target=scarlett_speaker.ScarlettSpeaker(command).run())
+#### BOSSJONES DISABLED #                 #     speaker_thread.daemon = True
+#### BOSSJONES DISABLED #                 #     speaker_thread.start()
 
         # SIGNAL: When someone says Scarlett
-        bus.add_signal_receiver(player_cb,
-                                dbus_interface='com.example.service.event',
-                                signal_name='KeywordRecognizedSignal'
-                                )
-        bus.add_signal_receiver(command_cb,
-                                dbus_interface='com.example.service.event',
-                                signal_name='CommandRecognizedSignal'
-                                )
-        bus.add_signal_receiver(player_cb,
-                                dbus_interface='com.example.service.event',
-                                signal_name='SttFailedSignal'
-                                )
-        bus.add_signal_receiver(player_cb,
-                                dbus_interface='com.example.service.event',
-                                signal_name='ListenerCancelSignal'
-                                )
-        # bus.add_signal_receiver(catchall_handler,
-        #                         dbus_interface='com.example.service.event',
-        #                         signal_name='ConnectedToListener'
-        #                         )
+        # BOSSJONES DISABLED # bus.add_signal_receiver(player_cb,
+        # BOSSJONES DISABLED #                         dbus_interface='com.example.service.event',
+        # BOSSJONES DISABLED #                         signal_name='KeywordRecognizedSignal'
+        # BOSSJONES DISABLED #                         )
+
+        kw = self.proxy.call('com.example.service.event.KeywordRecognizedSignal',
+                                     None,
+                                     None,
+                                     500,
+                                     None,
+                                     player_cb)
+        # BOSSJONES DISABLED #         bus.add_signal_receiver(command_cb,
+        # BOSSJONES DISABLED #                                 dbus_interface='com.example.service.event',
+        # BOSSJONES DISABLED #                                 signal_name='CommandRecognizedSignal'
+        # BOSSJONES DISABLED #                                 )
+        # BOSSJONES DISABLED # bus.add_signal_receiver(player_cb,
+        # BOSSJONES DISABLED #                         dbus_interface='com.example.service.event',
+        # BOSSJONES DISABLED #                         signal_name='SttFailedSignal'
+        # BOSSJONES DISABLED #                         )
+        # BOSSJONES DISABLED # bus.add_signal_receiver(player_cb,
+        # BOSSJONES DISABLED #                         dbus_interface='com.example.service.event',
+        # BOSSJONES DISABLED #                         signal_name='ListenerCancelSignal'
+        # BOSSJONES DISABLED #                         )
 
     def go(self):
         logger.debug("ScarlettTasker running...")

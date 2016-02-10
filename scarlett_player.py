@@ -1,18 +1,52 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-import pprint
+#### DISABLED BOSSJONES # import pprint
+#### DISABLED BOSSJONES # import dbus
+#### DISABLED BOSSJONES # import dbus.service
+#### DISABLED BOSSJONES # import dbus.mainloop.glib
+#### DISABLED BOSSJONES # from dbus.mainloop.glib import threads_init
+#### DISABLED BOSSJONES # import gobject
+#### DISABLED BOSSJONES # gobject.threads_init()
+#### DISABLED BOSSJONES # threads_init()
+#### DISABLED BOSSJONES #
+#### DISABLED BOSSJONES # import pygst
+#### DISABLED BOSSJONES # pygst.require('0.10')
+#### DISABLED BOSSJONES # import gst
+
 import dbus
 import dbus.service
-import dbus.mainloop.glib
+from dbus.mainloop.glib import DBusGMainLoop
 from dbus.mainloop.glib import threads_init
-import gobject
-gobject.threads_init()
-threads_init()
 
-import pygst
-pygst.require('0.10')
-import gst
+
+import argparse
+import pprint
+pp = pprint.PrettyPrinter(indent=4)
+
+import gi
+gi.require_version('Gst', '1.0')
+from gi.repository import GObject
+from gi.repository import Gst
+from gi.repository import GLib
+from gi.repository import Gio
+import threading
+
+GObject.threads_init()
+Gst.init(None)
+threads_init()
+DBusGMainLoop(set_as_default=True)
+
+print '********************************************************'
+print 'GObject: '
+pp.pprint(GObject.pygobject_version)
+print ''
+print 'Gst: '
+pp.pprint(Gst.version_string())
+print '********************************************************'
+
+Gst.debug_set_active(True)
+Gst.debug_set_default_threshold(3)
 
 import StringIO
 import os
@@ -71,7 +105,7 @@ def setup_logger():
 PWD = '/home/pi/dev/bossjones-github/scarlett-dbus-poc'
 logger = setup_logger()
 
-import threading
+gst = Gst
 
 
 class ScarlettPlayer():
@@ -79,7 +113,7 @@ class ScarlettPlayer():
     def __init__(self, sound):
         global PWD
         global logger
-        self._loop = gobject.MainLoop()
+        self._loop = GLib.MainLoop()
         self.debug = False
 
         # Element playbin automatic plays any sound
