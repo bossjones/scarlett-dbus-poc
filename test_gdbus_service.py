@@ -275,7 +275,7 @@ class ScarlettListener(Server):
       <arg type='(ss)' name='listener_rdy_status' direction='out'/>
     </signal>
     <signal name='ConnectedToListener'>
-      <arg type='(s)' name='conn_to_lis_status' direction='out'/>
+      <arg type='s' name='conn_to_lis_status' direction='out'/>
     </signal>
   </interface>
 </node>
@@ -321,7 +321,7 @@ class ScarlettListener(Server):
         stt_failed_status = GLib.Variant("(ss)", (message, scarlett_sound))
         bus.emit_signal(None,
                         '/org/scarlett/Listener',
-                        'org.scarlett.Listener.SttFailedSignal',
+                        'org.scarlett.Listener',
                         'SttFailedSignal',
                         stt_failed_status)
 

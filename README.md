@@ -286,3 +286,40 @@ In [42]:
 	</interface>
 </node>
 ```
+
+# we are finally closer to getting signals read in and acted upon!!
+
+```
+'GStreamer 1.6.0'
+********************************************************
+(MainThread) DEBUG    ss PrettyPrinter:
+<pydbus.bus.CompositeObject object at 0x7f817ed1dd90>
+(MainThread) DEBUG    player_cb PrettyPrinter:
+(   <DBusConnection object at 0x7f817ed787d0 (GDBusConnection at 0x22e2010)>,
+    ':1.88',
+    '/org/scarlett/Listener',
+    'org.scarlett.Listener',
+    'SttFailedSignal',
+    GLib.Variant('(ss)', ('  ScarlettListener hit Max STT failures', 'pi-response2')))
+---------------------------------------------------------------------------
+ValueError                                Traceback (most recent call last)
+/home/pi/dev/bossjones-github/scarlett-dbus-poc/test_gdbus_proxy_service.py in player_cb(*args=(<DBusConnection object at 0x7f817ed787d0 (GDBusConnection at 0x22e2010)>, ':1.88', '/org/scarlett/Listener', 'org.scarlett.Listener', 'SttFailedSignal', GLib.Variant('(ss)', ('  ScarlettListener hit Max STT failures', 'pi-response2'))), **kwargs={})
+     99     pp = pprint.PrettyPrinter(indent=4)
+    100     pp.pprint(args)
+--> 101     msg, scarlett_sound = args
+        msg = undefined
+        scarlett_sound = undefined
+        args = (<DBusConnection object at 0x7f817ed787d0 (GDBusConnection at 0x22e2010)>, ':1.88', '/org/scarlett/Listener', 'org.scarlett.Listener', 'SttFailedSignal', GLib.Variant('(ss)', ('  ScarlettListener hit Max STT failures', 'pi-response2')))
+    102     logger.warning(" msg: {}".format(msg))
+    103     logger.warning(" scarlett_sound: {}".format(scarlett_sound))
+
+ValueError: too many values to unpack
+> /home/pi/dev/bossjones-github/scarlett-dbus-poc/test_gdbus_proxy_service.py(101)player_cb()
+     99     pp = pprint.PrettyPrinter(indent=4)
+    100     pp.pprint(args)
+--> 101     msg, scarlett_sound = args
+    102     logger.warning(" msg: {}".format(msg))
+    103     logger.warning(" scarlett_sound: {}".format(scarlett_sound))
+
+ipdb>
+```
