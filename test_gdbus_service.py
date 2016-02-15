@@ -111,7 +111,8 @@ def setup_logger():
 class Server(object):
     def __init__(self, bus, path):
         self.loop = GLib.MainLoop()
-        self.dbus_stack = []
+        self.dbus_stack       = []
+        self.pipelines_stack  = []
 
         self._message = 'This is the DBusServer'
         self.config = scarlett_config.Config()
@@ -161,6 +162,8 @@ class Server(object):
         self.loop.run()
 
     def quit(self):
+        p = self.pipelines_stack[0]
+        p.set_state(Gst.State.NULL)
         self.loop.quit()
 
     def on_method_call(self,
@@ -431,6 +434,7 @@ class ScarlettListener(Server):
                                                                      hmm,
                                                                      lm,
                                                                      dict)))
+        self.pipelines_stack.append(pipeline)
 
         pocketsphinx = pipeline.get_by_name('asr')
         if hmm:
@@ -444,7 +448,6 @@ class ScarlettListener(Server):
 
         # Start playing
         pipeline.set_state(Gst.State.PLAYING)
-        time.sleep(10)
 
         self.emitListenerReadySignal()
 
@@ -528,5 +531,17 @@ if __name__ == '__main__':
                         default=DICT_PATH,
                         help='Path to a pocketsphinx CMU dictionary file')
     args = parser.parse_args()
+
+    def sigint_handler(*args):
+        """Exit on Ctrl+C"""
+
+        # Unregister handler, next Ctrl-C will kill app
+        # TODO: figure out if this is really needed or not
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+        sl.quit()
+
+    signal.signal(signal.SIGINT, sigint_handler)
+
     sl.run_pipeline(**vars(args))
     # sl.run()
