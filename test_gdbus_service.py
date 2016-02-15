@@ -233,7 +233,6 @@ class ScarlettListener(Server):
     #########################################################
     # Scarlett signals
     #########################################################
-    # @dbus.service.signal("org.scarlett.Listener.event")
     def KeywordRecognizedSignal(self, message, scarlett_sound):
         logger.debug(" sending message: {}".format(message))
         bus = self.dbus_stack[0]
@@ -242,37 +241,39 @@ class ScarlettListener(Server):
         bus.emit_signal('ScarlettListener', 'org.scarlett.Listener',
                         'KeywordRecognizedSignal', (message, scarlett_sound))
 
-        # bus is a pydbus's SystemBus/SessionBus.
-        # bus.con.signal_subscribe("sender_name", "iface_name", "signal_name", "object_path", None, 0, lambda *args: print(args))
-
-    # @dbus.service.signal("org.scarlett.Listener.event")
     def CommandRecognizedSignal(self, message, scarlett_sound, scarlett_cmd):
         logger.debug(" sending message: {}".format(message))
         bus = self.dbus_stack[0]
-        bus.emit_signal('ScarlettListener', 'org.scarlett.Listener',
-                        'CommandRecognizedSignal', (message, scarlett_sound, scarlett_cmd))
+        cmd_rec_status = GLib.Variant("(sss)", (message, scarlett_sound, scarlett_cmd))
+        bus.emit_signal(None,
+                        '/org/scarlett/Listener',
+                        'org.scarlett.Listener',
+                        'CommandRecognizedSignal',
+                        cmd_rec_status)
 
-    # @dbus.service.signal("org.scarlett.Listener.event")
     def SttFailedSignal(self, message, scarlett_sound):
         logger.debug(" sending message: {}".format(message))
         bus = self.dbus_stack[0]
-        bus.emit_signal(
-            'ScarlettListener', 'org.scarlett.Listener', 'SttFailedSignal', (message, scarlett_sound))
+        stt_failed_status = GLib.Variant("(ss)", (message, scarlett_sound))
+        bus.emit_signal(None,
+                        '/org/scarlett/Listener',
+                        'org.scarlett.Listener',
+                        'SttFailedSignal',
+                        stt_failed_status)
 
-    # @dbus.service.signal("org.scarlett.Listener.event")
     def ListenerCancelSignal(self, message, scarlett_sound):
         logger.debug(" sending message: {}".format(message))
         bus = self.dbus_stack[0]
-        bus.emit_signal('ScarlettListener', 'org.scarlett.Listener',
-                        'ListenerCancelSignal', (message, scarlett_sound))
+        listener_cancel_status = GLib.Variant("(ss)", (message, scarlett_sound))
+        bus.emit_signal(None,
+                        '/org/scarlett/Listener',
+                        'org.scarlett.Listener',
+                        'ListenerCancelSignal',
+                        listener_cancel_status)
 
-    # @dbus.service.signal("org.scarlett.Listener.event")
     def ListenerReadySignal(self, message, scarlett_sound):
         logger.debug(" sending message: {}".format(message))
         bus = self.dbus_stack[0]
-        # NOTE: THIS IS WRONG
-        # bus.emit_signal('ScarlettListener', 'org.scarlett.Listener',
-        #                 'ListenerReadySignal', (message, scarlett_sound))
         listener_rdy_status = GLib.Variant("(ss)", (message, scarlett_sound))
         bus.emit_signal(None,
                         '/org/scarlett/Listener',
@@ -280,7 +281,6 @@ class ScarlettListener(Server):
                         'ListenerReadySignal',
                         listener_rdy_status)
 
-    # @dbus.service.signal("org.scarlett.Listener.event")
     def ConnectedToListener(self, scarlett_plugin):
         pass
 

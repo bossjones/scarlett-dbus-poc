@@ -1,6 +1,6 @@
 # scarlett-dbus-poc
 
-Scarlett Dbus Listener Service implementation Proof-Of-Concept. 
+Scarlett Dbus Listener Service implementation Proof-Of-Concept.
 
 Source: https://www.reddit.com/r/gnome/comments/3owhp6/python_help_critique_my_application_design_home/
 
@@ -53,3 +53,56 @@ https://github.com/cmusphinx/sphinxbase
 https://github.com/cmusphinx/sphinxtrain
 https://github.com/cmusphinx/cmudict-tools
 https://github.com/cmusphinx/kaldi
+
+
+### dbus.con.emit_signal() example and breakdown
+
+```
+# Important reading:   https://wiki.gnome.org/action/show/Projects/PyGObject/IntrospectionPorting?action=show&redirect=PyGObject/IntrospectionPorting
+devhelp command on ubuntu 15.10
+
+# Assume c code looks like:
+gboolean
+g_dbus_connection_emit_signal (GDBusConnection *connection,
+                               const gchar *destination_bus_name,
+                               const gchar *object_path,
+                               const gchar *interface_name,
+                               const gchar *signal_name,
+                               GVariant *parameters,
+                               GError **error);
+
+# ... where ...
+Parameters:
+  connection
+    a GDBusConnection
+
+  destination_bus_name
+    the unique bus name for the destination for the signal or NULL to emit to all listeners.
+
+  object_path
+    path of remote object
+
+  interface_name
+    D-Bus interface to emit a signal on
+
+  signal_name
+    the name of the signal to emit
+
+  parameters
+    a GVariant tuple with parameters for the signal or NULL if not passing parameters.
+
+  error
+    Return location for error or NULL
+
+  Return value
+    TRUE unless error is set
+
+
+# Then the python version looks like:
+listener_rdy_status = GLib.Variant("(ss)", (message, scarlett_sound))
+bus.emit_signal(None,
+                '/org/scarlett/Listener',
+                'org.scarlett.Listener',
+                'ListenerReadySignal',
+                listener_rdy_status)
+```
