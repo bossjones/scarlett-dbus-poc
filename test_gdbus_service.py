@@ -151,6 +151,12 @@ class Server(object):
         self.method_inargs = method_inargs
         self.method_outargs = method_outargs
 
+        logger.debug("Inside self.method_inargs and self.method_outargs")
+        logger.debug("Inside self.method_inargs")
+        pp.pprint(self.method_inargs)
+        logger.debug("Inside self.method_outargs")
+        pp.pprint(self.method_outargs)
+
         bus.register_object(
             object_path=path, interface_info=interface_info, method_call_closure=self.on_method_call)
 
@@ -187,6 +193,10 @@ class Server(object):
 
         out_args = self.method_outargs[method_name]
         if out_args != '()':
+            logger.debug("Inside out_args in != ()")
+            pp.pprint(out_args)
+            logger.debug("Inside result != ()")
+            pp.pprint(result)
             invocation.return_value(GLib.Variant(out_args, result))
 
 # Before xml re-write
@@ -227,24 +237,24 @@ class ScarlettListener(Server):
 <node>
   <interface name='org.scarlett.Listener1'>
     <method name='emitKeywordRecognizedSignal'>
-      <arg type='(ss)' name='s_cmd' direction='out'/>
+      <arg type='s' name='s_cmd' direction='out'/>
     </method>
     <method name='emitCommandRecognizedSignal'>
       <arg type='s' name='command' direction='in'/>
-      <arg type='(sss)' name='s_cmd' direction='out'/>
+      <arg type='s' name='s_cmd' direction='out'/>
     </method>
     <method name='emitSttFailedSignal'>
-      <arg type='(ss)' name='s_cmd' direction='out'/>
+      <arg type='s' name='s_cmd' direction='out'/>
     </method>
     <method name='emitListenerCancelSignal'>
-      <arg type='(ss)' name='s_cmd' direction='out'/>
+      <arg type='s' name='s_cmd' direction='out'/>
     </method>
     <method name='emitListenerReadySignal'>
-      <arg type='(ss)' name='s_cmd' direction='out'/>
+      <arg type='s' name='s_cmd' direction='out'/>
     </method>
     <method name='emitConnectedToListener'>
       <arg type='s' name='scarlett_plugin' direction='in'/>
-      <arg type='s' name='s_cmd' direction='out'/>
+      <arg type='(s)' name='s_cmd' direction='out'/>
     </method>
     <method name='Message'>
       <arg type='s' name='s_cmd' direction='out'/>
@@ -264,6 +274,9 @@ class ScarlettListener(Server):
     <signal name='ListenerReadySignal'>
       <arg type='(ss)' name='listener_rdy_status' direction='out'/>
     </signal>
+    <signal name='ConnectedToListener'>
+      <arg type='(s)' name='conn_to_lis_status' direction='out'/>
+    </signal>
   </interface>
 </node>
     '''
@@ -277,7 +290,7 @@ class ScarlettListener(Server):
     #     return '<ScarlettListener>'
 
     #########################################################
-    # Scarlett dbus signals
+    # Scarlett dbus signals ( out = func args )
     #########################################################
 
     def KeywordRecognizedSignal(self, message, scarlett_sound):
@@ -333,10 +346,18 @@ class ScarlettListener(Server):
                         listener_rdy_status)
 
     def ConnectedToListener(self, scarlett_plugin):
-        pass
+        logger.debug(" sending message: {}".format(scarlett_plugin))
+        bus = self.dbus_stack[0]
+        conn_to_lis_status = GLib.Variant("(s)", (scarlett_plugin))
+        bus.emit_signal(None,
+                        '/org/scarlett/Listener',
+                        'org.scarlett.Listener',
+                        'ConnectedToListener',
+                        conn_to_lis_status)
+        # pass
 
     #########################################################
-    # Scarlett dbus methods
+    # Scarlett dbus methods in = func args, out = return values
     #########################################################
 
     def emitKeywordRecognizedSignal(self):

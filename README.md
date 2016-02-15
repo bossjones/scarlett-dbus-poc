@@ -147,3 +147,142 @@ signal time=1455504580.676030 sender=:1.48 -> destination=(null destination) ser
    string "  ScarlettListener hit Max STT failures"
    string "pi-response2"
 ```
+
+# FYI
+
+```
+In [38]: ss = bus.get("org.scarlett", object_path='/org/scarlett/Listener')
+
+In [39]: ss.
+ss.Get                          ss.emitCommandRecognizedSignal
+ss.GetAll                       ss.emitConnectedToListener
+ss.GetMachineId                 ss.emitKeywordRecognizedSignal
+ss.Introspect                   ss.emitListenerCancelSignal
+ss.Message                      ss.emitListenerReadySignal
+ss.Ping                         ss.emitSttFailedSignal
+ss.Set
+
+In [39]: ss.
+ss.Get                          ss.emitCommandRecognizedSignal
+ss.GetAll                       ss.emitConnectedToListener
+ss.GetMachineId                 ss.emitKeywordRecognizedSignal
+ss.Introspect                   ss.emitListenerCancelSignal
+ss.Message                      ss.emitListenerReadySignal
+ss.Ping                         ss.emitSttFailedSignal
+ss.Set
+
+In [39]: exit
+```
+
+# Use this to figure out why foo ... which is suppose to just return a string, returns a ("string",) instead:
+
+```
+In [38]: foo_client = bus.get('net.lvht', object_path='/net/lvht/Foo')
+
+In [39]: foo_client
+Out[39]: <pydbus.bus.CompositeObject at 0x7f969770a6d0>
+
+In [40]: foo_client.
+foo_client.Get           foo_client.GetAll        foo_client.GetMachineId  foo_client.HelloWorld    foo_client.Introspect    foo_client.Ping          foo_client.Set
+
+In [40]: foo_client.
+foo_client.Get           foo_client.GetAll        foo_client.GetMachineId  foo_client.HelloWorld    foo_client.Introspect    foo_client.Ping          foo_client.Set
+
+In [40]: foo_client.HelloWorld
+Out[40]: <bound method CompositeObject.HelloWorld of <pydbus.bus.CompositeObject object at 0x7f969770a6d0>>
+
+In [41]: foo_client.HelloWorld('hello',1)
+Out[41]: ('hello1',)
+
+In [42]:
+```
+
+# Looks like the in/out variables look incorrect:
+
+```
+(MainThread) DEBUG    Inside self.method_inargs and self.method_outargs
+{   'Message': (),
+    'emitCommandRecognizedSignal': ('s',),
+    'emitConnectedToListener': ('s',),
+    'emitKeywordRecognizedSignal': (),
+    'emitListenerCancelSignal': (),
+    'emitListenerReadySignal': (),
+    'emitSttFailedSignal': ()}
+{   'Message': '(s)',
+    'emitCommandRecognizedSignal': '(s)',
+    'emitConnectedToListener': '((s))',
+    'emitKeywordRecognizedSignal': '(s)',
+    'emitListenerCancelSignal': '(s)',
+    'emitListenerReadySignal': '(s)',
+    'emitSttFailedSignal': '(s)'}
+
+# with xml
+
+<node>
+  <interface name='org.scarlett.Listener1'>
+    <method name='emitKeywordRecognizedSignal'>
+      <arg type='s' name='s_cmd' direction='out'/>
+    </method>
+    <method name='emitCommandRecognizedSignal'>
+      <arg type='s' name='command' direction='in'/>
+      <arg type='s' name='s_cmd' direction='out'/>
+    </method>
+    <method name='emitSttFailedSignal'>
+      <arg type='s' name='s_cmd' direction='out'/>
+    </method>
+    <method name='emitListenerCancelSignal'>
+      <arg type='s' name='s_cmd' direction='out'/>
+    </method>
+    <method name='emitListenerReadySignal'>
+      <arg type='s' name='s_cmd' direction='out'/>
+    </method>
+    <method name='emitConnectedToListener'>
+      <arg type='s' name='scarlett_plugin' direction='in'/>
+      <arg type='(s)' name='s_cmd' direction='out'/>
+    </method>
+    <method name='Message'>
+      <arg type='s' name='s_cmd' direction='out'/>
+    </method>
+    <signal name='KeywordRecognizedSignal'>
+      <arg type='(ss)' name='kw_rec_status' direction='out'/>
+    </signal>
+    <signal name='CommandRecognizedSignal'>
+      <arg type='(sss)' name='cmd_rec_status' direction='out'/>
+    </signal>
+    <signal name='SttFailedSignal'>
+      <arg type='(ss)' name='stt_failed_status' direction='out'/>
+    </signal>
+    <signal name='ListenerCancelSignal'>
+      <arg type='(ss)' name='listener_cancel_status' direction='out'/>
+    </signal>
+    <signal name='ListenerReadySignal'>
+      <arg type='(ss)' name='listener_rdy_status' direction='out'/>
+    </signal>
+    <signal name='ConnectedToListener'>
+      <arg type='(s)' name='conn_to_lis_status' direction='out'/>
+    </signal>
+  </interface>
+</node>
+```
+
+```
+# compared to foo.py
+(MainThread) DEBUG    Inside self.method_inargs and self.method_outargs
+(MainThread) DEBUG    Inside self.method_inargs
+{   'HelloWorld': ('a', 'b')}
+(MainThread) DEBUG    Inside self.method_outargs
+{   'HelloWorld': '(s)'}
+
+# with XML that looks like
+
+<node>
+	<interface name='net.lvht.Foo1'>
+		<method name='HelloWorld'>
+			<arg type='s' name='a' direction='in'/>
+			<arg type='i' name='b' direction='in'/>
+			<arg type='s' name='c' direction='out'/>
+			<arg type='s' name='d' direction='out'/>
+		</method>
+	</interface>
+</node>
+```
