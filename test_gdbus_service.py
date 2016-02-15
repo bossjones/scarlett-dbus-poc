@@ -19,11 +19,6 @@ import argparse
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
-# import dbus
-# import dbus.service
-# from dbus.mainloop.glib import DBusGMainLoop
-# from dbus.mainloop.glib import threads_init
-
 import gi
 gi.require_version('Gst', '1.0')
 from gi.repository import GObject
@@ -131,7 +126,8 @@ class Server(object):
         self._status_cmd_cancel = "  ScarlettListener cancel speech Recognition"
 
         if self.debug:
-            # for testing puposes
+            # NOTE: For testing puposes, mainly when in public
+            # so you dont have to keep yelling scarlett in front of strangers
             self.kw_to_find = ['yo', 'hello', 'man', 'children']
         else:
             self.kw_to_find = self.config.get('scarlett', 'keywords')
@@ -234,8 +230,9 @@ class ScarlettListener(Server):
     #     return '<ScarlettListener>'
 
     #########################################################
-    # Scarlett signals
+    # Scarlett dbus signals
     #########################################################
+
     def KeywordRecognizedSignal(self, message, scarlett_sound):
         logger.debug(" sending message: {}".format(message))
         bus = self.dbus_stack[0]
@@ -364,7 +361,7 @@ class ScarlettListener(Server):
                 'queue leaky=2',
                 'fakesink']
 
-    # this function generates the dot file, checks that graphviz in installed and
+    # NOTE: This function generates the dot file, checks that graphviz in installed and
     # then finally generates a png file, which it then displays
     def on_debug_activate(self):
         dotfile = "/home/pi/dev/bossjones-github/scarlett-dbus-poc/_debug/scarlett-debug-graph.dot"
@@ -387,7 +384,6 @@ class ScarlettListener(Server):
         """Forward result signals on the bus to the main thread."""
         logger.debug("Inside result function")
         logger.debug("final_hyp: {}".format(final_hyp))
-        # logger.debug("Compare: {} {} is {}".format(final_hyp,self.kw_to_find,final_hyp in self.kw_to_find))
         pp.pprint(final_hyp)
         logger.debug("kw_to_find: {}".format(self.kw_to_find))
         if final_hyp in self.kw_to_find:
@@ -485,15 +481,6 @@ class ScarlettListener(Server):
         print "ScarlettListener stopped"
 
 
-
-# if __name__ == '__main__':
-#     from pydbus import SessionBus
-#     bus = SessionBus()
-#     bus.own_name(name = 'net.lvht')
-
-#     foo = Foo(bus=bus.con, path='/net/lvht/Foo')
-#     foo.run()
-
 if __name__ == '__main__':
     global logger
     logger = setup_logger()
@@ -502,9 +489,6 @@ if __name__ == '__main__':
     bus = SessionBus()
     bus.own_name(name = 'org.scarlett')
     sl = ScarlettListener(bus=bus.con, path='/org/scarlett/Listener')
-
-
-    # sl = ScarlettListener()
 
     LANGUAGE_VERSION = 1473
     HOMEDIR = "/home/pi"
@@ -544,4 +528,3 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, sigint_handler)
 
     sl.run_pipeline(**vars(args))
-    # sl.run()
