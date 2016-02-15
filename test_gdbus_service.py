@@ -254,9 +254,9 @@ class ScarlettListener(Server):
     </method>
     <method name='emitConnectedToListener'>
       <arg type='s' name='scarlett_plugin' direction='in'/>
-      <arg type='(s)' name='s_cmd' direction='out'/>
+      <arg type='s' name='s_cmd' direction='out'/>
     </method>
-    <method name='Message'>
+    <method name='emitListenerMessage'>
       <arg type='s' name='s_cmd' direction='out'/>
     </method>
     <signal name='KeywordRecognizedSignal'>
@@ -348,7 +348,7 @@ class ScarlettListener(Server):
     def ConnectedToListener(self, scarlett_plugin):
         logger.debug(" sending message: {}".format(scarlett_plugin))
         bus = self.dbus_stack[0]
-        conn_to_lis_status = GLib.Variant("(s)", (scarlett_plugin))
+        conn_to_lis_status = GLib.Variant("s", scarlett_plugin)
         bus.emit_signal(None,
                         '/org/scarlett/Listener',
                         'org.scarlett.Listener',
@@ -393,13 +393,13 @@ class ScarlettListener(Server):
         self.ConnectedToListener(scarlett_plugin)
         return " {} is connected to ScarlettListener".format(scarlett_plugin)
 
-    def get_message(self):
+    def emitListenerMessage(self):
         print "  sending message"
         return self._message
 
-    def listener_ready(self):
-        print " {}".format(self._status_ready)
-        return self._status_ready
+    # def listener_ready(self):
+    #     print " {}".format(self._status_ready)
+    #     return self._status_ready
 
     #########################################################
     # END Scarlett dbus methods
