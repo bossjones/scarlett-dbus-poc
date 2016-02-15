@@ -106,3 +106,44 @@ bus.emit_signal(None,
                 'ListenerReadySignal',
                 listener_rdy_status)
 ```
+
+# Client -> Service issue:
+
+```
+# Currently getting the following issue when proxy tries to connet:
+
+method call time=1455504495.425644 sender=:1.49 -> destination=org.freedesktop.DBus serial=1 path=/org/freedesktop/DBus; interface=org.freedesktop.DBus; member=Hello
+method return time=1455504495.425676 sender=org.freedesktop.DBus -> destination=:1.49 serial=1 reply_serial=1
+   string ":1.49"
+signal time=1455504495.425695 sender=org.freedesktop.DBus -> destination=(null destination) serial=203 path=/org/freedesktop/DBus; interface=org.freedesktop.DBus; member=NameOwnerChanged
+   string ":1.49"
+   string ""
+   string ":1.49"
+signal time=1455504495.425726 sender=org.freedesktop.DBus -> destination=:1.49 serial=2 path=/org/freedesktop/DBus; interface=org.freedesktop.DBus; member=NameAcquired
+   string ":1.49"
+method call time=1455504495.426215 sender=:1.4 -> destination=org.freedesktop.DBus serial=165 path=/org/freedesktop/DBus; interface=org.freedesktop.DBus; member=GetConnectionUnixProcessID
+   string ":1.49"
+method return time=1455504495.426264 sender=org.freedesktop.DBus -> destination=:1.4 serial=204 reply_serial=165
+   uint32 27637
+method call time=1455504495.428239 sender=:1.49 -> destination=org.freedesktop.DBus serial=2 path=/org/freedesktop/DBus; interface=org.freedesktop.DBus; member=AddMatch
+   string "type='signal',sender='org.freedesktop.DBus',interface='org.freedesktop.DBus',member='NameOwnerChanged',path='/org/freedesktop/DBus',arg0='org.scarlett.Listener.SttFailedSignal'"
+method return time=1455504495.428292 sender=org.freedesktop.DBus -> destination=:1.49 serial=3 reply_serial=2
+method call time=1455504495.428302 sender=:1.49 -> destination=org.freedesktop.DBus serial=3 path=/org/freedesktop/DBus; interface=org.freedesktop.DBus; member=GetNameOwner
+   string "org.scarlett.Listener.SttFailedSignal"
+error time=1455504495.428320 sender=org.freedesktop.DBus -> destination=:1.49 error_name=org.freedesktop.DBus.Error.NameHasNoOwner reply_serial=3
+   string "Could not get owner of name 'org.scarlett.Listener.SttFailedSignal': no such name"
+method call time=1455504495.428336 sender=:1.49 -> destination=org.scarlett serial=4 path=/org/scarlett; interface=org.freedesktop.DBus.Introspectable; member=Introspect
+method return time=1455504495.428346 sender=:1.48 -> destination=:1.49 serial=12 reply_serial=4
+   string "<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+                      "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<!-- GDBus 2.46.2 -->
+<node>
+  <node name="Listener"/>
+</node>
+"
+
+# THIS IS A PROPER SIGNAL EMIT
+signal time=1455504580.676030 sender=:1.48 -> destination=(null destination) serial=13 path=/org/scarlett/Listener; interface=org.scarlett.Listener.SttFailedSignal; member=SttFailedSignal
+   string "  ScarlettListener hit Max STT failures"
+   string "pi-response2"
+```

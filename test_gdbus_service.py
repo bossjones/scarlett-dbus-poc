@@ -308,7 +308,7 @@ class ScarlettListener(Server):
         stt_failed_status = GLib.Variant("(ss)", (message, scarlett_sound))
         bus.emit_signal(None,
                         '/org/scarlett/Listener',
-                        'org.scarlett.Listener',
+                        'org.scarlett.Listener.SttFailedSignal',
                         'SttFailedSignal',
                         stt_failed_status)
 

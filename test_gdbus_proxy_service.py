@@ -105,9 +105,9 @@ def player_cb(*args, **kwargs):
 
 # with SessionBus() as bus:
 bus = SessionBus()
-# bus.watch_name("org.scarlett.Listiner1.emitListenerReadySignal", 0, player_cb)
-# bus.watch_name("org.scarlett.Listiner1.emitSttFailedSignal", 0, player_cb)
-ss = bus.get("org.scarlett")
+# bus.watch_name("org.scarlett.Listener1.emitListenerReadySignal", 0, player_cb)
+bus.watch_name("org.scarlett.Listener.SttFailedSignal", 0, player_cb)
+ss = bus.get("org.scarlett", object_path='/org/scarlett/Listener')
 
 
 logger.debug("ss PrettyPrinter: ")
