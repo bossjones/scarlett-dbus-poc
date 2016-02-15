@@ -189,6 +189,38 @@ class Server(object):
         if out_args != '()':
             invocation.return_value(GLib.Variant(out_args, result))
 
+# Before xml re-write
+# class ScarlettListener(Server):
+#     '''
+# <node>
+#   <interface name='org.scarlett.Listener1'>
+#     <method name='emitKeywordRecognizedSignal'>
+#       <arg type='(ss)' name='s_cmd' direction='out'/>
+#     </method>
+#     <method name='emitCommandRecognizedSignal'>
+#       <arg type='s' name='command' direction='in'/>
+#       <arg type='(sss)' name='s_cmd' direction='out'/>
+#     </method>
+#     <method name='emitSttFailedSignal'>
+#       <arg type='(ss)' name='s_cmd' direction='out'/>
+#     </method>
+#     <method name='emitListenerCancelSignal'>
+#       <arg type='(ss)' name='s_cmd' direction='out'/>
+#     </method>
+#     <method name='emitListenerReadySignal'>
+#       <arg type='(ss)' name='s_cmd' direction='out'/>
+#     </method>
+#     <method name='emitConnectedToListener'>
+#       <arg type='s' name='scarlett_plugin' direction='in'/>
+#       <arg type='s' name='s_cmd' direction='out'/>
+#     </method>
+#     <method name='Message'>
+#       <arg type='s' name='s_cmd' direction='out'/>
+#     </method>
+#   </interface>
+# </node>
+#     '''
+
 
 class ScarlettListener(Server):
     '''
@@ -217,6 +249,21 @@ class ScarlettListener(Server):
     <method name='Message'>
       <arg type='s' name='s_cmd' direction='out'/>
     </method>
+    <signal name='KeywordRecognizedSignal'>
+      <arg type='(ss)' name='kw_rec_status' direction='out'/>
+    </signal>
+    <signal name='CommandRecognizedSignal'>
+      <arg type='(sss)' name='cmd_rec_status' direction='out'/>
+    </signal>
+    <signal name='SttFailedSignal'>
+      <arg type='(ss)' name='stt_failed_status' direction='out'/>
+    </signal>
+    <signal name='ListenerCancelSignal'>
+      <arg type='(ss)' name='listener_cancel_status' direction='out'/>
+    </signal>
+    <signal name='ListenerReadySignal'>
+      <arg type='(ss)' name='listener_rdy_status' direction='out'/>
+    </signal>
   </interface>
 </node>
     '''
