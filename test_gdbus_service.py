@@ -238,8 +238,12 @@ class ScarlettListener(Server):
         bus = self.dbus_stack[0]
         logger.debug("Inside KeywordRecognizedSignal. Dump bus object")
         pp.pprint(bus)
-        bus.emit_signal('ScarlettListener', 'org.scarlett.Listener',
-                        'KeywordRecognizedSignal', (message, scarlett_sound))
+        kw_rec_status = GLib.Variant("(ss)", (message, scarlett_sound))
+        bus.emit_signal(None,
+                        '/org/scarlett/Listener',
+                        'org.scarlett.Listener',
+                        'KeywordRecognizedSignal',
+                        kw_rec_status)
 
     def CommandRecognizedSignal(self, message, scarlett_sound, scarlett_cmd):
         logger.debug(" sending message: {}".format(message))
