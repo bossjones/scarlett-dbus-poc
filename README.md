@@ -345,10 +345,14 @@ Tasker: python test_gdbus_proxy_service.py
 
 - [X] Listener. Good-to-go.
 - [ ] Tasker
+   - [ ] Threading
+   - [ ] Calls to Player
+   - [ ] Calls to Speaker
+   - [ ] Calls to Features
 - [ ] Player
 - [ ] Speaker
 - [ ] Brain
-- [ ] Services
+- [ ] Features
   - [ ] Forecast
   - [ ] GstUtils
   - [ ] Timer

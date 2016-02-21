@@ -1,28 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
+import os
+import sys
+import time
 
-# from numpy import getbuffer, frombuffer
-
-# import dbus
-# import dbus.service
-# import dbus.mainloop.glib
-# from dbus.mainloop.glib import threads_init
-# import gobject
-# gobject.threads_init()
-# threads_init()
-
-# import pygst
-# pygst.require('0.10')
-# import gst
+SCARLETT_DEBUG = 1
 
 import argparse
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
-
-import dbus
-import dbus.service
-from dbus.mainloop.glib import DBusGMainLoop
-from dbus.mainloop.glib import threads_init
 
 import gi
 gi.require_version('Gst', '1.0')
@@ -46,11 +32,27 @@ print '********************************************************'
 Gst.debug_set_active(True)
 Gst.debug_set_default_threshold(3)
 
-gst = Gst
+import StringIO
+
+import re
+import ConfigParser
+import signal
+
+from IPython.core.debugger import Tracer
+from IPython.core import ultratb
+
+sys.excepthook = ultratb.FormattedTB(mode='Verbose',
+                                     color_scheme='Linux',
+                                     call_pdb=True,
+                                     ostream=sys.__stdout__)
 
 from colorlog import ColoredFormatter
 
 import logging
+
+from gettext import gettext as _
+
+gst = Gst
 
 
 def setup_logger():
