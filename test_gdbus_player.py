@@ -127,8 +127,15 @@ class ScarlettPlayer():
         self.debug = False
         self.create_dot = False
 
+
+        # self.player = Gst.ElementFactory.make('playbin', 'player')
+        # self.bus = self.player.get_bus()
+        # self.bus.add_signal_watch()
+        # self.setup_replaygain()
+
         # Element playbin automatic plays any sound
-        player = gst.element_factory_make("playback", "player")
+        player = Gst.ElementFactory.make('playbin', 'player')
+        logger.debug("ScarlettPlayer player %s" % (player))
         self.end_cond = threading.Condition(threading.Lock())
 
         # Set the uri to the sound
@@ -138,6 +145,16 @@ class ScarlettPlayer():
 
         # Enable message bus to check for errors in the pipeline
         gst_bus = player.get_bus()
+        gst_bus.add_signal_watch()
+
+        # TODO: Fix this, currently borrowing this from gnome-music
+        # self.bus.connect('message::state-changed', self._on_bus_state_changed)
+        # self.bus.connect('message::error', self._onBusError)
+        # self.bus.connect('message::element', self._on_bus_element)
+        # self.bus.connect('message::eos', self._on_bus_eos)
+
+        gst_bus.connect('message::error', self._onBusError)
+        gst_bus.connect('message::eos', self._on_bus_eos)
 
         self.pipelines_stack.append(player)
 
@@ -193,29 +210,53 @@ class ScarlettPlayer():
 
     def run(self):
         logger.debug("ScarlettPlayer sound: {}".format(self.sound))
-        # self.player.set_state(gst.STATE_PLAYING)
+        # self.player.set_state(Gst.State.PLAYING)
         self.loop.run()
+
+    def _on_bus_state_changed(self, bus, message):
+        # Note: not all state changes are signaled through here, in particular
+        # transitions between Gst.State.READY and Gst.State.NULL are never async
+        # and thus don't cause a message
+        # In practice, self means only Gst.State.PLAYING and Gst.State.PAUSED are
+        pass
+
+    def _onBusError(self, bus, message):
+        logger.debug("_onBusError")
+        if message.get_structure():
+           print(message.get_structure().to_string())
+        pass
+
+    def _on_bus_eos(self, bus, message):
+        logger.debug("_on_bus_eos")
+        if message.get_structure():
+           print(message.get_structure().to_string())
+        p = self.pipelines_stack[0]
+        p.set_state(Gst.State.NULL)
+        self.loop.quit()
+        self.quit()
+        return True
+        # pass
     #
     # def on_message(self, bus, message):
     #     pp = pprint.PrettyPrinter(indent=4)
     #     pp.pprint(bus)
     #     pp.pprint(message)
     #     t = message.type
-    #     if t == gst.MESSAGE_EOS:
-    #         logger.debug("OKAY, MESSAGE_EOS: ".format(gst.MESSAGE_EOS))
-    #         self.player.set_state(gst.STATE_NULL)
+    #     if t == Gst.MessageType.EOS:
+    #         logger.debug("OKAY, MESSAGE_EOS: ".format(Gst.MessageType.EOS))
+    #         self.player.set_state(Gst.State.NULL)
     #         self.loop.quit()
     #         self.quit()
-    #     elif t == gst.MESSAGE_ERROR:
-    #         logger.debug("OKAY, MESSAGE_ERROR: ".format(gst.MESSAGE_ERROR))
-    #         self.player.set_state(gst.STATE_NULL)
+    #     elif t == Gst.MessageType.ERROR:
+    #         logger.debug("OKAY, MESSAGE_ERROR: ".format(Gst.MessageType.ERROR))
+    #         self.player.set_state(Gst.State.NULL)
     #         err, debug = message.parse_error()
     #         print "Error: %s" % err, debug
     #         self.loop.quit()
     #         self.quit()
     #
     # def finish_request(self):
-    #     self.player.set_state(gst.STATE_NULL)
+    #     self.player.set_state(Gst.State.NULL)
     #     self.loop.quit()
     #     self.quit()
     #     time.sleep(2)
@@ -227,20 +268,20 @@ class ScarlettPlayer():
     #         pp.pprint(bus)
     #         pp.pprint(message)
     #     t = message.type
-    #     if t == gst.MESSAGE_EOS:
-    #         logger.debug("OKAY, MESSAGE_EOS: ".format(gst.MESSAGE_EOS))
+    #     if t == Gst.MessageType.EOS:
+    #         logger.debug("OKAY, MESSAGE_EOS: ".format(Gst.MessageType.EOS))
     #         self.end_cond.acquire()
-    #         self.player.set_state(gst.STATE_NULL)
+    #         self.player.set_state(Gst.State.NULL)
     #         self.loop.quit()
     #         self.end_reached = True
     #         self.end_cond.notify()
     #         self.end_cond.release()
     #         self.quit()
     #
-    #     elif t == gst.MESSAGE_ERROR:
-    #         logger.debug("OKAY, MESSAGE_ERROR: ".format(gst.MESSAGE_ERROR))
+    #     elif t == Gst.MessageType.ERROR:
+    #         logger.debug("OKAY, MESSAGE_ERROR: ".format(Gst.MessageType.ERROR))
     #         self.end_cond.acquire()
-    #         self.player.set_state(gst.STATE_NULL)
+    #         self.player.set_state(Gst.State.NULL)
     #         self.loop.quit()
     #         self.end_reached = True
     #         err, debug = message.parse_error()
