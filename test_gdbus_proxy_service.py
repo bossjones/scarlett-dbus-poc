@@ -50,6 +50,8 @@ from gettext import gettext as _
 
 gst = Gst
 
+SCARLETT_DEBUG = False
+
 
 def setup_logger():
     """Return a logger with a default ColoredFormatter."""
@@ -95,12 +97,20 @@ logger = setup_logger()
 
 
 def player_cb(*args, **kwargs):
-    logger.debug("player_cb PrettyPrinter: ")
-    pp = pprint.PrettyPrinter(indent=4)
-    pp.pprint(args)
-    msg, scarlett_sound = args
-    logger.warning(" msg: {}".format(msg))
-    logger.warning(" scarlett_sound: {}".format(scarlett_sound))
+    if SCARLETT_DEBUG:
+      logger.debug("player_cb PrettyPrinter: ")
+      pp = pprint.PrettyPrinter(indent=4)
+      pp.pprint(args)
+    for i, v in enumerate(args):
+        if SCARLETT_DEBUG:
+          logger.debug("Type v: {}".format(type(v)))
+          logger.debug("Type i: {}".format(type(i)))
+        if type(v) is gi.overrides.GLib.Variant:
+            if SCARLETT_DEBUG:
+              logger.debug("THIS SHOULD BE A Tuple now: {}".format(v))
+            msg, scarlett_sound = v
+            logger.warning(" msg: {}".format(msg))
+            logger.warning(" scarlett_sound: {}".format(scarlett_sound))
 
 
 # with SessionBus() as bus:
@@ -115,6 +125,14 @@ ss_signal = bus.con.signal_subscribe(None,
                                      0,
                                      player_cb)
 # ss.emitConnectedToListener("ScarlettProxy")
+
+ss_rdy = bus.con.signal_subscribe(None,
+                                  "org.scarlett.Listener",
+                                  "ListenerReadySignal",
+                                  '/org/scarlett/Listener',
+                                  None,
+                                  0,
+                                  player_cb)
 
 
 logger.debug("ss PrettyPrinter: ")
