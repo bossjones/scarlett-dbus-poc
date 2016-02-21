@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
+
+# NOTE: This is the new task_runner
+# NOTE: [02/21/2016]
+
 import os
 import sys
 import time
@@ -104,35 +108,80 @@ def player_cb(*args, **kwargs):
             logger.warning(" msg: {}".format(msg))
             logger.warning(" scarlett_sound: {}".format(scarlett_sound))
 
+# NOTE: enumerate req to iterate through tuple and find GVariant
+def command_cb(*args, **kwargs):
+    if SCARLETT_DEBUG:
+      logger.debug("player_cb PrettyPrinter: ")
+      pp = pprint.PrettyPrinter(indent=4)
+      pp.pprint(args)
+    for i, v in enumerate(args):
+        if SCARLETT_DEBUG:
+          logger.debug("Type v: {}".format(type(v)))
+          logger.debug("Type i: {}".format(type(i)))
+        if type(v) is gi.overrides.GLib.Variant:
+            if SCARLETT_DEBUG:
+              logger.debug("THIS SHOULD BE A Tuple now: {}".format(v))
+            msg, scarlett_sound, command = v
+            logger.warning(" msg: {}".format(msg))
+            logger.warning(" scarlett_sound: {}".format(scarlett_sound))
+            logger.warning(" command: {}".format(command))
 
 # with SessionBus() as bus:
 bus = SessionBus()
 # bus.watch_name("org.scarlett.Listener.SttFailedSignal", 0, player_cb)
 ss = bus.get("org.scarlett", object_path='/org/scarlett/Listener')
-ss_signal = bus.con.signal_subscribe(None,
-                                     "org.scarlett.Listener",
-                                     "SttFailedSignal",
-                                     '/org/scarlett/Listener',
-                                     None,
-                                     0,
-                                     player_cb)
+
+# SttFailedSignal / player_cb
+ss_failed_signal = bus.con.signal_subscribe(None,
+                                            "org.scarlett.Listener",
+                                            "SttFailedSignal",
+                                            '/org/scarlett/Listener',
+                                            None,
+                                            0,
+                                            player_cb)
 # ss.emitConnectedToListener("ScarlettProxy")
 
-ss_rdy = bus.con.signal_subscribe(None,
-                                  "org.scarlett.Listener",
-                                  "ListenerReadySignal",
-                                  '/org/scarlett/Listener',
-                                  None,
-                                  0,
-                                  player_cb)
+# ListenerReadySignal / player_cb
+ss_rdy_signal = bus.con.signal_subscribe(None,
+                                         "org.scarlett.Listener",
+                                         "ListenerReadySignal",
+                                         '/org/scarlett/Listener',
+                                         None,
+                                         0,
+                                         player_cb)
+
+
+# KeywordRecognizedSignal / player_cb
+ss_kw_rec_signal = bus.con.signal_subscribe(None,
+                                            "org.scarlett.Listener",
+                                            "KeywordRecognizedSignal",
+                                            '/org/scarlett/Listener',
+                                            None,
+                                            0,
+                                            player_cb)
+
+# CommandRecognizedSignal /command_cb
+ss_cmd_rec_signal = bus.con.signal_subscribe(None,
+                                             "org.scarlett.Listener",
+                                             "CommandRecognizedSignal",
+                                             '/org/scarlett/Listener',
+                                             None,
+                                             0,
+                                             command_cb)
+
+# ListenerCancelSignal / player_cb
+ss_cancel_signal = bus.con.signal_subscribe(None,
+                                            "org.scarlett.Listener",
+                                            "ListenerCancelSignal",
+                                            '/org/scarlett/Listener',
+                                            None,
+                                            0,
+                                            player_cb)
 
 
 logger.debug("ss PrettyPrinter: ")
 pp = pprint.PrettyPrinter(indent=4)
 pp.pprint(ss)
-
-# bus.subscribe(signal="ListenerReadySignal",
-#               signal_fired=player_cb)
 
 
 def sigint_handler(*args):
@@ -153,81 +202,3 @@ try:
 finally:
 
     print 'Proxy text finished'
-
-
-
-# bus.add_signal_receiver(command_cb,
-# dbus_interface='com.example.service.event',
-# signal_name='CommandRecognizedSignal'
-# )
-#
-# 	def subscribe(self, sender=None, iface=None, signal=None, object=None, arg0=None, flags=0, signal_fired=None):
-# 		"""Subscribes to matching signals.
-#
-# 		Subscribes to signals on connection and invokes signal_fired callback
-# 		whenever the signal is received.
-#
-# 		To receive signal_fired callback, you need GLib main loop.
-# 		You can execute it with GObject.MainLoop().run().
-#
-# 		Parameters
-# 		----------
-# 		sender : string, optional
-# 			Sender name to match on (unique or well-known name) or None to listen from all senders.
-# 		iface : string, optional
-# 			Interface name to match on or None to match on all interfaces.
-# 		signal : string, optional
-# 			Signal name to match on or None to match on all signals.
-# 		object : string, optional
-# 			Object path to match on or None to match on all object paths.
-# 		arg0 : string, optional
-# 			Contents of first string argument to match on or None to match on all kinds of arguments.
-# 		flags : SubscriptionFlags, optional
-# 		signal_fired : callable, optional
-# 			Invoked when there is a signal matching the requested data.
-# 			Parameters: sender, object, iface, signal, params
-#
-# 		Returns
-# 		-------
-# 		Subscription
-# 			An object you can use as a context manager to unsubscribe from the signal later.
-#
-# 		See Also
-# 		--------
-# 		See https://developer.gnome.org/gio/2.44/GDBusConnection.html#g-dbus-connection-signal-subscribe
-# 		for more information.
-# 		"""
-# 		callback = (lambda con, sender, object, iface, signal, params: signal_fired(sender, object, iface, signal, params.unpack())) if signal_fired is not None else lambda *args: None
-# 		return Subscription(self.con, sender, iface, signal, object, arg0, flags, callback)
-#
-#
-#
-# import sys
-#
-# try:
-# 	if len(sys.argv) < 2:
-# 		for unit in manager.ListUnits()[0]:
-# 			print(unit)
-# 	else:
-# 		if sys.argv[1] == "--help":
-# 			help(manager)
-# 		else:
-# 			command = sys.argv[1]
-# 			command = "".join(x.capitalize() for x in command.split("-"))
-# 			result = getattr(manager, command)(*sys.argv[2:])
-#
-# 			for var in result:
-# 				if type(var) == list:
-# 					for line in var:
-# 						print(line)
-# 				else:
-# 					print(var)
-# except Exception as e:
-# 	print(e)
-#
-# """
-# Examples:
-#
-# python -m pydbus.examples.systemctl
-# sudo python -m pydbus.examples.systemctl start-unit cups.service replace
-# """

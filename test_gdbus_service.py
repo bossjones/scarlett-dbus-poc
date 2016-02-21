@@ -179,6 +179,7 @@ class Server(object):
 
         args = list(parameters.unpack())
         for i, sig in enumerate(self.method_inargs[method_name]):
+            # if UNIX_FD
             if sig is 'h':
                 msg = invocation.get_message()
                 fd_list = msg.get_unix_fd_list()
@@ -198,38 +199,6 @@ class Server(object):
             logger.debug("Inside result != ()")
             pp.pprint(result)
             invocation.return_value(GLib.Variant(out_args, result))
-
-# Before xml re-write
-# class ScarlettListener(Server):
-#     '''
-# <node>
-#   <interface name='org.scarlett.Listener1'>
-#     <method name='emitKeywordRecognizedSignal'>
-#       <arg type='(ss)' name='s_cmd' direction='out'/>
-#     </method>
-#     <method name='emitCommandRecognizedSignal'>
-#       <arg type='s' name='command' direction='in'/>
-#       <arg type='(sss)' name='s_cmd' direction='out'/>
-#     </method>
-#     <method name='emitSttFailedSignal'>
-#       <arg type='(ss)' name='s_cmd' direction='out'/>
-#     </method>
-#     <method name='emitListenerCancelSignal'>
-#       <arg type='(ss)' name='s_cmd' direction='out'/>
-#     </method>
-#     <method name='emitListenerReadySignal'>
-#       <arg type='(ss)' name='s_cmd' direction='out'/>
-#     </method>
-#     <method name='emitConnectedToListener'>
-#       <arg type='s' name='scarlett_plugin' direction='in'/>
-#       <arg type='s' name='s_cmd' direction='out'/>
-#     </method>
-#     <method name='Message'>
-#       <arg type='s' name='s_cmd' direction='out'/>
-#     </method>
-#   </interface>
-# </node>
-#     '''
 
 
 class ScarlettListener(Server):
@@ -396,10 +365,6 @@ class ScarlettListener(Server):
     def emitListenerMessage(self):
         print "  sending message"
         return self._message
-
-    # def listener_ready(self):
-    #     print " {}".format(self._status_ready)
-    #     return self._status_ready
 
     #########################################################
     # END Scarlett dbus methods

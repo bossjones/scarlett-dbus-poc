@@ -323,3 +323,19 @@ ValueError: too many values to unpack
 
 ipdb>
 ```
+
+## Got signal emit + callback working. player_cb / command_cb
+
+```
+Service: python test_gdbus_simple_service.py
+
+Tasker: python test_gdbus_proxy_service.py
+```
+
+### Got full emit + subscribe [02/21/2016] / No Threads + No Player / Speaker yet
+
+```
+Service: python test_gdbus_service.py
+
+Tasker: python test_gdbus_proxy_service.py
+```
