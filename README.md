@@ -339,3 +339,24 @@ Service: python test_gdbus_service.py
 
 Tasker: python test_gdbus_proxy_service.py
 ```
+
+
+### TODO:
+
+- [X] Listener. Good-to-go.
+- [ ] Tasker
+- [ ] Player
+- [ ] Speaker
+- [ ] Brain
+- [ ] Services
+  - [ ] Forecast
+  - [ ] GstUtils
+  - [ ] Timer
+  - [ ] Wordnik
+  - [ ] Stocks
+  - [ ] News
+  - [ ] Lights
+  - [ ] Music
+  - [ ] TV
+  - [ ] Sound
+  - [ ] Blinds
