@@ -87,15 +87,7 @@ def setup_logger():
 
 logger = setup_logger()
 
-# bus = SessionBus()
-#
-# ss = bus.get("org.scarlett")
-#
-# logger.debug("ss PrettyPrinter: ")
-# pp = pprint.PrettyPrinter(indent=4)
-# pp.pprint(ss)
-
-
+# NOTE: enumerate req to iterate through tuple and find GVariant
 def player_cb(*args, **kwargs):
     if SCARLETT_DEBUG:
       logger.debug("player_cb PrettyPrinter: ")
