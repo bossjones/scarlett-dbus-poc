@@ -70,6 +70,7 @@ gst = Gst
 
 import scarlett_gstutils
 import scarlett_config
+from scarlett_log import log
 
 
 def setup_logger():
@@ -111,23 +112,25 @@ logger = setup_logger()
 gst = Gst
 
 
-def sigint_handler(*args):
-    """Exit on Ctrl+C"""
-
-    # Unregister handler, next Ctrl-C will kill app
-    # TODO: figure out if this is really needed or not
-    signal.signal(signal.SIGINT, signal.SIG_DFL)
-
-signal.signal(signal.SIGINT, sigint_handler)
+# def sigint_handler(*args):
+#     """Exit on Ctrl+C"""
+#
+#     # Unregister handler, next Ctrl-C will kill app
+#     # TODO: figure out if this is really needed or not
+#     signal.signal(signal.SIGINT, signal.SIG_DFL)
+#
+# signal.signal(signal.SIGINT, sigint_handler)
 
 
 class ScarlettSpeaker():
 
+    @log
     def __init__(self, cmd):
         global PWD
         global logger
         self.loop = GLib.MainLoop()
         self.pipelines_stack = []
+        self.source_stack = []
 
         self._message = 'This is the ScarlettSpeaker'
         self.config = scarlett_config.Config()
@@ -138,7 +141,7 @@ class ScarlettSpeaker():
         self.create_dot = False
 
         #########################################################################
-        espeak_pipeline = 'espeak name=source ! autoaudiosink'
+        espeak_pipeline = 'espeak name=source ! queue2 name=q ! autoaudiosink'
         player = Gst.parse_launch(espeak_pipeline)
         print '********************************************************'
         print 'player from espeak_pipeline: '
@@ -166,10 +169,13 @@ class ScarlettSpeaker():
 
         # NOTE: Borrowed these lines from gnome-music
         gst_bus.connect('message::error', self._onBusError)
-        gst_bus.connect('message::eos', self._on_bus_eos)
+        # gst_bus.connect('message::eos', self._on_bus_eos)
         # gst_bus.connect("message", self._on_message_cb)
 
         self.pipelines_stack.append(player)
+        self.source_stack.append(source)
+
+        pp.pprint(dir(source))
 
         logger.debug("ScarlettSpeaker __init__ finished")
 
@@ -179,66 +185,71 @@ class ScarlettSpeaker():
         # start pipeline
         player.set_state(Gst.State.PLAYING)
 
-        # #########################################################################
-        #
-        # # Element playbin automatic plays any sound
-        # player = Gst.ElementFactory.make('playbin', 'player')
-        # logger.debug("ScarlettSpeaker player %s" % (player))
-        # self.end_cond = threading.Condition(threading.Lock())
-        #
-        # # Set the uri to the sound
-        # filename = '%s/static/sounds/%s.wav' % (PWD, sound)
-        # player.set_property('uri', 'file://%s' % filename)
-        # self.sound = sound
-        #
-        # # Enable message bus to check for errors in the pipeline
-        # gst_bus = player.get_bus()
-        # gst_bus.add_signal_watch()
-        #
-        # # NOTE: Borrowed these lines from gnome-music
-        # gst_bus.connect('message::error', self._onBusError)
-        # gst_bus.connect('message::eos', self._on_bus_eos)
-        #
-        # self.pipelines_stack.append(player)
-        #
-        # logger.debug("ScarlettSpeaker __init__ finished")
-        #
-        # self.mainloopthread = scarlett_gstutils.MainloopThread(self.loop)
-        # self.mainloopthread.start()
-        #
-        # # start pipeline
-        # player.set_state(Gst.State.PLAYING)
+        GST_CLOCK_TIME_NONE = 18446744073709551615
 
-        while True:
-            try:
-                msg = gst_bus.timed_pop(Gst.CLOCK_TIME_NONE)
-                if msg:
-                    if msg.type == Gst.MessageType.EOS:
-                        logger.debug("OKAY, Gst.MessageType.EOS: ".format(Gst.MessageType.EOS))
-                        player.set_state(Gst.State.NULL)
-                        self.loop.quit()
-                        self.quit()
-                        break
-                    if msg.type == Gst.MessageType.ERROR:
-                        logger.debug("OKAY, Gst.MessageType.ERROR: ".format(Gst.MessageType.ERROR))
-                        player.set_state(Gst.State.NULL)
-                        self.loop.quit()
-                        self.end_reached = True
-                        try:
-                            err, debug = msg.parse_error()
-                            self.error_msg = "Error: %s" % err, debug
-                        except:
-                            print 'Could not catch error message'
-                        # self.end_cond.notify()
-                        # self.end_cond.release()
-                        self.quit()
-                        break
-            except KeyboardInterrupt:
-                player.send_event(Gst.Event.new_eos())
+        # wait for preroll or error
+        msg=gst_bus.timed_pop_filtered(GST_CLOCK_TIME_NONE, Gst.MessageType.ASYNC_DONE | Gst.MessageType.ERROR)
 
-        # Free resources
-        player.set_state(Gst.State.NULL)
+        if msg.type == Gst.MessageType.ASYNC_DONE:
+          ret, dur = player.query_duration(Gst.Format.TIME)
+          print "Duration: %u seconds" % (dur / Gst.SECOND)
+
+          # wait for EOS or error
+        msg=gst_bus.timed_pop_filtered(GST_CLOCK_TIME_NONE, Gst.MessageType.EOS | Gst.MessageType.ERROR)
+
+        if msg.type == Gst.MessageType.ERROR:
+          gerror, dbg_msg = msg.parse_error()
+          print "Error         : ", gerror.message
+          print "Debug details : ", dbg_msg
+
+        # if msg.type == Gst.MessageType.EOS:
+        #   player.send_event(Gst.Event.new_eos())
+        #   self.loop.quit()
+        #   self.quit()
+
         print "ScarlettSpeaker stopped"
+        player.set_state(Gst.State.NULL)
+
+        # while True:
+        #     try:
+        #         msg = gst_bus.timed_pop(Gst.CLOCK_TIME_NONE)
+        #         if msg:
+        #             if msg.type == Gst.MessageType.EOS:
+        #                 logger.debug("OKAY, Gst.MessageType.EOS: ".format(Gst.MessageType.EOS))
+        #                 time.sleep(10)
+        #                 # player.set_state(Gst.State.NULL)
+        #                 # self.loop.quit()
+        #                 # self.quit()
+        #                 break
+        #             if msg.type == Gst.MessageType.ERROR:
+        #                 logger.debug("OKAY, Gst.MessageType.ERROR: ".format(Gst.MessageType.ERROR))
+        #                 time.sleep(10)
+        #                 # player.set_state(Gst.State.NULL)
+        #                 # self.loop.quit()
+        #                 # self.end_reached = True
+        #                 # try:
+        #                 #     err, debug = msg.parse_error()
+        #                 #     self.error_msg = "Error: %s" % err, debug
+        #                 # except:
+        #                 #     print 'Could not catch error message'
+        #                 # # self.end_cond.notify()
+        #                 # # self.end_cond.release()
+        #                 # self.quit()
+        #                 break
+        #     except KeyboardInterrupt:
+        #         player.send_event(Gst.Event.new_eos())
+
+        def sigint_handler(*args):
+            """Exit on Ctrl+C"""
+
+            # Unregister handler, next Ctrl-C will kill app
+            # TODO: figure out if this is really needed or not
+            signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+        signal.signal(signal.SIGINT, sigint_handler)
+        # Free resources
+        # player.set_state(Gst.State.NULL)
+
 
     # def release(self):
     #     if hasattr(self, 'eod') and hasattr(self, 'loop'):
@@ -260,30 +271,33 @@ class ScarlettSpeaker():
         # In practice, self means only Gst.State.PLAYING and Gst.State.PAUSED are
         pass
 
+    @log
     def _onBusError(self, bus, message):
         logger.debug("_onBusError")
+        p = self.pipelines_stack[0]
+        p.set_state(Gst.State.NULL)
         try:
-            p = self.pipelines_stack[0]
-            p.set_state(Gst.State.NULL)
+          self.loop.quit()
+          # self.quit()
         except:
-            print 'error in _onBusError when trying to set state'
-        self.loop.quit()
-        self.quit()
+          print 'ERROR TRYING TO EXIT OUT FOOL'
         return True
 
+    @log
     def _on_bus_eos(self, bus, message):
         logger.debug("_on_bus_eos")
+        p = self.pipelines_stack[0]
+        p.set_state(Gst.State.NULL)
         try:
-            p = self.pipelines_stack[0]
-            p.set_state(Gst.State.NULL)
+          self.loop.quit()
+          # self.quit()
         except:
-            print 'error in _on_bus_eos when trying to set state'
-        self.loop.quit()
-        self.quit()
+          print 'ERROR TRYING TO EXIT OUT FOOL'
         return True
 
+    @log
     def quit(self):
         logger.debug("  shutting down ScarlettSpeaker")
-        time.sleep(2)
+        # time.sleep(2)
         # self.quit()
         return
