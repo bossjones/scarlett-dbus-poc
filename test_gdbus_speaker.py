@@ -139,13 +139,13 @@ class ScarlettSpeaker():
 
         #########################################################################
         espeak_pipeline = 'espeak name=source ! autoaudiosink'
-        player = gst.parse_launch(espeak_pipeline)
+        player = Gst.parse_launch(espeak_pipeline)
         self.end_cond = threading.Condition(threading.Lock())
 
         #######################################################################
         # all writable properties(including text) make sense only at start playing;
-        # to apply new values you need to stop pipe.set_state(gst.STATE_NULL) pipe and
-        # start it again with new properties pipe.set_state(gst.STATE_PLAYING).
+        # to apply new values you need to stop pipe.set_state(Gst.State.NULL) pipe and
+        # start it again with new properties pipe.set_state(Gst.State.PLAYING).
         # source: http://wiki.sugarlabs.org/go/Activity_Team/gst-plugins-espeak
         #######################################################################
         # Set the uri to the cmd
@@ -167,7 +167,7 @@ class ScarlettSpeaker():
         self.mainloopthread.start()
 
         # start pipeline
-        player.set_state(gst.STATE_PLAYING)
+        player.set_state(Gst.State.PLAYING)
         #########################################################################
 
         # Element playbin automatic plays any sound
