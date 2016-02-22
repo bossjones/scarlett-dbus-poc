@@ -151,34 +151,10 @@ class ScarlettSpeaker():
         # Set the uri to the cmd
         source = player.get_by_name("source")
         source.props.pitch = 50
-        source.props.rate = 100
+        source.props.rate = 20
         source.props.voice = "en+f3"
         source.props.text = _('{}'.format(cmd))
         self.text = source.props.text
-
-        # Enable message bus to check for errors in the pipeline
-        bus = player.get_bus()
-        bus.add_signal_watch()
-        # bus.connect("message", self.on_message)
-        bus.connect("message", self._on_message_cb)
-        logger.debug("ScarlettSpeaker __init__ finished")
-
-        self.mainloopthread = scarlett_gstutils.MainloopThread(self._loop)
-        self.mainloopthread.start()
-
-        # start pipeline
-        player.set_state(Gst.State.PLAYING)
-        #########################################################################
-
-        # Element playbin automatic plays any sound
-        player = Gst.ElementFactory.make('playbin', 'player')
-        logger.debug("ScarlettSpeaker player %s" % (player))
-        self.end_cond = threading.Condition(threading.Lock())
-
-        # Set the uri to the sound
-        filename = '%s/static/sounds/%s.wav' % (PWD, sound)
-        player.set_property('uri', 'file://%s' % filename)
-        self.sound = sound
 
         # Enable message bus to check for errors in the pipeline
         gst_bus = player.get_bus()
@@ -187,6 +163,7 @@ class ScarlettSpeaker():
         # NOTE: Borrowed these lines from gnome-music
         gst_bus.connect('message::error', self._onBusError)
         gst_bus.connect('message::eos', self._on_bus_eos)
+        # gst_bus.connect("message", self._on_message_cb)
 
         self.pipelines_stack.append(player)
 
@@ -197,6 +174,36 @@ class ScarlettSpeaker():
 
         # start pipeline
         player.set_state(Gst.State.PLAYING)
+
+        # #########################################################################
+        #
+        # # Element playbin automatic plays any sound
+        # player = Gst.ElementFactory.make('playbin', 'player')
+        # logger.debug("ScarlettSpeaker player %s" % (player))
+        # self.end_cond = threading.Condition(threading.Lock())
+        #
+        # # Set the uri to the sound
+        # filename = '%s/static/sounds/%s.wav' % (PWD, sound)
+        # player.set_property('uri', 'file://%s' % filename)
+        # self.sound = sound
+        #
+        # # Enable message bus to check for errors in the pipeline
+        # gst_bus = player.get_bus()
+        # gst_bus.add_signal_watch()
+        #
+        # # NOTE: Borrowed these lines from gnome-music
+        # gst_bus.connect('message::error', self._onBusError)
+        # gst_bus.connect('message::eos', self._on_bus_eos)
+        #
+        # self.pipelines_stack.append(player)
+        #
+        # logger.debug("ScarlettSpeaker __init__ finished")
+        #
+        # self.mainloopthread = scarlett_gstutils.MainloopThread(self.loop)
+        # self.mainloopthread.start()
+        #
+        # # start pipeline
+        # player.set_state(Gst.State.PLAYING)
 
         while True:
             try:
@@ -213,8 +220,11 @@ class ScarlettSpeaker():
                         player.set_state(Gst.State.NULL)
                         self.loop.quit()
                         self.end_reached = True
-                        err, debug = msg.parse_error()
-                        self.error_msg = "Error: %s" % err, debug
+                        try:
+                            err, debug = msg.parse_error()
+                            self.error_msg = "Error: %s" % err, debug
+                        except:
+                            print 'Could not catch error message'
                         # self.end_cond.notify()
                         # self.end_cond.release()
                         self.quit()

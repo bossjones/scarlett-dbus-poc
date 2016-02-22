@@ -232,6 +232,6 @@ class ScarlettPlayer():
 
     def quit(self):
         logger.debug("  shutting down ScarlettPlayer")
-        time.sleep(2)
+        # time.sleep(2)
         # self.quit()
         return
