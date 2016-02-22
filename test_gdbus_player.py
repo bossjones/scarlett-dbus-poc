@@ -182,8 +182,8 @@ class ScarlettPlayer():
                         self.end_reached = True
                         err, debug = msg.parse_error()
                         self.error_msg = "Error: %s" % err, debug
-                        self.end_cond.notify()
-                        self.end_cond.release()
+                        # self.end_cond.notify()
+                        # self.end_cond.release()
                         self.quit()
                         break
             except KeyboardInterrupt:
@@ -193,14 +193,15 @@ class ScarlettPlayer():
         player.set_state(Gst.State.NULL)
         print "ScarlettPlayer stopped"
 
-    def release(self):
-        if hasattr(self, 'eod') and hasattr(self, 'loop'):
-            self.end_cond.acquire()
-            while not hasattr(self, 'end_reached'):
-                self.end_cond.wait()
-            self.end_cond.release()
-        if hasattr(self, 'error_msg'):
-            raise IOError(self.error_msg)
+    # TODO: FIXEME ... having this enabled breaks player
+    # def release(self):
+    #     if hasattr(self, 'eod') and hasattr(self, 'loop'):
+    #         self.end_cond.acquire()
+    #         while not hasattr(self, 'end_reached'):
+    #             self.end_cond.wait()
+    #         self.end_cond.release()
+    #     if hasattr(self, 'error_msg'):
+    #         raise IOError(self.error_msg)
 
     def run(self):
         logger.debug("ScarlettPlayer sound: {}".format(self.sound))
