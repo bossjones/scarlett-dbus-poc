@@ -111,6 +111,16 @@ logger = setup_logger()
 gst = Gst
 
 
+def sigint_handler(*args):
+    """Exit on Ctrl+C"""
+
+    # Unregister handler, next Ctrl-C will kill app
+    # TODO: figure out if this is really needed or not
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+signal.signal(signal.SIGINT, sigint_handler)
+
+
 class ScarlettPlayer():
 
     def __init__(self, sound):
@@ -175,21 +185,19 @@ class ScarlettPlayer():
 
                     if msg.type == Gst.MessageType.EOS:
                         logger.debug("OKAY, Gst.MessageType.EOS: ".format(Gst.MessageType.EOS))
-                        p = self.pipelines_stack[0]
-                        p.set_state(Gst.State.NULL)
+                        player.set_state(Gst.State.NULL)
                         self.loop.quit()
                         self.quit()
                         break
                     if msg.type == Gst.MessageType.ERROR:
                         logger.debug("OKAY, Gst.MessageType.ERROR: ".format(Gst.MessageType.ERROR))
-                        p = self.pipelines_stack[0]
-                        p.set_state(Gst.State.NULL)
+                        player.set_state(Gst.State.NULL)
                         self.loop.quit()
                         self.end_reached = True
                         err, debug = msg.parse_error()
                         self.error_msg = "Error: %s" % err, debug
-                        self.end_cond.notify()
-                        self.end_cond.release()
+                        # self.end_cond.notify()
+                        # self.end_cond.release()
                         self.quit()
                         break
             except KeyboardInterrupt:
@@ -222,14 +230,15 @@ class ScarlettPlayer():
 
     def _onBusError(self, bus, message):
         logger.debug("_onBusError")
-        if message.get_structure():
-           print(message.get_structure().to_string())
-        pass
+        p = self.pipelines_stack[0]
+        p.set_state(Gst.State.NULL)
+        self.loop.quit()
+        self.quit()
+        return True
+        # pass
 
     def _on_bus_eos(self, bus, message):
         logger.debug("_on_bus_eos")
-        if message.get_structure():
-           print(message.get_structure().to_string())
         p = self.pipelines_stack[0]
         p.set_state(Gst.State.NULL)
         self.loop.quit()
@@ -300,6 +309,9 @@ class ScarlettPlayer():
 
     def quit(self):
         logger.debug("  shutting down ScarlettPlayer")
+        # time.sleep(2)
+        # self.quit()
+        return
 
     #
     # def run_pipeline(self):
