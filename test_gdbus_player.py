@@ -137,12 +137,6 @@ class ScarlettPlayer():
         self.debug = False
         self.create_dot = False
 
-
-        # self.player = Gst.ElementFactory.make('playbin', 'player')
-        # self.bus = self.player.get_bus()
-        # self.bus.add_signal_watch()
-        # self.setup_replaygain()
-
         # Element playbin automatic plays any sound
         player = Gst.ElementFactory.make('playbin', 'player')
         logger.debug("ScarlettPlayer player %s" % (player))
@@ -157,12 +151,7 @@ class ScarlettPlayer():
         gst_bus = player.get_bus()
         gst_bus.add_signal_watch()
 
-        # TODO: Fix this, currently borrowing this from gnome-music
-        # self.bus.connect('message::state-changed', self._on_bus_state_changed)
-        # self.bus.connect('message::error', self._onBusError)
-        # self.bus.connect('message::element', self._on_bus_element)
-        # self.bus.connect('message::eos', self._on_bus_eos)
-
+        # NOTE: Borrowed these lines from gnome-music
         gst_bus.connect('message::error', self._onBusError)
         gst_bus.connect('message::eos', self._on_bus_eos)
 
@@ -180,9 +169,6 @@ class ScarlettPlayer():
             try:
                 msg = gst_bus.timed_pop(Gst.CLOCK_TIME_NONE)
                 if msg:
-                    # if msg.get_structure():
-                    #    print(msg.get_structure().to_string())
-
                     if msg.type == Gst.MessageType.EOS:
                         logger.debug("OKAY, Gst.MessageType.EOS: ".format(Gst.MessageType.EOS))
                         player.set_state(Gst.State.NULL)
@@ -218,7 +204,6 @@ class ScarlettPlayer():
 
     def run(self):
         logger.debug("ScarlettPlayer sound: {}".format(self.sound))
-        # self.player.set_state(Gst.State.PLAYING)
         self.loop.run()
 
     def _on_bus_state_changed(self, bus, message):
@@ -309,112 +294,6 @@ class ScarlettPlayer():
 
     def quit(self):
         logger.debug("  shutting down ScarlettPlayer")
-        # time.sleep(2)
+        time.sleep(2)
         # self.quit()
         return
-
-    #
-    # def run_pipeline(self):
-    #     pipeline = Gst.parse_launch(' ! '.join(
-    #                                 self.get_pocketsphinx_definition(device,
-    #                                                                  hmm,
-    #                                                                  lm,
-    #                                                                  dict)))
-    #     self.pipelines_stack.append(pipeline)
-    #
-    #     pocketsphinx = pipeline.get_by_name('asr')
-    #     if hmm:
-    #         pocketsphinx.set_property('hmm', hmm)
-    #     if lm:
-    #         pocketsphinx.set_property('lm', lm)
-    #     if dict:
-    #         pocketsphinx.set_property('dict', dict)
-    #
-    #     gst_bus = pipeline.get_bus()
-    #
-    #     # Start playing
-    #     pipeline.set_state(Gst.State.PLAYING)
-    #
-    #     self.emitListenerReadySignal()
-    #
-    #     print "ScarlettListener running..."
-    #     if self.create_dot:
-    #         self.on_debug_activate()
-    #
-    #     # Wait until error or EOS
-    #     while True:
-    #         try:
-    #             msg = gst_bus.timed_pop(Gst.CLOCK_TIME_NONE)
-    #             if msg:
-    #                 # if msg.get_structure():
-    #                 #    print(msg.get_structure().to_string())
-    #
-    #                 if msg.type == Gst.MessageType.EOS:
-    #                     break
-    #                 struct = msg.get_structure()
-    #                 if struct and struct.get_name() == 'pocketsphinx':
-    #                     if struct['final']:
-    #                         logger.info(struct['hypothesis'])
-    #                         if self.kw_found == 1:
-    #                             # If keyword is set AND qualifier
-    #                             # then perform action
-    #                             self.run_cmd(struct['hypothesis'])
-    #                         else:
-    #                             # If it's the main keyword,
-    #                             # set values wait for qualifier
-    #                             self.result(struct['hypothesis'])
-    #         except KeyboardInterrupt:
-    #             pipeline.send_event(Gst.Event.new_eos())
-    #
-    #     # Free resources
-    #     pipeline.set_state(Gst.State.NULL)
-    #     print "ScarlettListener stopped"
-
-
-# if __name__ == '__main__':
-#     global logger
-#     logger = setup_logger()
-#
-#     from pydbus import SessionBus
-#     bus = SessionBus()
-#     bus.own_name(name = 'org.scarlett')
-#     sl = ScarlettListener(bus=bus.con, path='/org/scarlett/Listener')
-#
-#     LANGUAGE_VERSION = 1473
-#     HOMEDIR = "/home/pi"
-#     LANGUAGE_FILE_HOME = "{}/dev/bossjones-github/scarlett-gstreamer-pocketsphinx-demo".format(
-#         HOMEDIR)
-#     LM_PATH = "{}/{}.lm".format(LANGUAGE_FILE_HOME, LANGUAGE_VERSION)
-#     DICT_PATH = "{}/{}.dic".format(LANGUAGE_FILE_HOME, LANGUAGE_VERSION)
-#     HMM_PATH = "{}/.virtualenvs/scarlett-dbus-poc/share/pocketsphinx/model/en-us/en-us".format(
-#         HOMEDIR)
-#     bestpath = 0
-#     PS_DEVICE = 'plughw:CARD=Device,DEV=0'
-#
-#     parser = argparse.ArgumentParser(description='Recognize speech from audio')
-#     parser.add_argument('--device',
-#                         default=PS_DEVICE,
-#                         help='Pocketsphinx audio source device')
-#     parser.add_argument('--hmm',
-#                         default=HMM_PATH,
-#                         help='Path to a pocketsphinx HMM data directory')
-#     parser.add_argument('--lm',
-#                         default=LM_PATH,
-#                         help='Path to a pocketsphinx language model file')
-#     parser.add_argument('--dict',
-#                         default=DICT_PATH,
-#                         help='Path to a pocketsphinx CMU dictionary file')
-#     args = parser.parse_args()
-#
-#     def sigint_handler(*args):
-#         """Exit on Ctrl+C"""
-#
-#         # Unregister handler, next Ctrl-C will kill app
-#         # TODO: figure out if this is really needed or not
-#         signal.signal(signal.SIGINT, signal.SIG_DFL)
-#
-#         sl.quit()
-#
-#     signal.signal(signal.SIGINT, sigint_handler)
-#
-#     sl.run_pipeline(**vars(args))
