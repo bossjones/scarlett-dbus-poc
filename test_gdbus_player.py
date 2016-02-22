@@ -182,8 +182,8 @@ class ScarlettPlayer():
                         self.end_reached = True
                         err, debug = msg.parse_error()
                         self.error_msg = "Error: %s" % err, debug
-                        # self.end_cond.notify()
-                        # self.end_cond.release()
+                        self.end_cond.notify()
+                        self.end_cond.release()
                         self.quit()
                         break
             except KeyboardInterrupt:
@@ -192,15 +192,15 @@ class ScarlettPlayer():
         # Free resources
         player.set_state(Gst.State.NULL)
         print "ScarlettPlayer stopped"
-    #
-    # def release(self):
-    #     if hasattr(self, 'eod') and hasattr(self, 'loop'):
-    #         self.end_cond.acquire()
-    #         while not hasattr(self, 'end_reached'):
-    #             self.end_cond.wait()
-    #         self.end_cond.release()
-    #     if hasattr(self, 'error_msg'):
-    #         raise IOError(self.error_msg)
+
+    def release(self):
+        if hasattr(self, 'eod') and hasattr(self, 'loop'):
+            self.end_cond.acquire()
+            while not hasattr(self, 'end_reached'):
+                self.end_cond.wait()
+            self.end_cond.release()
+        if hasattr(self, 'error_msg'):
+            raise IOError(self.error_msg)
 
     def run(self):
         logger.debug("ScarlettPlayer sound: {}".format(self.sound))
@@ -220,7 +220,6 @@ class ScarlettPlayer():
         self.loop.quit()
         self.quit()
         return True
-        # pass
 
     def _on_bus_eos(self, bus, message):
         logger.debug("_on_bus_eos")
@@ -229,68 +228,6 @@ class ScarlettPlayer():
         self.loop.quit()
         self.quit()
         return True
-        # pass
-    #
-    # def on_message(self, bus, message):
-    #     pp = pprint.PrettyPrinter(indent=4)
-    #     pp.pprint(bus)
-    #     pp.pprint(message)
-    #     t = message.type
-    #     if t == Gst.MessageType.EOS:
-    #         logger.debug("OKAY, MESSAGE_EOS: ".format(Gst.MessageType.EOS))
-    #         self.player.set_state(Gst.State.NULL)
-    #         self.loop.quit()
-    #         self.quit()
-    #     elif t == Gst.MessageType.ERROR:
-    #         logger.debug("OKAY, MESSAGE_ERROR: ".format(Gst.MessageType.ERROR))
-    #         self.player.set_state(Gst.State.NULL)
-    #         err, debug = message.parse_error()
-    #         print "Error: %s" % err, debug
-    #         self.loop.quit()
-    #         self.quit()
-    #
-    # def finish_request(self):
-    #     self.player.set_state(Gst.State.NULL)
-    #     self.loop.quit()
-    #     self.quit()
-    #     time.sleep(2)
-    #     return
-    #
-    # def _on_message_cb(self, bus, message):
-    #     if self.debug:
-    #         pp = pprint.PrettyPrinter(indent=4)
-    #         pp.pprint(bus)
-    #         pp.pprint(message)
-    #     t = message.type
-    #     if t == Gst.MessageType.EOS:
-    #         logger.debug("OKAY, MESSAGE_EOS: ".format(Gst.MessageType.EOS))
-    #         self.end_cond.acquire()
-    #         self.player.set_state(Gst.State.NULL)
-    #         self.loop.quit()
-    #         self.end_reached = True
-    #         self.end_cond.notify()
-    #         self.end_cond.release()
-    #         self.quit()
-    #
-    #     elif t == Gst.MessageType.ERROR:
-    #         logger.debug("OKAY, MESSAGE_ERROR: ".format(Gst.MessageType.ERROR))
-    #         self.end_cond.acquire()
-    #         self.player.set_state(Gst.State.NULL)
-    #         self.loop.quit()
-    #         self.end_reached = True
-    #         err, debug = message.parse_error()
-    #         self.error_msg = "Error: %s" % err, debug
-    #         self.end_cond.notify()
-    #         self.end_cond.release()
-    #         self.quit()
-    #
-    # def on_finish(self, bus, message):
-    #     logger.debug("OKAY, on_finish. Setting state to STATE_NULL")
-    #     self.finish_request()
-    #
-    # def on_error(self, bus, message):
-    #     logger.debug("OKAY, on_error. Setting state to STATE_NULL")
-    #     self.finish_request()
 
     def quit(self):
         logger.debug("  shutting down ScarlettPlayer")
