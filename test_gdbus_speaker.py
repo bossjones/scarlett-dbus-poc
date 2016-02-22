@@ -140,6 +140,10 @@ class ScarlettSpeaker():
         #########################################################################
         espeak_pipeline = 'espeak name=source ! autoaudiosink'
         player = Gst.parse_launch(espeak_pipeline)
+        print '********************************************************'
+        print 'player from espeak_pipeline: '
+        pp.pprint(player)
+        print '********************************************************'
         self.end_cond = threading.Condition(threading.Lock())
 
         #######################################################################
@@ -258,16 +262,22 @@ class ScarlettSpeaker():
 
     def _onBusError(self, bus, message):
         logger.debug("_onBusError")
-        p = self.pipelines_stack[0]
-        p.set_state(Gst.State.NULL)
+        try:
+            p = self.pipelines_stack[0]
+            p.set_state(Gst.State.NULL)
+        except:
+            print 'error in _onBusError when trying to set state'
         self.loop.quit()
         self.quit()
         return True
 
     def _on_bus_eos(self, bus, message):
         logger.debug("_on_bus_eos")
-        p = self.pipelines_stack[0]
-        p.set_state(Gst.State.NULL)
+        try:
+            p = self.pipelines_stack[0]
+            p.set_state(Gst.State.NULL)
+        except:
+            print 'error in _on_bus_eos when trying to set state'
         self.loop.quit()
         self.quit()
         return True
