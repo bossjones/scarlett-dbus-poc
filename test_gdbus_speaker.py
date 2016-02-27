@@ -4,7 +4,7 @@ import os
 import sys
 import time
 
-SCARLETT_DEBUG = 1
+SCARLETT_DEBUG = None
 
 if SCARLETT_DEBUG:
     # Setting GST_DEBUG_DUMP_DOT_DIR environment variable enables us to have a
@@ -71,6 +71,7 @@ gst = Gst
 import scarlett_gstutils
 import scarlett_config
 from scarlett_log import log
+from functools import wraps
 
 
 def setup_logger():
@@ -110,6 +111,21 @@ PWD = '/home/pi/dev/bossjones-github/scarlett-dbus-poc'
 logger = setup_logger()
 
 gst = Gst
+from functools import wraps
+
+# source: https://github.com/jcollado/pygtk-webui/blob/master/demo.py
+def trace(func):
+    """Tracing wrapper to log when function enter/exit happens.
+    :param func: Function to wrap
+    :type func: callable
+    """
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        logger.debug('Start {!r}'. format(func.__name__))
+        result = func(*args, **kwargs)
+        logger.debug('End {!r}'. format(func.__name__))
+        return result
+    return wrapper
 
 
 # def sigint_handler(*args):
@@ -124,7 +140,7 @@ gst = Gst
 
 class ScarlettSpeaker():
 
-    @log
+    @trace
     def __init__(self, cmd):
         global PWD
         global logger
@@ -175,7 +191,7 @@ class ScarlettSpeaker():
         self.pipelines_stack.append(player)
         self.source_stack.append(source)
 
-        pp.pprint(dir(source))
+        # pp.pprint(dir(source))
 
         logger.debug("ScarlettSpeaker __init__ finished")
 
@@ -202,10 +218,10 @@ class ScarlettSpeaker():
           print "Error         : ", gerror.message
           print "Debug details : ", dbg_msg
 
-        # if msg.type == Gst.MessageType.EOS:
-        #   player.send_event(Gst.Event.new_eos())
-        #   self.loop.quit()
-        #   self.quit()
+        if msg.type == Gst.MessageType.EOS:
+          player.send_event(Gst.Event.new_eos())
+          self.loop.quit()
+          self.quit()
 
         print "ScarlettSpeaker stopped"
         player.set_state(Gst.State.NULL)
@@ -239,14 +255,6 @@ class ScarlettSpeaker():
         #     except KeyboardInterrupt:
         #         player.send_event(Gst.Event.new_eos())
 
-        def sigint_handler(*args):
-            """Exit on Ctrl+C"""
-
-            # Unregister handler, next Ctrl-C will kill app
-            # TODO: figure out if this is really needed or not
-            signal.signal(signal.SIGINT, signal.SIG_DFL)
-
-        signal.signal(signal.SIGINT, sigint_handler)
         # Free resources
         # player.set_state(Gst.State.NULL)
 
@@ -260,10 +268,12 @@ class ScarlettSpeaker():
     #     if hasattr(self, 'error_msg'):
     #         raise IOError(self.error_msg)
 
+    @trace
     def run(self):
         logger.debug("ScarlettSpeaker sound: {}".format(self.sound))
         self.loop.run()
 
+    @trace
     def _on_bus_state_changed(self, bus, message):
         # Note: not all state changes are signaled through here, in particular
         # transitions between Gst.State.READY and Gst.State.NULL are never async
@@ -271,19 +281,18 @@ class ScarlettSpeaker():
         # In practice, self means only Gst.State.PLAYING and Gst.State.PAUSED are
         pass
 
-    @log
+    @trace
     def _onBusError(self, bus, message):
         logger.debug("_onBusError")
         p = self.pipelines_stack[0]
         p.set_state(Gst.State.NULL)
         try:
           self.loop.quit()
-          # self.quit()
         except:
           print 'ERROR TRYING TO EXIT OUT FOOL'
         return True
 
-    @log
+    @trace
     def _on_bus_eos(self, bus, message):
         logger.debug("_on_bus_eos")
         p = self.pipelines_stack[0]
@@ -295,9 +304,20 @@ class ScarlettSpeaker():
           print 'ERROR TRYING TO EXIT OUT FOOL'
         return True
 
-    @log
+    @trace
     def quit(self):
-        logger.debug("  shutting down ScarlettSpeaker")
+        return
+        # logger.debug("  shutting down ScarlettSpeaker")
         # time.sleep(2)
         # self.quit()
-        return
+        # return
+
+#
+# def sigint_handler(*args):
+#     """Exit on Ctrl+C"""
+#
+#     # Unregister handler, next Ctrl-C will kill app
+#     # TODO: figure out if this is really needed or not
+#     signal.signal(signal.SIGINT, signal.SIG_DFL)
+#
+# signal.signal(signal.SIGINT, sigint_handler)

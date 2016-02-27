@@ -4,7 +4,7 @@ import os
 import sys
 import time
 
-SCARLETT_DEBUG = 1
+SCARLETT_DEBUG = None
 
 if SCARLETT_DEBUG:
     # Setting GST_DEBUG_DUMP_DOT_DIR environment variable enables us to have a
@@ -109,7 +109,21 @@ PWD = '/home/pi/dev/bossjones-github/scarlett-dbus-poc'
 logger = setup_logger()
 
 gst = Gst
+from functools import wraps
 
+# source: https://github.com/jcollado/pygtk-webui/blob/master/demo.py
+def trace(func):
+    """Tracing wrapper to log when function enter/exit happens.
+    :param func: Function to wrap
+    :type func: callable
+    """
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        logger.debug('Start {!r}'. format(func.__name__))
+        result = func(*args, **kwargs)
+        logger.debug('End {!r}'. format(func.__name__))
+        return result
+    return wrapper
 
 def sigint_handler(*args):
     """Exit on Ctrl+C"""
@@ -123,6 +137,7 @@ signal.signal(signal.SIGINT, sigint_handler)
 
 class ScarlettPlayer():
 
+    @trace
     def __init__(self, sound):
         global PWD
         global logger
@@ -203,10 +218,12 @@ class ScarlettPlayer():
     #     if hasattr(self, 'error_msg'):
     #         raise IOError(self.error_msg)
 
+    @trace
     def run(self):
         logger.debug("ScarlettPlayer sound: {}".format(self.sound))
         self.loop.run()
 
+    @trace
     def _on_bus_state_changed(self, bus, message):
         # Note: not all state changes are signaled through here, in particular
         # transitions between Gst.State.READY and Gst.State.NULL are never async
@@ -214,6 +231,7 @@ class ScarlettPlayer():
         # In practice, self means only Gst.State.PLAYING and Gst.State.PAUSED are
         pass
 
+    @trace
     def _onBusError(self, bus, message):
         logger.debug("_onBusError")
         p = self.pipelines_stack[0]
@@ -222,6 +240,7 @@ class ScarlettPlayer():
         self.quit()
         return True
 
+    @trace
     def _on_bus_eos(self, bus, message):
         logger.debug("_on_bus_eos")
         p = self.pipelines_stack[0]
@@ -230,6 +249,7 @@ class ScarlettPlayer():
         self.quit()
         return True
 
+    @trace
     def quit(self):
         logger.debug("  shutting down ScarlettPlayer")
         # time.sleep(2)
