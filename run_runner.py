@@ -148,6 +148,7 @@ class ExcThread(threading.Thread):
     @trace
     def run(self):
         try:
+            print "Child Thread Started", self
             threading.Thread.run(self)
             # raise Exception('An error occured here.')
         except Exception:
@@ -171,7 +172,6 @@ def main():
     thread_obj = ExcThread(bucket)
     thread_obj.daemon = True
     thread_obj.start()
-    print "Child Thread Started", thread_obj
 
     while True:
         try:
