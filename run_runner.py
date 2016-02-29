@@ -137,6 +137,8 @@ class ExcThread(threading.Thread):
     """
     Exception Thread Class aka Producer. Acts as the Child thread.
     Any errors that happen here will get placed into a Queue and raised for the parent thread to consume.
+
+    A thread class that supports raising exception in the thread from another thread.
     """
 
     @trace
@@ -144,6 +146,7 @@ class ExcThread(threading.Thread):
         threading.Thread.__init__(self, *args, **kargs)
         self.bucket = bucket
         self.running = True
+        self._stop = threading.Event()
 
     @trace
     def run(self):
@@ -154,6 +157,14 @@ class ExcThread(threading.Thread):
         except Exception:
             self.bucket.put(sys.exc_info())
             raise
+
+    @trace
+    def stop(self):
+        self._stop.set()
+
+    @trace
+    def stopped(self):
+        return self._stop.isSet()
 
 
 @trace
