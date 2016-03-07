@@ -115,6 +115,24 @@ PWD = '/home/pi/dev/bossjones-github/scarlett-dbus-poc'
 logger = setup_logger()
 gst = Gst
 
+# Managing the Gobject main loop thread.
+
+_shared_loop_thread = None
+_loop_thread_lock = threading.RLock()
+
+
+# NOTE: on plane to DC
+def get_loop_thread():
+    """Get the shared main-loop thread.
+    """
+    global _shared_loop_thread
+    with _loop_thread_lock:
+        if not _shared_loop_thread:
+            # Start a new thread.
+            _shared_loop_thread = ExcThread()
+            _shared_loop_thread.start()
+        return _shared_loop_thread
+
 
 # source: https://github.com/jcollado/pygtk-webui/blob/master/demo.py
 def trace(func):
@@ -147,12 +165,15 @@ class ExcThread(threading.Thread):
         self.bucket = bucket
         self.running = True
         self._stop = threading.Event()
+        self.loop = GObject.MainLoop()
+        self.daemon = True
 
     @trace
     def run(self):
         try:
             print "Child Thread Started", self
-            threading.Thread.run(self)
+            # threading.Thread.run(self)
+            self.loop.run()
             # raise Exception('An error occured here.')
         except Exception:
             self.bucket.put(sys.exc_info())
