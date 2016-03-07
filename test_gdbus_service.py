@@ -229,7 +229,6 @@ class ScarlettListener(Server):
       <arg type='s' name='s_cmd' direction='out'/>
     </method>
     <method name='quit'>
-      <arg type='s' name='s_cmd' direction='out'/>
     </method>
     <signal name='KeywordRecognizedSignal'>
       <arg type='(ss)' name='kw_rec_status' direction='out'/>
