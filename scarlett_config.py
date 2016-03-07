@@ -4,6 +4,8 @@ import sys
 import re
 import ConfigParser
 import signal
+import pprint
+pp = pprint.PrettyPrinter(indent=4)
 
 # Config
 try:
@@ -47,6 +49,8 @@ class Config(ConfigParser.SafeConfigParser):
             elif fp:
                 self.readfp(fp)
             else:
+                print 'Scarlett Config Path'
+                pp.pprint(ScarlettConfigLocations)
                 self.read(ScarlettConfigLocations)
 
     def load_from_path(self, path):

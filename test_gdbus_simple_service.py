@@ -2,24 +2,22 @@
 # -*- coding: UTF-8 -*-
 import os
 import sys
+import time
 
 SCARLETT_DEBUG = 1
 
 if SCARLETT_DEBUG:
     # Setting GST_DEBUG_DUMP_DOT_DIR environment variable enables us to have a
     # dotfile generated
-    os.environ["GST_DEBUG_DUMP_DOT_DIR"] = "/home/pi/dev/bossjones-github/scarlett-dbus-poc/_debug"
-    os.putenv('GST_DEBUG_DUMP_DIR_DIR', '/home/pi/dev/bossjones-github/scarlett-dbus-poc/_debug')
+    os.environ[
+        "GST_DEBUG_DUMP_DOT_DIR"] = "/home/pi/dev/bossjones-github/scarlett-dbus-poc/_debug"
+    os.putenv('GST_DEBUG_DUMP_DIR_DIR',
+              '/home/pi/dev/bossjones-github/scarlett-dbus-poc/_debug')
 
 
 import argparse
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
-
-import dbus
-import dbus.service
-from dbus.mainloop.glib import DBusGMainLoop
-from dbus.mainloop.glib import threads_init
 
 import gi
 gi.require_version('Gst', '1.0')
@@ -31,7 +29,6 @@ import threading
 
 GObject.threads_init()
 Gst.init(None)
-threads_init()
 
 print '********************************************************'
 print 'GObject: '
@@ -106,23 +103,13 @@ def setup_logger():
     return logger
 
 
-class ScarlettListener(dbus.service.Object):
-    LISTENER_IFACE = 'com.example.service'
-    LISTENER_PLAYER_IFACE = 'com.example.service.Player'
-    LISTENER_TRACKLIST_IFACE = 'com.example.service.TrackList'
-    LISTENER_PLAYLISTS_IFACE = 'com.example.service.Playlists'
-    LISTENER_EVENTS_IFACE = 'com.example.service.event'
+class Server(object):
+    def __init__(self, bus, path):
+        self.loop = GLib.MainLoop()
+        self.dbus_stack       = []
+        self.pipelines_stack  = []
 
-    # def __repr__(self):
-    #     return '<ScarlettListener>'
-
-    def __init__(self, message):
-        DBusGMainLoop(set_as_default=True)
-        name = dbus.service.BusName(
-            'com.example.service', dbus.SessionBus())
-        dbus.service.Object.__init__(
-            self, name, '/com/example/service')
-        self._message = message
+        self._message = 'This is the DBusServer'
         self.config = scarlett_config.Config()
         self.override_parse = ''
         self.failed = 0
@@ -139,113 +126,128 @@ class ScarlettListener(dbus.service.Object):
         self._status_cmd_cancel = "  ScarlettListener cancel speech Recognition"
 
         if self.debug:
-            # for testing puposes
+            # NOTE: For testing puposes, mainly when in public
+            # so you dont have to keep yelling scarlett in front of strangers
             self.kw_to_find = ['yo', 'hello', 'man', 'children']
         else:
             self.kw_to_find = self.config.get('scarlett', 'keywords')
 
-    #########################################################
-    # Scarlett signals
-    #########################################################
-    @dbus.service.signal("com.example.service.event")
-    def KeywordRecognizedSignal(self, message, scarlett_sound):
-        logger.debug(" sending message: {}".format(message))
+        self.dbus_stack.append(bus)
+        self.dbus_stack.append(path)
+        logger.debug("Inside self.dbus_stack")
+        pp.pprint(self.dbus_stack)
 
-    @dbus.service.signal("com.example.service.event")
-    def CommandRecognizedSignal(self, message, scarlett_sound, scarlett_cmd):
-        logger.debug(" sending message: {}".format(message))
+        interface_info = Gio.DBusNodeInfo.new_for_xml(
+            self.__doc__).interfaces[0]
 
-    @dbus.service.signal("com.example.service.event")
-    def SttFailedSignal(self, message, scarlett_sound):
-        logger.debug(" sending message: {}".format(message))
+        method_outargs = {}
+        method_inargs = {}
+        for method in interface_info.methods:
+            method_outargs[
+                method.name] = '(' + ''.join([arg.signature for arg in method.out_args]) + ')'
+            method_inargs[method.name] = tuple(
+                arg.signature for arg in method.in_args)
 
-    @dbus.service.signal("com.example.service.event")
-    def ListenerCancelSignal(self, message, scarlett_sound):
-        logger.debug(" sending message: {}".format(message))
+        self.method_inargs = method_inargs
+        self.method_outargs = method_outargs
 
-    @dbus.service.signal("com.example.service.event")
+        logger.debug("Inside self.method_inargs and self.method_outargs")
+        logger.debug("Inside self.method_inargs")
+        pp.pprint(self.method_inargs)
+        logger.debug("Inside self.method_outargs")
+        pp.pprint(self.method_outargs)
+
+        bus.register_object(
+            object_path=path, interface_info=interface_info, method_call_closure=self.on_method_call)
+
+    def run(self):
+        self.loop.run()
+
+    def quit(self):
+        p = self.pipelines_stack[0]
+        p.set_state(Gst.State.NULL)
+        self.loop.quit()
+
+    def on_method_call(self,
+                       connection,
+                       sender,
+                       object_path,
+                       interface_name,
+                       method_name,
+                       parameters,
+                       invocation):
+
+        args = list(parameters.unpack())
+        for i, sig in enumerate(self.method_inargs[method_name]):
+            pp.pprint("BOSSJONES sig BOYYYYY")
+            pp.pprint(sig)
+            # if UNIX_FD
+            if sig is 'h':
+                msg = invocation.get_message()
+                fd_list = msg.get_unix_fd_list()
+                args[i] = fd_list.get(args[i])
+
+        result = getattr(self, method_name)(*args)
+
+        # logger.debug("BOSSJONES type(result) = {}".format(type(result)))
+        pp.pprint("BOSSJONES type(result) BOYYYYY")
+        pp.pprint(type(result))
+
+        if type(result) is list:
+            result = tuple(result)
+        elif not type(result) is tuple:
+            result = (result,)
+
+        out_args = self.method_outargs[method_name]
+        if out_args != '()':
+            logger.debug("Inside out_args in != ()")
+            pp.pprint(out_args)
+            logger.debug("Inside result != ()")
+            pp.pprint(result)
+            invocation.return_value(GLib.Variant(out_args, result))
+
+
+class ScarlettListener(Server):
+    '''
+<node>
+  <interface name='org.scarlett.Listener1'>
+    <method name='emitListenerReadySignal'>
+      <arg type='s' name='s_cmd' direction='out'/>
+    </method>
+    <signal name='ListenerReadySignal'>
+      <arg type='(ss)' name='listener_rdy_status' direction='out'/>
+    </signal>
+  </interface>
+</node>
+    '''
+    LISTENER_IFACE = 'org.scarlett.Listener'
+    LISTENER_PLAYER_IFACE = 'org.scarlett.Listener.Player'
+    LISTENER_TRACKLIST_IFACE = 'org.scarlett.Listener.TrackList'
+    LISTENER_PLAYLISTS_IFACE = 'org.scarlett.Listener.Playlists'
+    LISTENER_EVENTS_IFACE = 'org.scarlett.Listener.event'
+
     def ListenerReadySignal(self, message, scarlett_sound):
         logger.debug(" sending message: {}".format(message))
-
-    @dbus.service.signal("com.example.service.event")
-    def ConnectedToListener(self, scarlett_plugin):
-        pass
+        bus = self.dbus_stack[0]
+        listener_rdy_status = GLib.Variant("(ss)", (message, scarlett_sound))
+        bus.emit_signal(None,
+                        '/org/scarlett/Listener',
+                        'org.scarlett.Listener',
+                        'ListenerReadySignal',
+                        listener_rdy_status)
 
     #########################################################
-    # Scarlett dbus methods
+    # Scarlett dbus methods in = func args, out = return values
     #########################################################
-    @dbus.service.method("com.example.service.emitKeywordRecognizedSignal",
-                         in_signature='',
-                         out_signature='s')
-    def emitKeywordRecognizedSignal(self):
-        global SCARLETT_LISTENING
-        # you emit signals by calling the signal's skeleton method
-        self.KeywordRecognizedSignal(self._status_kw_match, SCARLETT_LISTENING)
-        return SCARLETT_LISTENING
 
-    @dbus.service.method("com.example.service.emitCommandRecognizedSignal",
-                         in_signature='',
-                         out_signature='s')
-    def emitCommandRecognizedSignal(self, command):
-        global SCARLETT_RESPONSE
-        self.CommandRecognizedSignal(self._status_cmd_match,
-                                     SCARLETT_RESPONSE,
-                                     command)
-        return SCARLETT_RESPONSE
-
-    @dbus.service.method("com.example.service.emitSttFailedSignal",
-                         in_signature='',
-                         out_signature='s')
-    def emitSttFailedSignal(self):
-        global SCARLETT_FAILED
-        self.SttFailedSignal(self._status_stt_failed, SCARLETT_FAILED)
-        return SCARLETT_FAILED
-
-    @dbus.service.method("com.example.service.emitListenerCancelSignal",
-                         in_signature='',
-                         out_signature='s')
-    def emitListenerCancelSignal(self):
-        global SCARLETT_CANCEL
-        self.ListenerCancelSignal(self._status_cmd_cancel, SCARLETT_CANCEL)
-        return SCARLETT_CANCEL
-
-    @dbus.service.method("com.example.service.emitListenerReadySignal",
-                         in_signature='',
-                         out_signature='s')
     def emitListenerReadySignal(self):
         global SCARLETT_LISTENING
         self.ListenerReadySignal(self._status_ready, SCARLETT_LISTENING)
         return SCARLETT_LISTENING
 
-    @dbus.service.method("com.example.service.emitConnectedToListener",
-                         in_signature='',
-                         out_signature='s')
-    def emitConnectedToListener(self, scarlett_plugin):
-        print "  sending message"
-        self.ConnectedToListener(scarlett_plugin)
-        return " {} is connected to ScarlettListener".format(scarlett_plugin)
-
-    @dbus.service.method("com.example.service.Message",
-                         in_signature='',
-                         out_signature='s')
-    def get_message(self):
-        print "  sending message"
-        return self._message
-
-    # DISABLED # @dbus.service.method("com.example.service.Quit",
-    # DISABLED #                      in_signature='',
-    # DISABLED #                      out_signature='')
-    # DISABLED # def quit(self):
-    # DISABLED #     print "  shutting down"
-    # DISABLED #     self.pipeline.set_state(gst.STATE_NULL)
-    # DISABLED #     self._loop.quit()
-
-    @dbus.service.method("com.example.service.StatusReady",
-                         in_signature='',
-                         out_signature='s')
-    def listener_ready(self):
-        print " {}".format(self._status_ready)
-        return self._status_ready
+    #########################################################
+    # END Scarlett dbus methods
+    #########################################################
 
     def scarlett_reset_listen(self):
         self.failed = 0
@@ -271,7 +273,7 @@ class ScarlettListener(dbus.service.Object):
                 'queue leaky=2',
                 'fakesink']
 
-    # this function generates the dot file, checks that graphviz in installed and
+    # NOTE: This function generates the dot file, checks that graphviz in installed and
     # then finally generates a png file, which it then displays
     def on_debug_activate(self):
         dotfile = "/home/pi/dev/bossjones-github/scarlett-dbus-poc/_debug/scarlett-debug-graph.dot"
@@ -294,7 +296,6 @@ class ScarlettListener(dbus.service.Object):
         """Forward result signals on the bus to the main thread."""
         logger.debug("Inside result function")
         logger.debug("final_hyp: {}".format(final_hyp))
-        # logger.debug("Compare: {} {} is {}".format(final_hyp,self.kw_to_find,final_hyp in self.kw_to_find))
         pp.pprint(final_hyp)
         logger.debug("kw_to_find: {}".format(self.kw_to_find))
         if final_hyp in self.kw_to_find:
@@ -304,7 +305,6 @@ class ScarlettListener(dbus.service.Object):
                 "\n\n\n")
             self.failed = 0
             self.kw_found = 1
-            self.emitKeywordRecognizedSignal()
         else:
             failed_temp = self.failed + 1
             self.failed = failed_temp
@@ -313,7 +313,6 @@ class ScarlettListener(dbus.service.Object):
                 (self.failed))
             if self.failed > 4:
                 # reset pipline
-                self.emitSttFailedSignal()
                 self.scarlett_reset_listen()
 
     def run_cmd(self, final_hyp):
@@ -323,12 +322,10 @@ class ScarlettListener(dbus.service.Object):
             "self.kw_found = %i" %
             (self.kw_found))
         if final_hyp == 'CANCEL':
-            self.emitListenerCancelSignal()
             self.cancel_listening()
         else:
             current_kw_identified = self.kw_found
             self.kw_found = current_kw_identified
-            self.emitCommandRecognizedSignal(final_hyp)
             logger.debug(
                 " Command = {}".format(final_hyp))
             logger.debug(
@@ -341,6 +338,7 @@ class ScarlettListener(dbus.service.Object):
                                                                      hmm,
                                                                      lm,
                                                                      dict)))
+        self.pipelines_stack.append(pipeline)
 
         pocketsphinx = pipeline.get_by_name('asr')
         if hmm:
@@ -350,12 +348,46 @@ class ScarlettListener(dbus.service.Object):
         if dict:
             pocketsphinx.set_property('dict', dict)
 
-        bus = pipeline.get_bus()
+        gst_bus = pipeline.get_bus()
 
         # Start playing
         pipeline.set_state(Gst.State.PLAYING)
 
         self.emitListenerReadySignal()
+
+        time.sleep(5)
+
+        self.emitListenerReadySignal()
+
+        time.sleep(5)
+
+        self.emitListenerReadySignal()
+
+        time.sleep(5)
+
+        self.emitListenerReadySignal()
+
+        time.sleep(5)
+
+        self.emitListenerReadySignal()
+
+        time.sleep(5)
+
+        self.emitListenerReadySignal()
+
+        time.sleep(5)
+
+        self.emitListenerReadySignal()
+
+        time.sleep(5)
+
+        self.emitListenerReadySignal()
+
+        time.sleep(5)
+
+        self.emitListenerReadySignal()
+
+        time.sleep(5)
 
         print "ScarlettListener running..."
         if self.create_dot:
@@ -364,7 +396,7 @@ class ScarlettListener(dbus.service.Object):
         # Wait until error or EOS
         while True:
             try:
-                msg = bus.timed_pop(Gst.CLOCK_TIME_NONE)
+                msg = gst_bus.timed_pop(Gst.CLOCK_TIME_NONE)
                 if msg:
                     # if msg.get_structure():
                     #    print(msg.get_structure().to_string())
@@ -390,11 +422,15 @@ class ScarlettListener(dbus.service.Object):
         pipeline.set_state(Gst.State.NULL)
         print "ScarlettListener stopped"
 
+
 if __name__ == '__main__':
     global logger
     logger = setup_logger()
 
-    sl = ScarlettListener("This is the ScarlettListener")
+    from pydbus import SessionBus
+    bus = SessionBus()
+    bus.own_name(name = 'org.scarlett')
+    sl = ScarlettListener(bus=bus.con, path='/org/scarlett/Listener')
 
     LANGUAGE_VERSION = 1473
     HOMEDIR = "/home/pi"
@@ -421,4 +457,16 @@ if __name__ == '__main__':
                         default=DICT_PATH,
                         help='Path to a pocketsphinx CMU dictionary file')
     args = parser.parse_args()
+
+    def sigint_handler(*args):
+        """Exit on Ctrl+C"""
+
+        # Unregister handler, next Ctrl-C will kill app
+        # TODO: figure out if this is really needed or not
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+        sl.quit()
+
+    signal.signal(signal.SIGINT, sigint_handler)
+
     sl.run_pipeline(**vars(args))

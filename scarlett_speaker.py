@@ -1,18 +1,52 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-import pprint
+# import pprint
+# import dbus
+# import dbus.service
+# import dbus.mainloop.glib
+# from dbus.mainloop.glib import threads_init
+# import gobject
+# gobject.threads_init()
+# threads_init()
+
+# import pygst
+# pygst.require('0.10')
+# import gst
+
 import dbus
 import dbus.service
-import dbus.mainloop.glib
+from dbus.mainloop.glib import DBusGMainLoop
 from dbus.mainloop.glib import threads_init
-import gobject
-gobject.threads_init()
-threads_init()
 
-import pygst
-pygst.require('0.10')
-import gst
+
+import argparse
+import pprint
+pp = pprint.PrettyPrinter(indent=4)
+
+import gi
+gi.require_version('Gst', '1.0')
+from gi.repository import GObject
+from gi.repository import Gst
+from gi.repository import GLib
+from gi.repository import Gio
+import threading
+
+GObject.threads_init()
+Gst.init(None)
+threads_init()
+DBusGMainLoop(set_as_default=True)
+
+print '********************************************************'
+print 'GObject: '
+pp.pprint(GObject.pygobject_version)
+print ''
+print 'Gst: '
+pp.pprint(Gst.version_string())
+print '********************************************************'
+
+Gst.debug_set_active(True)
+Gst.debug_set_default_threshold(3)
 
 import StringIO
 import os

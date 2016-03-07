@@ -1,0 +1,139 @@
+= Introspection =
+
+As explained in the FAQ, objects on DBus can implement several interfaces. An interface is a named collection of methods and signals. The introspection format is a XML representation of the information. This XML can be requested from the DBus object. On linux tools like kdbus of dbus-viewer can be used to see information of the systems system-bus or session-bus.
+
+On the other hand, this introspection can also be used to create the DBus objects. So if you want to create a D implemented DBus object, first an interface description in the introspection format is needed. Then the [wiki:CreateInterface]-tool is used to generated the needed D code.
+
+The general specification of the introspection format can be found at [http://dbus.freedesktop.org/doc/dbus-specification.html#introspection-format]
+
+This page make a quick overview and describes the extentions for dbus-d.
+
+A minimal introspection file looks like this:
+{{{
+#!xml
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN" 
+  "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node>
+  <interface name="MyInterface">
+    <!-- methods and signals -->
+  </interface>
+</node>
+}}}
+
+For defining interfaces the surrounding node element wouldn't be needed, but this is necessary as this format is specified to request information from real objects.
+
+== Methods ==
+An interface can include every number of methods. The method element must have a name attribute and the value must be a valid identifier.
+{{{
+#!xml
+<method name="foo" />
+<method name="bar" >
+  <!-- arguments and annotations -->
+</method>
+}}}
+
+=== Arguments ===
+
+A method (and also signals) can have any number of argument child elements.
+{{{
+#!xml
+<arg name="bar" type="(iiav)" direction="in"/>
+}}}
+
+An argument element has a name, type and a direction attribute.
+
+|| Attribute || Description                 ||
+|| name      || identifier for the argument ||
+|| type      || the type signature          ||
+|| direction || is either in or out         ||
+
+In D, methods also can have in and out arguments
+
+'''Example 1''': method with one in argument
+
+{{{
+#!xml
+<method name="foo1" >
+  <arg name="bar" type="i" direction="in"/>
+</method>
+}}}
+
+{{{
+#!d
+void foo1( in int bar );
+}}}
+
+'''Example 2''': method with one out argument
+
+{{{
+#!xml
+<method name="foo2" >
+  <arg name="bar" type="s" direction="out"/>
+</method>
+}}}
+
+{{{
+#!d
+void foo2( out char[] bar );
+}}}
+
+
+=== The return value ===
+
+DBus does not support the concept of methods return values. This is because it shall be language independant and it already has the out arguments. 
+
+However, the introspection format allows annotations and dbus-d uses this to redirect up to one out argument to the methods return value.
+
+'''Example 3''': method with return argument
+
+{{{
+#!xml
+<method name="foo3" >
+  <annotation name="org.dsource.dbus.d.Returns" value="bar"/>
+  <arg name="bar" type="s" direction="out"/>
+</method>
+}}}
+
+{{{
+#!d
+char[] foo3();
+}}}
+
+
+== Signals ==
+not yet supported from dbus-d
+
+
+== Signatures ==
+
+In the DBus specification chapter [http://dbus.freedesktop.org/doc/dbus-specification.html#message-protocol message-protocol] there is a description of the type signatures.
+
+Most of the DBus primitive types can be mapped to D primitives.
+
+
+|| DBus Type    || signature || D mapping      || Description                          ||
+|| BYTE	        || y         || ubyte          || 8-bit unsigned integer               ||
+|| BOOLEAN	|| b         || bool           || Boolean value                        ||
+|| INT16	|| n         || short          || 16-bit signed integer                ||
+|| UINT16	|| q         || ushort         || 16-bit unsigned integer              ||
+|| INT32	|| i         || int            || 32-bit signed integer                ||
+|| UINT32	|| u         || uint           || 32-bit unsigned integer              ||
+|| INT64	|| x         || long           || 64-bit signed integer                ||
+|| UINT64	|| t         || ulong          || 64-bit unsigned integer              ||
+|| DOUBLE	|| d         || double         || IEEE 754 double                      ||
+|| STRING	|| s         || char[]         || UTF-8 string (must be valid UTF-8).  ||
+|| OBJECT_PATH	|| o         || char[]         || Name of an object instance           ||
+|| SIGNATURE	|| g         || char[]         || A type signature                     ||
+|| ARRAY	|| a         || type[]         || Array                                ||
+|| STRUCT	|| ()        || Struct!()      || Struct                               ||
+|| VARIANT	|| v         || Variant!()     || Variant type (the type of the value is part of the value itself) ||
+|| DICT_ENTRY	|| {}        || type1[ type2 ] || A key-value map                      ||
+
+For struct a D template tuple is used. See {{{org.freedesktop.dbus.Struct.Struct}}}. This make the d implementation strictly typed.
+
+'''Note:''' Object references on DBus are passed as a string, the absolute DBus identifiers. However this shall be used carefully, because some dbus binding do always do a introspection procedure if they connect to a dbus path. This can be of high cost.
+
+
+
+
+
