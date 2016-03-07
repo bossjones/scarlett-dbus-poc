@@ -1,0 +1,31 @@
+{
+    "modelid": "LCT001",
+    "name": "Family Room",
+    "pointsymbol": {
+        "1": "none",
+        "2": "none",
+        "3": "none",
+        "4": "none",
+        "5": "none",
+        "6": "none",
+        "7": "none",
+        "8": "none"
+    },
+    "state": {
+        "alert": "none",
+        "bri": 174,
+        "colormode": "hs",
+        "ct": 0,
+        "effect": "none",
+        "hue": 59183,
+        "on": true,
+        "reachable": true,
+        "sat": 66,
+        "xy": [
+            0.3662,
+            0.5015
+        ]
+    },
+    "swversion": "65003148",
+    "type": "Extended color light"
+}

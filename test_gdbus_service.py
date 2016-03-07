@@ -114,7 +114,7 @@ class Server(object):
         self.override_parse = ''
         self.failed = 0
         self.kw_found = 0
-        self.debug = True
+        self.debug = False
         self.create_dot = False
 
         self._status_ready = "  ScarlettListener is ready"

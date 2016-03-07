@@ -1,0 +1,125 @@
+[scarlett]
+name = scarlett
+keywords = [ 'scarlett', 'SCARLETT' ]
+owner = "Hair Ron Jones"
+
+[features]
+enable=hue_lights,time
+
+[redis]
+host = 127.0.0.1
+port = 6379
+redis_db = 9
+
+[hue]
+# home bridge
+bridge = 192.168.2.11
+
+[pocketsphinx]
+hmm = /home/pi/.virtualenvs/scarlett-dbus-poc/share/pocketsphinx/model/en-us/en-us
+lm = /home/pi/dev/bossjones-github/scarlett-dbus-poc/tests/fixtures/lm/1473.lm
+dict = /home/pi/dev/bossjones-github/scarlett-dbus-poc/tests/fixtures/dict/1473.dic
+silprob = 0.1
+wip = 1e-4
+bestpath = 0
+
+[wordnik]
+api_key = BLAH
+
+[wolframalpha]
+app_id = BLAH
+
+[audio]
+usb_input_device=hw:1
+
+[forecastio]
+api_key = BLAH
+lat     = 40.7056308
+lng     = -73.9780034
+
+[arduino]
+arduino_port     = /dev/ttyACM0
+arduino_baudrate = 9600
+arduino_timeout  = 2
+arduino_enabled  = false
+
+[speech]
+system = flite
+sudo_enabled = false
+
+
+# I have set the following env variables for this Scarlett virtualenv
+# *******************************************************************
+# 1.0
+# /home/pi
+# /home/pi/dev/bossjones-github/scarlett-dbus-poc
+# /home/pi/.virtualenvs/scarlett-dbus-poc
+# /home/pi/.virtualenvs/scarlett-dbus-poc/lib/pkgconfig
+# /home/pi/dev/bossjones-github/scarlett-dbus-poc/tests/fixtures/.scarlett
+# /home/pi/dev/bossjones-github/scarlett-dbus-poc/tests/fixtures/model/hmm/en_US/hub4wsj_sc_8k
+# /home/pi/dev/bossjones-github/scarlett-dbus-poc/tests/fixtures/lm/1602.lm
+# /home/pi/dev/bossjones-github/scarlett-dbus-poc/tests/fixtures/dict/1602.dic
+# /home/pi/.virtualenvs/scarlett-dbus-poc/lib
+# /home/pi/.virtualenvs/scarlett-dbus-poc/lib/gstreamer-1.0
+# *******************************************************************
+
+# Taken from scarlett-ansible repo
+# [scarlett]
+# name = scarlett
+# keywords = [ 'scarlett', 'SCARLETT' ]
+# owner = "Hair Ron Jones"
+#
+# [features]
+# enable=time
+#
+# [hue]
+# bridge = 192.168.2.11
+#
+# [redis]
+# host = 127.0.0.1
+# port = 6379
+# redis_db = 0
+#
+# [pocketsphinx]
+# hmm = /usr/local/share/pocketsphinx/model/hmm/en_US/hub4wsj_sc_8k
+# lm = /home/pi/dev/bossjones-github/scarlett/scarlett/static/speech/lm/1602.lm
+# dict = /home/pi/dev/bossjones-github/scarlett/scarlett/static/speech/dict/1602.dic
+# silprob = 0.1
+# wip = 1e-4
+# bestpath = 0
+#
+# [wordnik]
+# api_key = REPLACEME
+#
+# [wolframalpha]
+# app_id = REPLACEME
+#
+# [audio]
+# usb_input_device=hw:1
+#
+# [forecastio]
+# api_key = REPLACEME
+# lat     = 40.7056308
+# lng     = -73.9780034
+#
+# [arduino]
+# arduino_port     = /dev/ttyACM0
+# arduino_baudrate = 9600
+# arduino_timeout  = 2
+# arduino_enabled  = false
+#
+# [speech]
+# system = flite
+# sudo_enabled = false
+#
+# [xively_scarlettpibedroom]
+# product_id = REPLACEME
+# product_secret = REPLACEME
+# serial_number = REPLACEME
+# activation_code = REPLACEME
+# feed_id = REPLACEME
+# api_key = REPLACEME
+# debug = true
+#
+# [hdd_partition]
+# drive = rootfs
