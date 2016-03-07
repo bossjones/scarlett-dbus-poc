@@ -208,16 +208,16 @@ class ScarlettTasker(threading.Thread):
         self._stop = threading.Event()
         self.queue = Queue.Queue(10)
 
-        @trace
-        def wait_for_t(t):
-            if not t.is_alive():
-                # This won't block, since the thread isn't alive anymore
-                t.join()
-                print 'waiting.....'
-                # Do whatever else you would do when join()
-                # (or maybe collega_GUI?) returns
-            else:
-                GLib.timeout_add(200, wait_for_t, t)
+        # @trace
+        # def wait_for_t(t):
+        #     if not t.is_alive():
+        #         # This won't block, since the thread isn't alive anymore
+        #         t.join()
+        #         print 'waiting.....'
+        #         # Do whatever else you would do when join()
+        #         # (or maybe collega_GUI?) returns
+        #     else:
+        #         GLib.timeout_add(200, wait_for_t, t)
 
         # NOTE: enumerate req to iterate through tuple and find GVariant
         @trace
@@ -517,7 +517,7 @@ def main():
             # thread_obj.join(s_obj)
         except Queue.Empty:
             time.sleep(.2)
-            print 'nothing'
+            logger.info('nothing yet')
             pass
         else:
             exc_type, exc_obj, exc_trace = exc
