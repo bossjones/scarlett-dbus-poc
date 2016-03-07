@@ -228,6 +228,9 @@ class ScarlettListener(Server):
     <method name='emitListenerMessage'>
       <arg type='s' name='s_cmd' direction='out'/>
     </method>
+    <method name='quit'>
+      <arg type='s' name='s_cmd' direction='out'/>
+    </method>
     <signal name='KeywordRecognizedSignal'>
       <arg type='(ss)' name='kw_rec_status' direction='out'/>
     </signal>
@@ -365,6 +368,9 @@ class ScarlettListener(Server):
     def emitListenerMessage(self):
         print "  sending message"
         return self._message
+
+    def quit(self):
+        self.loop.quit()
 
     #########################################################
     # END Scarlett dbus methods

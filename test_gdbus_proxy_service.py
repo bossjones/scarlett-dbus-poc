@@ -191,7 +191,7 @@ def sigint_handler(*args):
     # TOD: figure out if this is really needed or not
     signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-    GObject.MainLoop().quit()
+    GLib.MainLoop().quit()
 
 signal.signal(signal.SIGINT, sigint_handler)
 
