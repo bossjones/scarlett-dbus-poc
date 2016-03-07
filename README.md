@@ -340,6 +340,7 @@ Service: python test_gdbus_service.py
 Tasker: python test_gdbus_proxy_service.py
 ```
 
+## Beginning threading tasker fixes 3/6/2016
 
 ### TODO:
 
