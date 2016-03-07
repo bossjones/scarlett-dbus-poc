@@ -4,7 +4,7 @@ keywords = [ 'scarlett', 'SCARLETT' ]
 owner = "Hair Ron Jones"
 
 [features]
-enable=hue_lights,time
+enable=time
 
 [redis]
 host = 127.0.0.1

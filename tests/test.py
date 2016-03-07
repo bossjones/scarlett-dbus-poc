@@ -90,12 +90,15 @@ def main():
 
 if __name__ == '__main__':
     os.environ['MAIN_DIR'] = os.path.abspath(os.path.dirname(__file__))
+    #TODO: change these to be the correct variable paths
     os.environ[
         'SCARLETT_CONFIG'] = "%s/tests/fixtures/.scarlett" % (os.environ['MAIN_DIR'])
+    # TODO: FIX THIS RIGHT HERE
+    # FIXME
     os.environ[
         'SCARLETT_HMM'] = "$%s/tests/fixtures/model/hmm/en_US/hub4wsj_sc_8k" % (os.environ['MAIN_DIR'])
     os.environ[
-        'SCARLETT_LM'] = "$%s/tests/fixtures/lm/6253.lm" % (os.environ['MAIN_DIR'])
+        'SCARLETT_LM'] = "$%s/tests/fixtures/lm/1473.lm" % (os.environ['MAIN_DIR'])
     os.environ[
-        'SCARLETT_DICT'] = "$%s/tests/fixtures/dict/6253.dic" % (os.environ['MAIN_DIR'])
+        'SCARLETT_DICT'] = "$%s/tests/fixtures/dict/1473.dic" % (os.environ['MAIN_DIR'])
     sys.exit(main())
