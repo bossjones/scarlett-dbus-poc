@@ -219,103 +219,54 @@ class ScarlettTasker(threading.Thread):
         #     else:
         #         GLib.timeout_add(200, wait_for_t, t)
 
-        # NOTE: enumerate req to iterate through tuple and find GVariant
-        @trace
-        def player_cb(*args, **kwargs):
-            if SCARLETT_DEBUG:
-                logger.debug("player_cb PrettyPrinter: ")
-                pp = pprint.PrettyPrinter(indent=4)
-                pp.pprint(args)
-            for i, v in enumerate(args):
-                if SCARLETT_DEBUG:
-                    logger.debug("Type v: {}".format(type(v)))
-                    logger.debug("Type i: {}".format(type(i)))
-                if type(v) is gi.overrides.GLib.Variant:
-                    if SCARLETT_DEBUG:
-                        logger.debug(
-                            "THIS SHOULD BE A Tuple now: {}".format(v))
-                    msg, scarlett_sound = v
-                    logger.warning(" msg: {}".format(msg))
-                    logger.warning(
-                        " scarlett_sound: {}".format(scarlett_sound))
-                    # NOTE: Create something like test_gdbus_player.ScarlettPlayer('pi-listening')
-                    # NOTE: test_gdbus_player.ScarlettPlayer
-                    # NOTE: self.bucket.put()
-                    # NOTE: ADD self.queue.put(v)
-
-        # NOTE: enumerate req to iterate through tuple and find GVariant
-        @trace
-        def command_cb(*args, **kwargs):
-            if SCARLETT_DEBUG:
-                logger.debug("player_cb PrettyPrinter: ")
-                pp = pprint.PrettyPrinter(indent=4)
-                pp.pprint(args)
-            for i, v in enumerate(args):
-                if SCARLETT_DEBUG:
-                    logger.debug("Type v: {}".format(type(v)))
-                    logger.debug("Type i: {}".format(type(i)))
-                if type(v) is gi.overrides.GLib.Variant:
-                    if SCARLETT_DEBUG:
-                        logger.debug(
-                            "THIS SHOULD BE A Tuple now: {}".format(v))
-                    msg, scarlett_sound, command = v
-                    logger.warning(" msg: {}".format(msg))
-                    logger.warning(
-                        " scarlett_sound: {}".format(scarlett_sound))
-                    logger.warning(" command: {}".format(command))
-                    # NOTE: Create something like test_gdbus_player.ScarlettPlayer('pi-listening')
-                    # NOTE: test_gdbus_player.ScarlettPlayer
-                    # NOTE: self.bucket.put()
-                    # NOTE: ADD self.queue.put(v)
-
         # with SessionBus() as bus:
         bus = SessionBus()
         ss = bus.get("org.scarlett", object_path='/org/scarlett/Listener')
 
         # SttFailedSignal / player_cb
-        self.ss_failed_signal = bus.con.signal_subscribe(None,
-                                                         "org.scarlett.Listener",
-                                                         "SttFailedSignal",
-                                                         '/org/scarlett/Listener',
-                                                         None,
-                                                         0,
-                                                         player_cb)
+        ss_failed_signal = bus.con.signal_subscribe(None,
+                                                    "org.scarlett.Listener",
+                                                    "SttFailedSignal",
+                                                    '/org/scarlett/Listener',
+                                                    None,
+                                                    0,
+                                                    player_cb)
 
         # ListenerReadySignal / player_cb
-        self.ss_rdy_signal = bus.con.signal_subscribe(None,
-                                                      "org.scarlett.Listener",
-                                                      "ListenerReadySignal",
-                                                      '/org/scarlett/Listener',
-                                                      None,
-                                                      0,
-                                                      player_cb)
+        ss_rdy_signal = bus.con.signal_subscribe(None,
+                                                 "org.scarlett.Listener",
+                                                 "ListenerReadySignal",
+                                                 '/org/scarlett/Listener',
+                                                 None,
+                                                 0,
+                                                 player_cb)
 
         # KeywordRecognizedSignal / player_cb
-        self.ss_kw_rec_signal = bus.con.signal_subscribe(None,
-                                                         "org.scarlett.Listener",
-                                                         "KeywordRecognizedSignal",
-                                                         '/org/scarlett/Listener',
-                                                         None,
-                                                         0,
-                                                         player_cb)
+        ss_kw_rec_signal = bus.con.signal_subscribe(None,
+                                                    "org.scarlett.Listener",
+                                                    "KeywordRecognizedSignal",
+                                                    '/org/scarlett/Listener',
+                                                    None,
+                                                    0,
+                                                    player_cb)
 
         # CommandRecognizedSignal /command_cb
-        self.ss_cmd_rec_signal = bus.con.signal_subscribe(None,
-                                                          "org.scarlett.Listener",
-                                                          "CommandRecognizedSignal",
-                                                          '/org/scarlett/Listener',
-                                                          None,
-                                                          0,
-                                                          command_cb)
+        ss_cmd_rec_signal = bus.con.signal_subscribe(None,
+                                                     "org.scarlett.Listener",
+                                                     "CommandRecognizedSignal",
+                                                     '/org/scarlett/Listener',
+                                                     None,
+                                                     0,
+                                                     command_cb)
 
         # ListenerCancelSignal / player_cb
-        self.ss_cancel_signal = bus.con.signal_subscribe(None,
-                                                         "org.scarlett.Listener",
-                                                         "ListenerCancelSignal",
-                                                         '/org/scarlett/Listener',
-                                                         None,
-                                                         0,
-                                                         player_cb)
+        ss_cancel_signal = bus.con.signal_subscribe(None,
+                                                    "org.scarlett.Listener",
+                                                    "ListenerCancelSignal",
+                                                    '/org/scarlett/Listener',
+                                                    None,
+                                                    0,
+                                                    player_cb)
 
         # NOTE: print dir(ss)
         # NOTE: # Quit mainloop
@@ -323,7 +274,8 @@ class ScarlettTasker(threading.Thread):
 
         # NOTE: # let listener know when we connect to it
         # NOTE: self._tasker_connected = ss.emitConnectedToListener("{}".format(
-        # NOTE:     self._tasker_connected(ScarlettTasker().__class__.__name__)))
+        # NOTE:
+        # self._tasker_connected(ScarlettTasker().__class__.__name__)))
 
         logger.debug("ss PrettyPrinter: ")
         pp = pprint.PrettyPrinter(indent=4)
@@ -484,6 +436,55 @@ class ScarlettTasker(threading.Thread):
 #     def run(self):
 #         logger.debug(
 #             "{}".format(self._tasker_connected(ScarlettTasker().__class__.__name__)))
+
+    # NOTE: enumerate req to iterate through tuple and find GVariant
+    @trace
+    def player_cb(*args, **kwargs):
+        if SCARLETT_DEBUG:
+            logger.debug("player_cb PrettyPrinter: ")
+            pp = pprint.PrettyPrinter(indent=4)
+            pp.pprint(args)
+        for i, v in enumerate(args):
+            if SCARLETT_DEBUG:
+                logger.debug("Type v: {}".format(type(v)))
+                logger.debug("Type i: {}".format(type(i)))
+            if type(v) is gi.overrides.GLib.Variant:
+                if SCARLETT_DEBUG:
+                    logger.debug(
+                        "THIS SHOULD BE A Tuple now: {}".format(v))
+                msg, scarlett_sound = v
+                logger.warning(" msg: {}".format(msg))
+                logger.warning(
+                    " scarlett_sound: {}".format(scarlett_sound))
+                # NOTE: Create something like test_gdbus_player.ScarlettPlayer('pi-listening')
+                # NOTE: test_gdbus_player.ScarlettPlayer
+                # NOTE: self.bucket.put()
+                # NOTE: ADD self.queue.put(v)
+
+    # NOTE: enumerate req to iterate through tuple and find GVariant
+    @trace
+    def command_cb(*args, **kwargs):
+        if SCARLETT_DEBUG:
+            logger.debug("player_cb PrettyPrinter: ")
+            pp = pprint.PrettyPrinter(indent=4)
+            pp.pprint(args)
+        for i, v in enumerate(args):
+            if SCARLETT_DEBUG:
+                logger.debug("Type v: {}".format(type(v)))
+                logger.debug("Type i: {}".format(type(i)))
+            if type(v) is gi.overrides.GLib.Variant:
+                if SCARLETT_DEBUG:
+                    logger.debug(
+                        "THIS SHOULD BE A Tuple now: {}".format(v))
+                msg, scarlett_sound, command = v
+                logger.warning(" msg: {}".format(msg))
+                logger.warning(
+                    " scarlett_sound: {}".format(scarlett_sound))
+                logger.warning(" command: {}".format(command))
+                # NOTE: Create something like test_gdbus_player.ScarlettPlayer('pi-listening')
+                # NOTE: test_gdbus_player.ScarlettPlayer
+                # NOTE: self.bucket.put()
+                # NOTE: ADD self.queue.put(v)
 
 
 @trace

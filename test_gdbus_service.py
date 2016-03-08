@@ -104,10 +104,11 @@ def setup_logger():
 
 
 class Server(object):
+
     def __init__(self, bus, path):
         self.loop = GLib.MainLoop()
-        self.dbus_stack       = []
-        self.pipelines_stack  = []
+        self.dbus_stack = []
+        self.pipelines_stack = []
 
         self._message = 'This is the DBusServer'
         self.config = scarlett_config.Config()
@@ -279,7 +280,8 @@ class ScarlettListener(Server):
     def CommandRecognizedSignal(self, message, scarlett_sound, scarlett_cmd):
         logger.debug(" sending message: {}".format(message))
         bus = self.dbus_stack[0]
-        cmd_rec_status = GLib.Variant("(sss)", (message, scarlett_sound, scarlett_cmd))
+        cmd_rec_status = GLib.Variant(
+            "(sss)", (message, scarlett_sound, scarlett_cmd))
         bus.emit_signal(None,
                         '/org/scarlett/Listener',
                         'org.scarlett.Listener',
@@ -299,7 +301,8 @@ class ScarlettListener(Server):
     def ListenerCancelSignal(self, message, scarlett_sound):
         logger.debug(" sending message: {}".format(message))
         bus = self.dbus_stack[0]
-        listener_cancel_status = GLib.Variant("(ss)", (message, scarlett_sound))
+        listener_cancel_status = GLib.Variant(
+            "(ss)", (message, scarlett_sound))
         bus.emit_signal(None,
                         '/org/scarlett/Listener',
                         'org.scarlett.Listener',
@@ -525,7 +528,7 @@ if __name__ == '__main__':
 
     from pydbus import SessionBus
     bus = SessionBus()
-    bus.own_name(name = 'org.scarlett')
+    bus.own_name(name='org.scarlett')
     sl = ScarlettListener(bus=bus.con, path='/org/scarlett/Listener')
 
     LANGUAGE_VERSION = 1473
@@ -540,7 +543,7 @@ if __name__ == '__main__':
         HOMEDIR)
     bestpath = 0
     PS_DEVICE = 'plughw:CARD=Device,DEV=0'
-    
+
     parser = argparse.ArgumentParser(description='Recognize speech from audio')
     parser.add_argument('--device',
                         default=PS_DEVICE,
