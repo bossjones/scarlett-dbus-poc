@@ -164,16 +164,18 @@ class ExcThread(threading.Thread):
     """
 
     @trace
-    def __init__(self, bucket, loop, *args, **kargs):
+    def __init__(self, bucket, *args, **kargs):
         threading.Thread.__init__(self, *args, **kargs)
         self.bucket = bucket
         self.running = True
         self._stop = threading.Event()
         # self.loop = GObject.MainLoop()
-        if loop is None:
-            self.loop = GObject.MainLoop()
-        else:
-            self.loop = loop
+        self.loop = GLib.MainLoop()
+        # if loop is None:
+        #     self.loop = GLib.MainLoop()
+        #     # self.loop = GObject.MainLoop()
+        # else:
+        #     self.loop = loop
         # self.daemon = True
 
     @trace
@@ -197,27 +199,115 @@ class ExcThread(threading.Thread):
         return self._stop.isSet()
 
 
-class ScarlettTasker(threading.Thread):
+# NOTE: enumerate req to iterate through tuple and find GVariant
+@trace
+def player_cb(*args, **kwargs):
+    if SCARLETT_DEBUG:
+        logger.debug("player_cb PrettyPrinter: ")
+        pp = pprint.PrettyPrinter(indent=4)
+        pp.pprint(args)
+    for i, v in enumerate(args):
+        if SCARLETT_DEBUG:
+            logger.debug("Type v: {}".format(type(v)))
+            logger.debug("Type i: {}".format(type(i)))
+        if type(v) is gi.overrides.GLib.Variant:
+            if SCARLETT_DEBUG:
+                logger.debug(
+                    "THIS SHOULD BE A Tuple now: {}".format(v))
+            msg, scarlett_sound = v
+            logger.warning(" msg: {}".format(msg))
+            logger.warning(
+                " scarlett_sound: {}".format(scarlett_sound))
+            # NOTE: Create something like test_gdbus_player.ScarlettPlayer('pi-listening')
+            # NOTE: test_gdbus_player.ScarlettPlayer
+            # NOTE: self.bucket.put()
+            # NOTE: ADD self.queue.put(v)
+
+
+# NOTE: enumerate req to iterate through tuple and find GVariant
+@trace
+def command_cb(*args, **kwargs):
+    if SCARLETT_DEBUG:
+        logger.debug("player_cb PrettyPrinter: ")
+        pp = pprint.PrettyPrinter(indent=4)
+        pp.pprint(args)
+    for i, v in enumerate(args):
+        if SCARLETT_DEBUG:
+            logger.debug("Type v: {}".format(type(v)))
+            logger.debug("Type i: {}".format(type(i)))
+        if type(v) is gi.overrides.GLib.Variant:
+            if SCARLETT_DEBUG:
+                logger.debug(
+                    "THIS SHOULD BE A Tuple now: {}".format(v))
+            msg, scarlett_sound, command = v
+            logger.warning(" msg: {}".format(msg))
+            logger.warning(
+                " scarlett_sound: {}".format(scarlett_sound))
+            logger.warning(" command: {}".format(command))
+            # NOTE: Create something like test_gdbus_player.ScarlettPlayer('pi-listening')
+            # NOTE: test_gdbus_player.ScarlettPlayer
+            # NOTE: self.bucket.put()
+            # NOTE: ADD self.queue.put(v)
+
+
+class ScarlettTasker():
 
     @trace
     def __init__(self, bucket, loop, *args, **kargs):
-        threading.Thread.__init__(self, *args, **kargs)
         self.bucket = bucket
         self.loop = loop
         self.running = True
         self._stop = threading.Event()
         self.queue = Queue.Queue(10)
 
+        # # NOTE: enumerate req to iterate through tuple and find GVariant
         # @trace
-        # def wait_for_t(t):
-        #     if not t.is_alive():
-        #         # This won't block, since the thread isn't alive anymore
-        #         t.join()
-        #         print 'waiting.....'
-        #         # Do whatever else you would do when join()
-        #         # (or maybe collega_GUI?) returns
-        #     else:
-        #         GLib.timeout_add(200, wait_for_t, t)
+        # def player_cb(*args, **kwargs):
+        #     if SCARLETT_DEBUG:
+        #         logger.debug("player_cb PrettyPrinter: ")
+        #         pp = pprint.PrettyPrinter(indent=4)
+        #         pp.pprint(args)
+        #     for i, v in enumerate(args):
+        #         if SCARLETT_DEBUG:
+        #             logger.debug("Type v: {}".format(type(v)))
+        #             logger.debug("Type i: {}".format(type(i)))
+        #         if type(v) is gi.overrides.GLib.Variant:
+        #             if SCARLETT_DEBUG:
+        #                 logger.debug(
+        #                     "THIS SHOULD BE A Tuple now: {}".format(v))
+        #             msg, scarlett_sound = v
+        #             logger.warning(" msg: {}".format(msg))
+        #             logger.warning(
+        #                 " scarlett_sound: {}".format(scarlett_sound))
+        #             # NOTE: Create something like test_gdbus_player.ScarlettPlayer('pi-listening')
+        #             # NOTE: test_gdbus_player.ScarlettPlayer
+        #             # NOTE: self.bucket.put()
+        #             # NOTE: ADD self.queue.put(v)
+        #
+        # # NOTE: enumerate req to iterate through tuple and find GVariant
+        # @trace
+        # def command_cb(*args, **kwargs):
+        #     if SCARLETT_DEBUG:
+        #         logger.debug("player_cb PrettyPrinter: ")
+        #         pp = pprint.PrettyPrinter(indent=4)
+        #         pp.pprint(args)
+        #     for i, v in enumerate(args):
+        #         if SCARLETT_DEBUG:
+        #             logger.debug("Type v: {}".format(type(v)))
+        #             logger.debug("Type i: {}".format(type(i)))
+        #         if type(v) is gi.overrides.GLib.Variant:
+        #             if SCARLETT_DEBUG:
+        #                 logger.debug(
+        #                     "THIS SHOULD BE A Tuple now: {}".format(v))
+        #             msg, scarlett_sound, command = v
+        #             logger.warning(" msg: {}".format(msg))
+        #             logger.warning(
+        #                 " scarlett_sound: {}".format(scarlett_sound))
+        #             logger.warning(" command: {}".format(command))
+        #             # NOTE: Create something like test_gdbus_player.ScarlettPlayer('pi-listening')
+        #             # NOTE: test_gdbus_player.ScarlettPlayer
+        #             # NOTE: self.bucket.put()
+        #             # NOTE: ADD self.queue.put(v)
 
         # with SessionBus() as bus:
         bus = SessionBus()
@@ -281,10 +371,6 @@ class ScarlettTasker(threading.Thread):
         pp = pprint.PrettyPrinter(indent=4)
         pp.pprint(ss)
 
-        # self.mainloopthread = ExcThread(self.queue, self.loop)
-        # self.mainloopthread.daemon = True
-        # self.mainloopthread.start()
-
     # NOTE: WE NEED TO ADD MORE TO THIS. WE NEED TO DO A self.queue.get() then have it join the mainthread
     # queue.get should have either a ScarlettPlayer or a ScarlettSpeaker object
     @trace
@@ -300,198 +386,75 @@ class ScarlettTasker(threading.Thread):
             self.bucket.put(sys.exc_info())
             raise
 
-# REGULAR OBJECT, not extending threading
-# class ScarlettTasker():
-#
-#     @trace
-#     def __init__(self):
-#         self.loop = GLib.MainLoop()
-#         self.queue = Queue.Queue(10)
-#
-#         @trace
-#         def wait_for_t(t):
-#             if not t.is_alive():
-#                 # This won't block, since the thread isn't alive anymore
-#                 t.join()
-#                 print 'waiting.....'
-#                 # Do whatever else you would do when join()
-#                 # (or maybe collega_GUI?) returns
-#             else:
-#                 GLib.timeout_add(200, wait_for_t, t)
-#
-#         # NOTE: enumerate req to iterate through tuple and find GVariant
-#         @trace
-#         def player_cb(*args, **kwargs):
-#             if SCARLETT_DEBUG:
-#                 logger.debug("player_cb PrettyPrinter: ")
-#                 pp = pprint.PrettyPrinter(indent=4)
-#                 pp.pprint(args)
-#             for i, v in enumerate(args):
-#                 if SCARLETT_DEBUG:
-#                     logger.debug("Type v: {}".format(type(v)))
-#                     logger.debug("Type i: {}".format(type(i)))
-#                 if type(v) is gi.overrides.GLib.Variant:
-#                     if SCARLETT_DEBUG:
-#                         logger.debug(
-#                             "THIS SHOULD BE A Tuple now: {}".format(v))
-#                     msg, scarlett_sound = v
-#                     logger.warning(" msg: {}".format(msg))
-#                     logger.warning(
-#                         " scarlett_sound: {}".format(scarlett_sound))
-#                     # NOTE: ADD self.queue.put(v)
-#
-#         # NOTE: enumerate req to iterate through tuple and find GVariant
-#         @trace
-#         def command_cb(*args, **kwargs):
-#             if SCARLETT_DEBUG:
-#                 logger.debug("player_cb PrettyPrinter: ")
-#                 pp = pprint.PrettyPrinter(indent=4)
-#                 pp.pprint(args)
-#             for i, v in enumerate(args):
-#                 if SCARLETT_DEBUG:
-#                     logger.debug("Type v: {}".format(type(v)))
-#                     logger.debug("Type i: {}".format(type(i)))
-#                 if type(v) is gi.overrides.GLib.Variant:
-#                     if SCARLETT_DEBUG:
-#                         logger.debug(
-#                             "THIS SHOULD BE A Tuple now: {}".format(v))
-#                     msg, scarlett_sound, command = v
-#                     logger.warning(" msg: {}".format(msg))
-#                     logger.warning(
-#                         " scarlett_sound: {}".format(scarlett_sound))
-#                     logger.warning(" command: {}".format(command))
-#                     # NOTE: ADD self.queue.put(v)
-#
-#         # with SessionBus() as bus:
-#         bus = SessionBus()
-#         ss = bus.get("org.scarlett", object_path='/org/scarlett/Listener')
-#
-#         # SttFailedSignal / player_cb
-#         self.ss_failed_signal = bus.con.signal_subscribe(None,
-#                                                          "org.scarlett.Listener",
-#                                                          "SttFailedSignal",
-#                                                          '/org/scarlett/Listener',
-#                                                          None,
-#                                                          0,
-#                                                          player_cb)
-#
-#         # ListenerReadySignal / player_cb
-#         self.ss_rdy_signal = bus.con.signal_subscribe(None,
-#                                                       "org.scarlett.Listener",
-#                                                       "ListenerReadySignal",
-#                                                       '/org/scarlett/Listener',
-#                                                       None,
-#                                                       0,
-#                                                       player_cb)
-#
-#         # KeywordRecognizedSignal / player_cb
-#         self.ss_kw_rec_signal = bus.con.signal_subscribe(None,
-#                                                          "org.scarlett.Listener",
-#                                                          "KeywordRecognizedSignal",
-#                                                          '/org/scarlett/Listener',
-#                                                          None,
-#                                                          0,
-#                                                          player_cb)
-#
-#         # CommandRecognizedSignal /command_cb
-#         self.ss_cmd_rec_signal = bus.con.signal_subscribe(None,
-#                                                           "org.scarlett.Listener",
-#                                                           "CommandRecognizedSignal",
-#                                                           '/org/scarlett/Listener',
-#                                                           None,
-#                                                           0,
-#                                                           command_cb)
-#
-#         # ListenerCancelSignal / player_cb
-#         self.ss_cancel_signal = bus.con.signal_subscribe(None,
-#                                                          "org.scarlett.Listener",
-#                                                          "ListenerCancelSignal",
-#                                                          '/org/scarlett/Listener',
-#                                                          None,
-#                                                          0,
-#                                                          player_cb)
-#
-#         # Quit mainloop
-#         self.quit = ss.quit()
-#
-#         # let listener know when we connect to it
-#         self._tasker_connected = ss.emitConnectedToListener("{}".format(
-#             self._tasker_connected(ScarlettTasker().__class__.__name__)))
-#
-#         logger.debug("ss PrettyPrinter: ")
-#         pp = pprint.PrettyPrinter(indent=4)
-#         pp.pprint(ss)
-#
-#         self.mainloopthread = ExcThread(self.queue, self.loop)
-#         self.mainloopthread.daemon = True
-#         self.mainloopthread.start()
-#
-#     # NOTE: WE NEED TO ADD MORE TO THIS. WE NEED TO DO A self.queue.get() then have it join the mainthread
-#     # queue.get should have either a ScarlettPlayer or a ScarlettSpeaker object
-#     @trace
-#     def go(self):
-#         self.loop.run()
-#
-#     @trace
-#     def run(self):
-#         logger.debug(
-#             "{}".format(self._tasker_connected(ScarlettTasker().__class__.__name__)))
 
-    # NOTE: enumerate req to iterate through tuple and find GVariant
-    @trace
-    def player_cb(*args, **kwargs):
-        if SCARLETT_DEBUG:
-            logger.debug("player_cb PrettyPrinter: ")
-            pp = pprint.PrettyPrinter(indent=4)
-            pp.pprint(args)
-        for i, v in enumerate(args):
-            if SCARLETT_DEBUG:
-                logger.debug("Type v: {}".format(type(v)))
-                logger.debug("Type i: {}".format(type(i)))
-            if type(v) is gi.overrides.GLib.Variant:
-                if SCARLETT_DEBUG:
-                    logger.debug(
-                        "THIS SHOULD BE A Tuple now: {}".format(v))
-                msg, scarlett_sound = v
-                logger.warning(" msg: {}".format(msg))
-                logger.warning(
-                    " scarlett_sound: {}".format(scarlett_sound))
-                # NOTE: Create something like test_gdbus_player.ScarlettPlayer('pi-listening')
-                # NOTE: test_gdbus_player.ScarlettPlayer
-                # NOTE: self.bucket.put()
-                # NOTE: ADD self.queue.put(v)
-
-    # NOTE: enumerate req to iterate through tuple and find GVariant
-    @trace
-    def command_cb(*args, **kwargs):
-        if SCARLETT_DEBUG:
-            logger.debug("player_cb PrettyPrinter: ")
-            pp = pprint.PrettyPrinter(indent=4)
-            pp.pprint(args)
-        for i, v in enumerate(args):
-            if SCARLETT_DEBUG:
-                logger.debug("Type v: {}".format(type(v)))
-                logger.debug("Type i: {}".format(type(i)))
-            if type(v) is gi.overrides.GLib.Variant:
-                if SCARLETT_DEBUG:
-                    logger.debug(
-                        "THIS SHOULD BE A Tuple now: {}".format(v))
-                msg, scarlett_sound, command = v
-                logger.warning(" msg: {}".format(msg))
-                logger.warning(
-                    " scarlett_sound: {}".format(scarlett_sound))
-                logger.warning(" command: {}".format(command))
-                # NOTE: Create something like test_gdbus_player.ScarlettPlayer('pi-listening')
-                # NOTE: test_gdbus_player.ScarlettPlayer
-                # NOTE: self.bucket.put()
-                # NOTE: ADD self.queue.put(v)
+# @trace
+# def main():
+#     """
+#     Parent thread and supervisor.
+#     """
+#     global player_cb
+#     global command_cb
+#
+#     bucket = Queue.Queue()
+#     mainloop = GLib.MainLoop()
+#
+#     # TODO: Try calling child thread like below.
+#     # TODO: Allow us to pass in a target, and args.
+#     # TODO: Eg. target=ScarlettPlayer or target=ScarlettSpeaker
+#     # SOURCE: https://github.com/jhcepas/npr/blob/master/nprlib/interface.py
+#     # t = ExcThread(bucket=exceptions, target=func, args=[args])
+#     # Start child thread
+#     ### thread_obj = ScarlettTasker(bucket, mainloop)
+#     ### thread_obj.daemon = True
+#     ### thread_obj.start()
+#
+#     thread_obj = ExcThread(bucket)
+#     thread_obj.daemon = True
+#     thread_obj.start()
+#
+#     # st = ScarlettTasker(bucket, mainloop)
+#     # st_thread = threading.Thread(target=st.go)
+#     # st_thread.daemon = True
+#     # st_thread.start()
+#     # start_mainloop(bucket, mainloop)
+#     st = ScarlettTasker(bucket, mainloop)
+#     st.run()
+#
+#     while True:
+#         try:
+#             exc = bucket.get(block=False)
+#             # NOTE: IMPORTANT NOTES
+#             # check type of exc
+#             # if exc is a ScarlettPlayer or a ScarlettSpeaker ...
+#             # s_obj = ScarlettPlayer
+#             # OR
+#             # s_obj = ScarlettSpeaker
+#             # add to the thread supervisor, which will block till finished
+#             # thread_obj.join(s_obj)
+#         except Queue.Empty:
+#             time.sleep(.2)
+#             logger.info('nothing yet')
+#             pass
+#         else:
+#             exc_type, exc_obj, exc_trace = exc
+#             # deal with the exception
+#             # print exc_type, exc_obj
+#             # print exc_trace
+#             # deal with the exception
+#             # print exc_trace, exc_type, exc_obj
+#             raise exc_obj
+#
+#         thread_obj.join(0.1)
+#         if thread_obj.isAlive():
+#             continue
+#         else:
+#             break
 
 
-@trace
-def main():
-    """
-    Parent thread and supervisor.
-    """
+if __name__ == '__main__':
+    global player_cb
+    global command_cb
+
     bucket = Queue.Queue()
     mainloop = GLib.MainLoop()
 
@@ -501,9 +464,21 @@ def main():
     # SOURCE: https://github.com/jhcepas/npr/blob/master/nprlib/interface.py
     # t = ExcThread(bucket=exceptions, target=func, args=[args])
     # Start child thread
-    thread_obj = ScarlettTasker(bucket, mainloop)
+    ### thread_obj = ScarlettTasker(bucket, mainloop)
+    ### thread_obj.daemon = True
+    ### thread_obj.start()
+
+    thread_obj = ExcThread(bucket)
     thread_obj.daemon = True
     thread_obj.start()
+
+    # st = ScarlettTasker(bucket, mainloop)
+    # st_thread = threading.Thread(target=st.go)
+    # st_thread.daemon = True
+    # st_thread.start()
+    # start_mainloop(bucket, mainloop)
+    st = ScarlettTasker(bucket, mainloop)
+    st.run()
 
     while True:
         try:
@@ -534,7 +509,4 @@ def main():
             continue
         else:
             break
-
-
-if __name__ == '__main__':
-    main()
+    #main()
