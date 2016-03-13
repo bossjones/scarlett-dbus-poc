@@ -18,6 +18,8 @@ import sys
 import time
 
 SCARLETT_DEBUG = True
+player_run = False
+command_run = False
 
 if SCARLETT_DEBUG:
     # Setting GST_DEBUG_DUMP_DOT_DIR environment variable enables us to have a
@@ -72,6 +74,9 @@ from functools import wraps
 import Queue
 from random import randint
 from pydbus import SessionBus
+
+import test_gdbus_speaker
+import test_gdbus_player
 
 
 def setup_logger():
@@ -261,6 +266,7 @@ class ScarlettTasker:
     def __init__(self):
         self.bucket = bucket = Queue.Queue()  # NOQA
         self.loop = GLib.MainLoop()
+        self.hello = None
 
         # with SessionBus() as bus:
         bus = SessionBus()
@@ -303,6 +309,7 @@ class ScarlettTasker:
                                                      command_cb)
 
         # ListenerCancelSignal / player_cb
+        # signal_subscribe (sender, interface_name, member, object_path, arg0, flags, callback, *user_data)
         ss_cancel_signal = bus.con.signal_subscribe(None,  # NOQA
                                                     "org.scarlett.Listener",
                                                     "ListenerCancelSignal",
@@ -411,6 +418,10 @@ def player_cb(*args, **kwargs):
             logger.warning(" msg: {}".format(msg))
             logger.warning(
                 " scarlett_sound: {}".format(scarlett_sound))
+            player_run = True
+            if player_run:
+                test_gdbus_player.ScarlettPlayer(scarlett_sound)
+                player_run = False
             # NOTE: Create something like test_gdbus_player.ScarlettPlayer('pi-listening')
             # NOTE: test_gdbus_player.ScarlettPlayer
             # NOTE: self.bucket.put()
@@ -440,6 +451,10 @@ def command_cb(*args, **kwargs):
             logger.warning(
                 " scarlett_sound: {}".format(scarlett_sound))
             logger.warning(" command: {}".format(command))
+            command_run = True
+            if command_run:
+                test_gdbus_speaker.ScarlettSpeaker('Hello sir. How are you doing this afternoon? I am full lee function nall, andd red ee for your commands')  # NOQA
+                command_run = False
             # NOTE: Create something like test_gdbus_player.ScarlettPlayer('pi-listening')
             # NOTE: test_gdbus_player.ScarlettPlayer
             # NOTE: self.bucket.put()
