@@ -213,7 +213,7 @@ class ScarlettSpeaker():
             ret, dur = player.query_duration(Gst.Format.TIME)
             print "Duration: %u seconds" % (dur / Gst.SECOND)
 
-            # wait for EOS or error
+        # wait for EOS or error
         msg = gst_bus.timed_pop_filtered(
             GST_CLOCK_TIME_NONE, Gst.MessageType.EOS | Gst.MessageType.ERROR)
 

@@ -58,19 +58,19 @@ gst = Gst
 def setup_logger():
     """Return a logger with a default ColoredFormatter."""
     formatter = ColoredFormatter(
-        "%(asctime)s.%(msecs)03d (%(threadName)-9s) %(log_color)s%(levelname)-8s%(reset)s %(message_log_color)s%(message)s",
+        "%(asctime)s.%(msecs)03d (%(threadName)-9s) %(log_color)s%(levelname)-8s%(reset)s %(message_log_color)s%(message)s",  # NOQA
         datefmt='%Y-%m-%d,%H:%M:%S',
         reset=True,
         log_colors={
-            'DEBUG':    'cyan',
-            'INFO':     'green',
-            'WARNING':  'yellow',
-            'ERROR':    'red',
+            'DEBUG': 'cyan',
+            'INFO': 'green',
+            'WARNING': 'yellow',
+            'ERROR': 'red',
             'CRITICAL': 'red',
         },
         secondary_log_colors={
             'message': {
-                'ERROR':    'red',
+                'ERROR': 'red',
                 'CRITICAL': 'red',
                 'DEBUG': 'yellow'
             }
