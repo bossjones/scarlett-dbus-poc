@@ -104,10 +104,11 @@ def setup_logger():
 
 
 class Server(object):
+
     def __init__(self, bus, path):
         self.loop = GLib.MainLoop()
-        self.dbus_stack       = []
-        self.pipelines_stack  = []
+        self.dbus_stack = []
+        self.pipelines_stack = []
 
         self._message = 'This is the DBusServer'
         self.config = scarlett_config.Config()
@@ -429,7 +430,7 @@ if __name__ == '__main__':
 
     from pydbus import SessionBus
     bus = SessionBus()
-    bus.own_name(name = 'org.scarlett')
+    bus.own_name(name='org.scarlett')
     sl = ScarlettListener(bus=bus.con, path='/org/scarlett/Listener')
 
     LANGUAGE_VERSION = 1473

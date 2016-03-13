@@ -160,16 +160,16 @@ class ScarlettTasker():
         #     logger.debug("catchall_handler PrettyPrinter: ")
         #     pp = pprint.PrettyPrinter(indent=4)
         #     pp.pprint(args)
+    def wait_for_t(t):
+        if not t.is_alive():
+            # This won't block, since the thread isn't alive anymore
+            t.join()
+            print 'waiting.....'
+            # Do whatever else you would do when join()
+            # (or maybe collega_GUI?) returns
+        else:
+            GLib.timeout_add(200, wait_for_t, t)
 
-        def wait_for_t(t):
-            if not t.is_alive():
-                # This won't block, since the thread isn't alive anymore
-                t.join()
-                print 'waiting.....'
-                # Do whatever else you would do when join()
-                # (or maybe collega_GUI?) returns
-            else:
-                GLib.timeout_add(200, wait_for_t, t)
 
         def player_cb(*args, **kwargs):
             logger.debug("player_cb PrettyPrinter: ")
