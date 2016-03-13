@@ -17,7 +17,7 @@ import os
 import sys
 import time
 
-SCARLETT_DEBUG = None
+SCARLETT_DEBUG = True
 
 if SCARLETT_DEBUG:
     # Setting GST_DEBUG_DUMP_DOT_DIR environment variable enables us to have a
@@ -383,6 +383,12 @@ class ScarlettTasker:
         # self.pendingModel.set_value(rowref, 1, int(progress))
 
 
+def print_keyword_args(**kwargs):
+    # kwargs is a dict of the keyword args passed to the function
+    for key, value in kwargs.iteritems():
+        print "%s = %s" % (key, value)
+
+
 # NOTE: enumerate req to iterate through tuple and find GVariant
 @trace
 def player_cb(*args, **kwargs):
@@ -390,6 +396,9 @@ def player_cb(*args, **kwargs):
         logger.debug("player_cb PrettyPrinter: ")
         pp = pprint.PrettyPrinter(indent=4)
         pp.pprint(args)
+        # MAR 13 2016
+        logger.debug("player_cb kwargs")
+        print_keyword_args(**kwargs)
     for i, v in enumerate(args):
         if SCARLETT_DEBUG:
             logger.debug("Type v: {}".format(type(v)))
@@ -412,9 +421,12 @@ def player_cb(*args, **kwargs):
 @trace
 def command_cb(*args, **kwargs):
     if SCARLETT_DEBUG:
-        logger.debug("player_cb PrettyPrinter: ")
+        logger.debug("command_cb PrettyPrinter: ")
         pp = pprint.PrettyPrinter(indent=4)
         pp.pprint(args)
+        # MAR 13 2016
+        logger.debug("command_cb kwargs")
+        print_keyword_args(**kwargs)
     for i, v in enumerate(args):
         if SCARLETT_DEBUG:
             logger.debug("Type v: {}".format(type(v)))
