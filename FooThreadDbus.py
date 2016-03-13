@@ -17,7 +17,11 @@ import os
 import sys
 import time
 
+_INSANCE = None
+
 SCARLETT_DEBUG = True
+
+# Prevents player or command callbacks from running multiple times
 player_run = False
 command_run = False
 
@@ -462,4 +466,4 @@ def command_cb(*args, **kwargs):
 
 
 if __name__ == "__main__":
-    st = ScarlettTasker()
+    _INSANCE = st = ScarlettTasker()
