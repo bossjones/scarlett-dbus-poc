@@ -4,13 +4,34 @@
 from __future__ import with_statement
 from __future__ import division
 
+import sys
+import os
+
+os.environ[
+    "GST_DEBUG_DUMP_DOT_DIR"] = "/home/pi/dev/bossjones-github/scarlett-dbus-poc/_debug"
+os.putenv('GST_DEBUG_DUMP_DIR_DIR',
+          '/home/pi/dev/bossjones-github/scarlett-dbus-poc/_debug')
+
 import gi
 gi.require_version('Gst', '1.0')
-from gi.repository import GObject, Gst
-
-import sys
+from gi.repository import GObject
+from gi.repository import Gst
+from gi.repository import GLib
+from gi.repository import Gio
 import threading
-import os
+
+
+GObject.threads_init()
+Gst.init(None)
+
+Gst.debug_set_active(True)
+Gst.debug_set_default_threshold(3)
+gst = Gst
+
+
+import argparse
+import pprint
+pp = pprint.PrettyPrinter(indent=4)
 
 try:
     import queue
@@ -26,6 +47,56 @@ except ImportError:
 QUEUE_SIZE = 10
 BUFFER_SIZE = 10
 SENTINEL = '__GSTDEC_SENTINEL__'
+
+import signal
+
+from IPython.core.debugger import Tracer
+from IPython.core import ultratb
+
+sys.excepthook = ultratb.FormattedTB(mode='Verbose',
+                                     color_scheme='Linux',
+                                     call_pdb=True,
+                                     ostream=sys.__stdout__)
+
+from colorlog import ColoredFormatter
+
+import logging
+
+from gettext import gettext as _
+
+
+def setup_logger():
+    """Return a logger with a default ColoredFormatter."""
+    formatter = ColoredFormatter(
+        "(%(threadName)-9s) %(log_color)s%(levelname)-8s%(reset)s (%(funcName)-5s) %(message_log_color)s%(message)s",
+        datefmt=None,
+        reset=True,
+        log_colors={
+            'DEBUG': 'cyan',
+            'INFO': 'green',
+            'WARNING': 'yellow',
+            'ERROR': 'red',
+            'CRITICAL': 'red',
+        },
+        secondary_log_colors={
+            'message': {
+                'ERROR': 'red',
+                'CRITICAL': 'red',
+                'DEBUG': 'yellow'
+            }
+        },
+        style='%'
+    )
+
+    logger = logging.getLogger(__name__)
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    logger.setLevel(logging.DEBUG)
+
+    return logger
+
+logger = setup_logger()
 
 
 class DecodeError(Exception):
@@ -132,9 +203,6 @@ class IncompleteGStreamerError(GStreamerError):
 
 _shared_loop_thread = None
 _loop_thread_lock = threading.RLock()
-
-GObject.threads_init()
-Gst.init(None)
 
 
 def get_loop_thread():
@@ -293,16 +361,47 @@ class GstAudioFile(object):
 
         # This wil get filled with an exception if opening fails.
         self.read_exc = None
+        self.dot_exc = None
 
         # Return as soon as the stream is ready!
         self.running = True
         self.got_caps = False
         self.pipeline.set_state(Gst.State.PLAYING)
+        self.on_debug_activate()
+
         self.ready_sem.acquire()
+        # try:
+        #     self.on_debug_activate()
+        # except:
+        #     logger.error('DEBUGGING DIDNT WORK!')
+        #     raise self.dot_exc
+
         if self.read_exc:
             # An error occurred before the stream became ready.
             self.close(True)
             raise self.read_exc
+
+    # NOTE: This function generates the dot file, checks that graphviz in installed and
+    # then finally generates a png file, which it then displays
+    def on_debug_activate(self):
+        dotfile = "/home/pi/dev/bossjones-github/scarlett-dbus-poc/_debug/generator-player.dot"
+        pngfile = "/home/pi/dev/bossjones-github/scarlett-dbus-poc/_debug/generator-player-pipeline.png"  # NOQA
+        if os.access(dotfile, os.F_OK):
+            os.remove(dotfile)
+        if os.access(pngfile, os.F_OK):
+            os.remove(pngfile)
+        Gst.debug_bin_to_dot_file(self.pipeline,
+                                  Gst.DebugGraphDetails.ALL, "generator-player")
+        # check if graphviz is installed with a simple test
+        # try:
+        #     description = os.system('/usr/bin/dot' + " -Tpng -o " + pngfile + " " + dotfile)
+        #     # Gtk.show_uri(None, "file://"+pngfile, 0)
+        # except Exception as ex:
+        #     logger.error(
+        #         'Failed to create audio output "%s": %s', description, ex)
+        #     self.dot_exc = ex
+        os.system('/usr/bin/dot' + " -Tpng -o " + pngfile + " " + dotfile)
+        # Gtk.show_uri(self.win.get_screen(), "file://"+pngfile, 0)
 
     # Gstreamer callbacks.
 
@@ -312,6 +411,9 @@ class GstAudioFile(object):
         # The sink has started to receive data, so the stream is ready.
         # This also is our opportunity to read information about the
         # stream.
+        logger.debug("pad: {}".format(pad))
+        logger.debug("pad name: {} parent: {}".format(pad.name, pad.get_parent()))
+        logger.debug("args: {}".format(args))
         self.got_caps = True
         info = pad.get_current_caps().get_structure(0)
 
@@ -336,6 +438,8 @@ class GstAudioFile(object):
         """
         # Decoded data is ready. Connect up the decoder, finally.
         name = pad.query_caps(None).to_string()
+        logger.debug("pad: {}".format(pad))
+        logger.debug("pad name: {} parent: {}".format(pad.name, pad.get_parent()))
         if name.startswith('audio/x-raw'):
             # FIXME: nextpad = self.conv.get_static_pad('tee')
             nextpad = self.conv.get_static_pad('sink')
@@ -357,6 +461,8 @@ class GstAudioFile(object):
         """The callback for appsink's "new-sample" signal.
         """
         if self.running:
+            # FIXME: logger.debug("sink: {}".format(sink))
+            # FIXME: logger.debug("sink name: {} parent: {}".format(sink.name, sink.get_parent()))
             # New data is available from the pipeline! Dump it into our
             # queue (or possibly block if we're full).
             buf = sink.emit('pull-sample').get_buffer()
@@ -465,11 +571,14 @@ class GstAudioFile(object):
 
 # Smoke test.
 if __name__ == '__main__':
-    for path in sys.argv[1:]:
+    wavefile = ['/home/pi/dev/bossjones-github/scarlett-dbus-poc/static/sounds/pi-listening.wav']
+    # ORIG # for path in sys.argv[1:]:
+    for path in wavefile:
         path = os.path.abspath(os.path.expanduser(path))
         with GstAudioFile(path) as f:
             print(f.channels)
             print(f.samplerate)
             print(f.duration)
             for s in f:
-                print(len(s), ord(s[0]))
+                pass
+                # print(len(s), ord(s[0]))
