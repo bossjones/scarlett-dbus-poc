@@ -17,7 +17,7 @@ import os
 import sys
 import time
 
-_INSANCE = None
+_INSTANCE = None
 
 SCARLETT_DEBUG = True
 
@@ -82,6 +82,48 @@ from pydbus import SessionBus
 import test_gdbus_speaker
 import test_gdbus_player
 
+###################################################################################################
+# Audio Utils Start
+###################################################################################################
+
+
+def calculate_duration(num_samples, sample_rate):
+    """Determine duration of samples using GStreamer helper for precise
+    math."""
+    return Gst.util_uint64_scale(num_samples, Gst.SECOND, sample_rate)
+
+
+def create_buffer(data, timestamp=None, duration=None):
+    """Create a new GStreamer buffer based on provided data.
+
+    Mainly intended to keep gst imports out of non-audio modules.
+
+    .. versionchanged:: 2.0
+        ``capabilites`` argument was removed.
+    """
+    if not data:
+        raise ValueError('Cannot create buffer without data')
+    buffer_ = Gst.Buffer.new_wrapped(data)
+    if timestamp is not None:
+        buffer_.pts = timestamp
+    if duration is not None:
+        buffer_.duration = duration
+    return buffer_
+
+
+def millisecond_to_clocktime(value):
+    """Convert a millisecond time to internal GStreamer time."""
+    return value * Gst.MSECOND
+
+
+def clocktime_to_millisecond(value):
+    """Convert an internal GStreamer time to millisecond time."""
+    return value // Gst.MSECOND
+
+###################################################################################################
+# Audio Utils End
+###################################################################################################
+
 
 def setup_logger():
     """Return a logger with a default ColoredFormatter."""
@@ -129,6 +171,28 @@ def trace(func):
     return wrapper
 
 
+# source: https://github.com/hpcgam/dicomimport/blob/1f265b1a5c9e631a536333633893ab525da87f16/doc-dcm/SAMPLEZ/nostaples/utils/scanning.py # NOQA
+def abort_on_exception(func):
+    """
+    This function decorator wraps the run() method of a thread
+    so that any exceptions in that thread will be logged and
+    cause the threads 'abort' signal to be emitted with the exception
+    as an argument.  This way all exception handling can occur
+    on the main thread.
+
+    Note that the entire sys.exc_info() tuple is passed out, this
+    allows the current traceback to be used in the other thread.
+    """
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception, e:
+            thread_object = args[0]
+            exc_info = sys.exc_info()
+            thread_object.log.error('Exception type %s: %s' % (e.__class__.__name__, e.message))
+            thread_object.emit('aborted', exc_info)
+    return wrapper
+
 # Create a player
 logger = setup_logger()
 
@@ -171,6 +235,39 @@ class _FooThread(threading.Thread, _IdleObject):
         # TODO: Add one more option to pass in object ScarlettPlayer or
         # ScarlettSpeaker
         self.setName("%s" % self.name)
+        self.event_do_exit = threading.Event()
+
+        # test_gdbus_player.ScarlettPlayer('pi-listening')
+
+        player = test_gdbus_player
+
+        def signal_handler_in_thread():
+
+            def function_calling_gtk(event, result):
+                result.append(player.ScarlettPlayer('pi-listening'))
+                event.set()
+
+            event = threading.Event()
+            result = []
+            GLib.idle_add(function_calling_gtk, event, result)
+            event.wait()
+            toggle_button_is_active = result[0]
+            print(toggle_button_is_active)
+
+        # toggle_button = Gtk.ToggleButton()
+        #
+        # def signal_handler_in_thread():
+        #
+        #     def function_calling_gtk(event, result):
+        #         result.append(toggle_button.get_active())
+        #         event.set()
+        #
+        #     event = threading.Event()
+        #     result = []
+        #     GLib.idle_add(function_calling_gtk, event, result)
+        #     event.wait()
+        #     toggle_button_is_active = result[0]
+        #     print(toggle_button_is_active)
 
     @trace
     def cancel(self):
@@ -322,31 +419,9 @@ class ScarlettTasker:
                                                     0,
                                                     player_cb)
 
-        # Commenting out for now all GTK stuff win = Gtk.Window()
-        # Commenting out for now all GTK stuff win.connect("delete_event", self.quit)
-        # Commenting out for now all GTK stuff box = Gtk.VBox(False, 4)
-        # Commenting out for now all GTK stuff win.add(box)
-        # Commenting out for now all GTK stuff addButton = Gtk.Button("Add Thread")
-        # Commenting out for now all GTK stuff # TODO: register add thread to player_cb
-        # Commenting out for now all GTK stuff addButton.connect("clicked", self.add_thread)
-        # Commenting out for now all GTK stuff box.pack_start(addButton, False, False, 0)
-        # Commenting out for now all GTK stuff stopButton = Gtk.Button("Stop All Threads")
-        # Commenting out for now all GTK stuff stopButton.connect("clicked", self.stop_threads)
-        # Commenting out for now all GTK stuff box.pack_start(stopButton, False, False, 0)
-
-        # # display threads in a treeview
-        # self.pendingModel = Gtk.ListStore(
-        #     GObject.TYPE_STRING, GObject.TYPE_INT)
-        # self.completeModel = Gtk.ListStore(GObject.TYPE_STRING)
-        # self._make_view(self.pendingModel, "Pending Threads", True, box)
-        # self._make_view(self.completeModel, "Completed Threads", False, box)
-
         # THE ACTUAL THREAD BIT
         self.manager = FooThreadManager(3)
 
-        # Start the st
-        # win.show_all()
-        # Gtk.main()
         try:
             print "ScarlettTasker Thread Started", self
             self.loop.run()
@@ -466,4 +541,4 @@ def command_cb(*args, **kwargs):
 
 
 if __name__ == "__main__":
-    _INSANCE = st = ScarlettTasker()
+    _INSTANCE = st = ScarlettTasker()
