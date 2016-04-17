@@ -152,8 +152,8 @@ def audio_open(path):
 	if _gst_available():
 		# from . import gstdec
 		try:
-			return GstAudioFile(path)
-            # return gstdec.GstAudioFile(path)
+			return ScarlettPlayer(path)
+			# return gstdec.ScarlettPlayer(path)
 		except DecodeError:
 			pass
 
@@ -241,7 +241,7 @@ class MainLoopThread(threading.Thread):
 
 # The decoder.
 
-class GstAudioFile(object):
+class ScarlettPlayer(object):
 	# Anything defined here belongs to the class itself
 
 	def __init__(self, path):
@@ -457,7 +457,7 @@ class GstAudioFile(object):
 		success, length = pad.get_peer().query_duration(Gst.Format.TIME)
 		if success:
 			self.duration = length / 1000000000
-            logger.debug("FILE DURATION: {}".format(self.duration))
+			logger.debug("FILE DURATION: {}".format(self.duration))
 		else:
 			self.read_exc = MetadataMissingError('duration not available')
 
@@ -614,10 +614,10 @@ if __name__ == '__main__':
 	# ORIG # for path in sys.argv[1:]:
 	for path in wavefile:
 		path = os.path.abspath(os.path.expanduser(path))
-		with GstAudioFile(path) as f:
+		with ScarlettPlayer(path) as f:
 			print(f.channels)
 			print(f.samplerate)
 			print(f.duration)
 			for s in f:
-                pass
-                # READ IN BLOCKS # print(len(s), ord(s[0]))
+				pass
+				# READ IN BLOCKS # print(len(s), ord(s[0]))

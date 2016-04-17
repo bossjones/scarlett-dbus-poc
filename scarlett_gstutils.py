@@ -97,3 +97,6 @@ class MainloopThread(threading.Thread):
 
     def run(self):
         self.mainloop.run()
+
+    def get_status(self):
+        return self.isAlive()
