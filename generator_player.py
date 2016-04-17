@@ -394,19 +394,6 @@ class GstAudioFile(object):
 			print("pipeline dot file created in " +
 				  os.getenv("GST_DEBUG_DUMP_DOT_DIR"))
 
-	def debug_mixer(self, mixer):
-		it = mixer.iterate_sink_pads()
-
-		while True:
-			status, pad = it.next()
-			if status != Gst.IteratorResult.OK:
-				break
-
-			pad_info = "Pad: " + pad.get_name()
-			pad_info = pad_info + " (zorder: " + str(pad.get_property("zorder"))
-			pad_info = pad_info + ", alpha: " + str(pad.get_property('alpha')) + ")"
-			print pad_info
-
 	def _listElements(self, bin, level=0):
 		try:
 			iterator = bin.iterate_elements()
@@ -470,6 +457,7 @@ class GstAudioFile(object):
 		success, length = pad.get_peer().query_duration(Gst.Format.TIME)
 		if success:
 			self.duration = length / 1000000000
+            logger.debug("FILE DURATION: {}".format(self.duration))
 		else:
 			self.read_exc = MetadataMissingError('duration not available')
 
@@ -631,4 +619,5 @@ if __name__ == '__main__':
 			print(f.samplerate)
 			print(f.duration)
 			for s in f:
-				pass
+                pass
+                # READ IN BLOCKS # print(len(s), ord(s[0]))

@@ -348,6 +348,8 @@ Tasker: python test_gdbus_proxy_service.py
 CMD: python generator_player.py
 ```
 
+### Beginning work on generator_speaker.py and generator_listener.py [04/17/2016] Threading RLocks + Semaphores
+
 ### TODO:
 
 - [X] Listener. Good-to-go.
