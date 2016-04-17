@@ -159,12 +159,6 @@ def audio_open(path):
 	# All backends failed!
 	raise NoBackendError()
 
-########################
-########################
-
-# This file is part of audioread.
-
-
 # Exceptions.
 
 class GStreamerError(DecodeError):
@@ -286,6 +280,7 @@ class GstAudioFile(object):
 		self.audioconvert.link(self.splitter)
 
 		self.source.connect('source-setup', self._source_setup_cb)
+
 		# 4.a. uridecodebin has a "sometimes" pad (created after prerolling)
 		self.source.connect('pad-added', self._decode_src_created)
 		self.source.connect('no-more-pads', self._no_more_pads)
@@ -316,24 +311,22 @@ class GstAudioFile(object):
 		self.appsink.set_property('emit-signals', True)
 		self.appsink.connect("new-sample", self._new_sample)
 
-		# self.ready_sem = threading.Semaphore(0)
 		self.caps_handler = self.appsink.get_static_pad("sink").connect(
 			"notify::caps", self._notify_caps
 		)
 
 		self.pipeline.add(self.queueA)
 		self.pipeline.add(self.appsink)
+
 		self.queueA.link(self.appsink)
 
-		# link tee to queues
+		# link tee to queueA
 		tee_src_pad_to_appsink_bin = self.splitter.get_request_pad('src_%u')
 		logger.debug("Obtained request pad Name({}) Type({}) for audio branch.".format(self.splitter.name, self.splitter))
 		queueAsinkPad = self.queueA.get_static_pad('sink')
 		logger.debug("Obtained sink pad for element ({}) for tee -> queueA.".format(queueAsinkPad))
 		tee_src_pad_to_appsink_bin.link(queueAsinkPad)
 
-		# recursively print elements
-		self._listElements(self.pipeline)
 		###################################################################################################################
 		# QUEUE B
 		###################################################################################################################
@@ -348,12 +341,15 @@ class GstAudioFile(object):
 
 		self.queueB_sink_pad = self.queueB.get_static_pad('sink')
 
-		# link tee to queues
+		# link tee to queueB
 		tee_src_pad_to_appsink_bin = self.splitter.get_request_pad('src_%u')
 		logger.debug("Obtained request pad Name({}) Type({}) for audio branch.".format(self.splitter.name, self.splitter))
 		queueAsinkPad = self.queueB.get_static_pad('sink')
 		logger.debug("Obtained sink pad for element ({}) for tee -> queueB.".format(queueAsinkPad))
 		tee_src_pad_to_appsink_bin.link(queueAsinkPad)
+
+		# recursively print elements
+		self._listElements(self.pipeline)
 
 		###################################################################################################################
 
@@ -378,8 +374,8 @@ class GstAudioFile(object):
 			raise self.read_exc
 
 	def _source_setup_cb(self, discoverer, source):
-		logger.debug("discoverer object: {}".format(discoverer))
-		logger.debug("source object: {}".format(source))
+		logger.debug("Discoverer object: ({})".format(discoverer))
+		logger.debug("Source object: ({})".format(source))
 
 	def _on_state_changed(self, bus, msg):
 		states = msg.parse_state_changed()
@@ -433,7 +429,6 @@ class GstAudioFile(object):
 				pad = iterator.next()
 				if pad[1] is None:
 					break
-				# print 'pad: ' + str(pad[1])
 				logger.debug('pad: ' + str(pad[1]))
 		except AttributeError:
 			pass
@@ -636,4 +631,3 @@ if __name__ == '__main__':
 			print(f.duration)
 			for s in f:
 				pass
-				# print(len(s), ord(s[0]))
