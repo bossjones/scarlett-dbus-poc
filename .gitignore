@@ -63,3 +63,4 @@ gst-plugins-espeak-0.4.0.tar.gz
 gst-plugins-espeak-0.4.0
 pocketsphinx
 sphinxbase
+*.tags*
