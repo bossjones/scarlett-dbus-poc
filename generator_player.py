@@ -150,9 +150,10 @@ def audio_open(path):
 	"""
 	# GStreamer.
 	if _gst_available():
-		from . import gstdec
+		# from . import gstdec
 		try:
-			return gstdec.GstAudioFile(path)
+			return GstAudioFile(path)
+            # return gstdec.GstAudioFile(path)
 		except DecodeError:
 			pass
 
