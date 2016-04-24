@@ -54,6 +54,52 @@ class NoBackendError(DecodeError):
     """
 
 
+class GStreamerError(DecodeError):
+    pass
+
+
+class UnknownTypeError(GStreamerError):
+    """Raised when Gstreamer can't decode the given file type."""
+
+    def __init__(self, streaminfo):
+        super(UnknownTypeError, self).__init__(
+            "can't decode stream: " + streaminfo
+        )
+        self.streaminfo = streaminfo
+
+
+class FileReadError(GStreamerError):
+    """Raised when the file can't be read at all."""
+    pass
+
+
+class NoStreamError(GStreamerError):
+    """Raised when the file was read successfully but no audio streams
+    were found.
+    """
+
+    def __init__(self):
+        super(NoStreamError, self).__init__('no audio streams found')
+
+
+class MetadataMissingError(GStreamerError):
+    """Raised when GStreamer fails to report stream metadata (duration,
+    channels, or sample rate).
+    """
+    pass
+
+
+class IncompleteGStreamerError(GStreamerError):
+    """Raised when necessary components of GStreamer (namely, the
+    principal plugin packages) are missing.
+    """
+
+    def __init__(self):
+        super(IncompleteGStreamerError, self).__init__(
+            'missing GStreamer base plugins'
+        )
+
+
 def _gst_available():
     """Determine whether Gstreamer and the Python GObject bindings are
     installed.

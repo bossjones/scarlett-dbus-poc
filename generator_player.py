@@ -77,53 +77,6 @@ logger = logging.getLogger('scarlettlogger')
 
 import generator_utils
 
-
-class GStreamerError(generator_utils.DecodeError):
-    pass
-
-
-class UnknownTypeError(GStreamerError):
-    """Raised when Gstreamer can't decode the given file type."""
-
-    def __init__(self, streaminfo):
-        super(UnknownTypeError, self).__init__(
-            "can't decode stream: " + streaminfo
-        )
-        self.streaminfo = streaminfo
-
-
-class FileReadError(GStreamerError):
-    """Raised when the file can't be read at all."""
-    pass
-
-
-class NoStreamError(GStreamerError):
-    """Raised when the file was read successfully but no audio streams
-    were found.
-    """
-
-    def __init__(self):
-        super(NoStreamError, self).__init__('no audio streams found')
-
-
-class MetadataMissingError(GStreamerError):
-    """Raised when GStreamer fails to report stream metadata (duration,
-    channels, or sample rate).
-    """
-    pass
-
-
-class IncompleteGStreamerError(GStreamerError):
-    """Raised when necessary components of GStreamer (namely, the
-    principal plugin packages) are missing.
-    """
-
-    def __init__(self):
-        super(IncompleteGStreamerError, self).__init__(
-            'missing GStreamer base plugins'
-        )
-
-
 # Managing the Gobject main loop thread.
 
 _shared_loop_thread = None
@@ -183,7 +136,7 @@ class ScarlettPlayer(object):
 
         if (not self.source or not self.audioconvert or not self.splitter):
             logger.error("ERROR: Not all elements could be created.")
-            raise IncompleteGStreamerError()
+            raise generator_utils.IncompleteGStreamerError()
 
         # 2. Set properties
         uri = 'file://' + quote(os.path.abspath(path))
@@ -380,7 +333,7 @@ class ScarlettPlayer(object):
             self.duration = length / 1000000000
             logger.debug("FILE DURATION: {}".format(self.duration))
         else:
-            self.read_exc = MetadataMissingError('duration not available')
+            self.read_exc = generator_utils.MetadataMissingError('duration not available')
 
         # Allow constructor to complete.
         self.ready_sem.release()
@@ -410,7 +363,7 @@ class ScarlettPlayer(object):
         if not self._got_a_pad:
             logger.error(
                 "If we haven't gotten at least one decodable stream, raise an exception.")
-            self.read_exc = NoStreamError()
+            self.read_exc = generator_utils.NoStreamError()
             self.ready_sem.release()  # No effect if we've already started.
 
     def _new_sample(self, sink):
@@ -436,7 +389,7 @@ class ScarlettPlayer(object):
             return
         logger.error("Ignore non-audio (e.g., video) decode errors.")
         logger.error("streaminfo: {}".format(streaminfo))
-        self.read_exc = UnknownTypeError(streaminfo)
+        self.read_exc = generator_utils.UnknownTypeError(streaminfo)
         self.ready_sem.release()
 
     def _message(self, bus, message):
@@ -452,18 +405,18 @@ class ScarlettPlayer(object):
                         "If the stream ends before _notify_caps was called, this is an invalid file.")
                     # If the stream ends before _notify_caps was called, this
                     # is an invalid file.
-                    self.read_exc = NoStreamError()
+                    self.read_exc = generator_utils.NoStreamError()
                     self.ready_sem.release()
 
             elif message.type == Gst.MessageType.ERROR:
                 gerror, debug = message.parse_error()
                 if 'not-linked' in debug:
                     logger.error('not-linked')
-                    self.read_exc = NoStreamError()
+                    self.read_exc = generator_utils.NoStreamError()
                 elif 'No such file' in debug:
                     self.read_exc = IOError('resource not found')
                 else:
-                    self.read_exc = FileReadError(debug)
+                    self.read_exc = generator_utils.FileReadError(debug)
                 self.ready_sem.release()
 
     # Iteration.
