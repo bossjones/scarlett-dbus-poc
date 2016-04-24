@@ -72,102 +72,13 @@ sys.excepthook = ultratb.FormattedTB(mode='Verbose',
                                      color_scheme='Linux',
                                      call_pdb=True,
                                      ostream=sys.__stdout__)
-
-from colorlog import ColoredFormatter
-
 import logging
+logger = logging.getLogger('scarlettlogger')
 
-from gettext import gettext as _
-
-
-def setup_logger():
-    """Return a logger with a default ColoredFormatter."""
-    formatter = ColoredFormatter(
-        "(%(threadName)-9s) %(log_color)s%(levelname)-8s%(reset)s (%(funcName)-5s) %(message_log_color)s%(message)s",
-        datefmt=None,
-        reset=True,
-        log_colors={
-            'DEBUG': 'cyan',
-            'INFO': 'green',
-            'WARNING': 'yellow',
-            'ERROR': 'red',
-            'CRITICAL': 'red',
-        },
-        secondary_log_colors={
-            'message': {
-                'ERROR': 'red',
-                'CRITICAL': 'red',
-                'DEBUG': 'yellow'
-            }
-        },
-        style='%'
-    )
-
-    logger = logging.getLogger(__name__)
-    handler = logging.StreamHandler()
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-    logger.setLevel(logging.DEBUG)
-
-    return logger
-
-logger = setup_logger()
+import generator_utils
 
 
-class DecodeError(Exception):
-    """The base exception class for all decoding errors raised by this
-    package.
-    """
-
-
-class NoBackendError(DecodeError):
-    """The file could not be decoded by any backend. Either no backends
-    are available or each available backend failed to decode the file.
-    """
-
-
-def _gst_available():
-    """Determine whether Gstreamer and the Python GObject bindings are
-    installed.
-    """
-    try:
-        import gi
-    except ImportError:
-        return False
-
-    try:
-        gi.require_version('Gst', '1.0')
-    except (ValueError, AttributeError):
-        return False
-
-    try:
-        from gi.repository import Gst  # noqa
-    except ImportError:
-        return False
-
-    return True
-
-
-def audio_open(path):
-    """Open an audio file using a library that is available on this
-    system.
-    """
-    # GStreamer.
-    if _gst_available():
-        # from . import gstdec
-        try:
-            return ScarlettPlayer(path)
-            # return gstdec.ScarlettPlayer(path)
-        except DecodeError:
-            pass
-
-    # All backends failed!
-    raise NoBackendError()
-
-# Exceptions.
-
-
-class GStreamerError(DecodeError):
+class GStreamerError(generator_utils.DecodeError):
     pass
 
 
