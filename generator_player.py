@@ -154,7 +154,7 @@ class ScarlettPlayer(object):
         # 4.a. uridecodebin has a "sometimes" pad (created after prerolling)
         self.source.connect('pad-added', self._decode_src_created)
         self.source.connect('no-more-pads', self._no_more_pads)
-        self.source.connect("unknown-type", self._unkown_type)
+        self.source.connect("unknown-type", self._unknown_type)
 
         #######################################################################
         # QUEUE A
@@ -378,7 +378,7 @@ class ScarlettPlayer(object):
             self.queue.put(buf.extract_dup(0, buf.get_size()))
         return Gst.FlowReturn.OK
 
-    def _unkown_type(self, uridecodebin, decodebin, caps):
+    def _unknown_type(self, uridecodebin, decodebin, caps):
         """The callback for decodebin's "unknown-type" signal.
         """
         # This is called *before* the stream becomes ready when the

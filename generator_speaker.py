@@ -88,6 +88,10 @@ except ImportError:
 QUEUE_SIZE = 10
 BUFFER_SIZE = 10
 SENTINEL = '__GSTDEC_SENTINEL__'
+PITCH_MAX = 200
+RATE_MAX = 200
+PITCH_DEFAULT = PITCH_MAX / 2
+RATE_DEFAULT = RATE_MAX / 2
 
 import signal
 
@@ -98,146 +102,22 @@ sys.excepthook = ultratb.FormattedTB(mode='Verbose',
                                      color_scheme='Linux',
                                      call_pdb=True,
                                      ostream=sys.__stdout__)
-
-from colorlog import ColoredFormatter
-
 import logging
+logger = logging.getLogger('scarlettlogger')
+
+import generator_utils
 
 from gettext import gettext as _
+import contextlib
+import time
+import textwrap
 
 
-def setup_logger():
-    """Return a logger with a default ColoredFormatter."""
-    formatter = ColoredFormatter(
-        "(%(threadName)-9s) %(log_color)s%(levelname)-8s%(reset)s (%(funcName)-5s) %(message_log_color)s%(message)s",
-        datefmt=None,
-        reset=True,
-        log_colors={
-            'DEBUG': 'cyan',
-            'INFO': 'green',
-            'WARNING': 'yellow',
-            'ERROR': 'red',
-            'CRITICAL': 'red',
-        },
-        secondary_log_colors={
-            'message': {
-                'ERROR': 'red',
-                'CRITICAL': 'red',
-                'DEBUG': 'yellow'
-            }
-        },
-        style='%'
-    )
-
-    logger = logging.getLogger(__name__)
-    handler = logging.StreamHandler()
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-    logger.setLevel(logging.DEBUG)
-
-    return logger
-
-logger = setup_logger()
-
-
-class DecodeError(Exception):
-    """The base exception class for all decoding errors raised by this
-    package.
-    """
-
-
-class NoBackendError(DecodeError):
-    """The file could not be decoded by any backend. Either no backends
-    are available or each available backend failed to decode the file.
-    """
-
-
-def _gst_available():
-    """Determine whether Gstreamer and the Python GObject bindings are
-    installed.
-    """
-    try:
-        import gi
-    except ImportError:
-        return False
-
-    try:
-        gi.require_version('Gst', '1.0')
-    except (ValueError, AttributeError):
-        return False
-
-    try:
-        from gi.repository import Gst  # noqa
-    except ImportError:
-        return False
-
-    return True
-
-
-def audio_open(path):
-    """Open an audio file using a library that is available on this
-    system.
-    """
-    # GStreamer.
-    if _gst_available():
-        # from . import gstdec
-        try:
-            return ScarlettSpeaker(path)
-            # return gstdec.ScarlettSpeaker(path)
-        except DecodeError:
-            pass
-
-    # All backends failed!
-    raise NoBackendError()
-
-# Exceptions.
-
-
-class GStreamerError(DecodeError):
-    pass
-
-
-class UnknownTypeError(GStreamerError):
-    """Raised when Gstreamer can't decode the given file type."""
-
-    def __init__(self, streaminfo):
-        super(UnknownTypeError, self).__init__(
-            "can't decode stream: " + streaminfo
-        )
-        self.streaminfo = streaminfo
-
-
-class FileReadError(GStreamerError):
-    """Raised when the file can't be read at all."""
-    pass
-
-
-class NoStreamError(GStreamerError):
-    """Raised when the file was read successfully but no audio streams
-    were found.
-    """
-
-    def __init__(self):
-        super(NoStreamError, self).__init__('no audio streams found')
-
-
-class MetadataMissingError(GStreamerError):
-    """Raised when GStreamer fails to report stream metadata (duration,
-    channels, or sample rate).
-    """
-    pass
-
-
-class IncompleteGStreamerError(GStreamerError):
-    """Raised when necessary components of GStreamer (namely, the
-    principal plugin packages) are missing.
-    """
-
-    def __init__(self):
-        super(IncompleteGStreamerError, self).__init__(
-            'missing GStreamer base plugins'
-        )
-
+@contextlib.contextmanager
+def time_logger(name, level=logging.DEBUG):
+    start = time.time()
+    yield
+    logger.log(level, '%s took %dms', name, (time.time() - start) * 1000)
 
 # Managing the Gobject main loop thread.
 
@@ -272,16 +152,20 @@ class MainLoopThread(threading.Thread):
 
 # The decoder.
 
+
 class ScarlettSpeaker(object):
     # Anything defined here belongs to the class itself
 
-    def __init__(self, path):
+    def __init__(self, text_to_speak):
         # anythning defined here belongs to the INSTANCE of the class
         self.running = False
         self.finished = False
 
+        espeak_pipeline = 'espeak name=source ! queue2 name=buffer'
+        self.pipeline = Gst.parse_launch(espeak_pipeline)
+
         # Set up the Gstreamer pipeline.
-        self.pipeline = Gst.Pipeline('main-pipeline')
+        # self.pipeline = Gst.Pipeline('speaker-main-pipeline')
         self.ready_sem = threading.Semaphore(0)
 
         # Register for bus signals.
@@ -292,67 +176,136 @@ class ScarlettSpeaker(object):
         bus.connect("message::state-changed", self._on_state_changed)
 
         # 1. Create pipeline's elements
-        self.source = Gst.ElementFactory.make("uridecodebin", 'input_stream')
+        self.source = self.pipeline.get_by_name("source")
+        self.buffer = self.pipeline.get_by_name("buffer")
+        # self.dec = self.pipeline.get_by_name("dec")
+        # self.source = Gst.ElementFactory.make("espeak", 'source')
+        self.dec = Gst.ElementFactory.make("decodebin", None)
+        # self.capsfilter = Gst.ElementFactory.make('capsfilter', None)
+
         self.audioconvert = Gst.ElementFactory.make('audioconvert', None)
         self.splitter = Gst.ElementFactory.make("tee", 'splitter')
 
-        if (not self.source or not self.audioconvert or not self.splitter):
+        self.queueA = Gst.ElementFactory.make('queue2', None)
+        self.appsink = Gst.ElementFactory.make('appsink', None)
+
+        self.queueB = Gst.ElementFactory.make('queue2', None)
+        self.audioresample = Gst.ElementFactory.make('audioresample', None)
+        self.pulsesink = Gst.ElementFactory.make('pulsesink', None)
+
+        if (not self.source
+                or not self.dec
+                or not self.audioconvert
+                or not self.splitter
+                or not self.queueA
+                or not self.appsink
+                or not self.queueB
+                or not self.audioresample
+                or not self.pulsesink):
             logger.error("ERROR: Not all elements could be created.")
-            raise IncompleteGStreamerError()
+            raise generator_utils.IncompleteGStreamerError()
 
         # 2. Set properties
-        uri = 'file://' + quote(os.path.abspath(path))
-        self.source.set_property('uri', uri)
+        # # espeak
+        # source = self.pipeline.get_by_name("source")
+        # source.props.pitch = 50
+        # source.props.rate = 100
+        # source.props.voice = "en+f3"
+        # source.props.text = _('{}'.format(cmd))
+        # self.text = source.props.text
 
-        # 3. Add them to the pipeline
-        self.pipeline.add(self.source)
-        self.pipeline.add(self.audioconvert)
-        self.pipeline.add(self.splitter)
+        source = self.pipeline.get_by_name("source")
+        _text = _('{}'.format(text_to_speak))
+        # source = self.source
+        source.props.text = _text
+        source.props.pitch = 50
+        source.props.rate = 100
+        # self.source.props('track', 2)
+        source.props.voice = "en+f3"
+        self.text = source.props.text
 
-        self.audioconvert.link(self.splitter)
+        # _pitch = '50'
+        # _rate = '100'
+        # _uint_pitch = _pitch & 0xff
+        # _uint_rate = _rate & 0xff
+        # logger.error("_uint_pitch = {} ".format(_uint_pitch))
+        # logger.error("_uint_rate = {} ".format(_uint_rate))
 
-        self.source.connect('source-setup', self._source_setup_cb)
+        # espeak, testing props
+        # self.source.props.text = _text
+        # self.source.props.pitch = 50
+        #self.source.props.rate = 100
 
-        # 4.a. uridecodebin has a "sometimes" pad (created after prerolling)
-        self.source.connect('pad-added', self._decode_src_created)
-        self.source.connect('no-more-pads', self._no_more_pads)
-        self.source.connect("unknown-type", self._unkown_type)
+        # decodebin
+        self.dec.set_property('use-buffering', True)
 
-        #######################################################################
-        # QUEUE A
-        #######################################################################
-        self.queueA = Gst.ElementFactory.make('queue', None)
-        # BOSSJONESTEMP # self.audioconvert =
-        # Gst.ElementFactory.make('audioconvert', None)
-        self.appsink = Gst.ElementFactory.make('appsink', None)
+        # capsfilter
+        # self.capsfilter.set_property(
+        #     'caps',
+        #     Gst.Caps.from_string('audio/x-raw, format=(string)S16LE, layout=(string)interleaved, rate=(int)22050, channels=(int)1'),
+        # )
+
+        # audioconvert
+
+        # queueA
+        self.queueA.set_property('max-size-bytes', 0)
+        self.queueA.set_property('max-size-buffers', 0)
+        self.queueA.set_property('max-size-time', 0)
+
+        # appsink
         self.appsink.set_property(
             'caps',
             Gst.Caps.from_string('audio/x-raw, format=(string)S16LE'),
         )
-        # TODO set endianness?
-        # Set up the characteristics of the output. We don't want to
-        # drop any data (nothing is real-time here); we should bound
-        # the memory usage of the internal queue; and, most
-        # importantly, setting "sync" to False disables the default
-        # behavior in which you consume buffers in real time. This way,
-        # we get data as soon as it's decoded.
         self.appsink.set_property('drop', False)
         self.appsink.set_property('max-buffers', BUFFER_SIZE)
         self.appsink.set_property('sync', False)
-
-        # The callback to receive decoded data.
         self.appsink.set_property('emit-signals', True)
-        self.appsink.connect("new-sample", self._new_sample)
 
+        # appsink callback setup
+        self.appsink.connect("new-sample", self._new_sample)
         self.caps_handler = self.appsink.get_static_pad("sink").connect(
             "notify::caps", self._notify_caps
         )
 
-        self.pipeline.add(self.queueA)
-        self.pipeline.add(self.appsink)
+        # queueB
+        self.queueB.set_property('max-size-bytes', 0)
+        self.queueB.set_property('max-size-buffers', 0)
+        self.queueB.set_property('max-size-time', 0)
 
-        self.queueA.link(self.appsink)
+        # audioresample
 
+        # pulsesink
+        self.pulsesink.set_property('sync', True)
+
+        # 3. Add all to pipeline
+        self.pipeline.add(self.dec,
+                          self.audioconvert,
+                          self.splitter,
+                          self.queueA,
+                          self.appsink,
+                          self.queueB,
+                          self.audioresample,
+                          self.pulsesink)
+
+        # link elements
+        # ret = self.source.link(self.dec)
+        ret = self.buffer.link(self.dec)
+        ret = ret and self.audioconvert.link(self.splitter)
+        ret = ret and self.queueA.link(self.appsink)
+        ret = ret and self.queueB.link(self.audioresample)
+        ret = ret and self.audioresample.link(self.pulsesink)
+
+        logger.error("ret: {}".format(ret))
+
+        # 4.a. uridecodebin has a "sometimes" pad (created after prerolling)
+        self.dec.connect('pad-added', self._decode_src_created)
+        self.dec.connect('no-more-pads', self._no_more_pads)
+        self.dec.connect("unknown-type", self._unknown_type)
+
+        #######################################################################
+        # QUEUE A
+        #######################################################################
         # link tee to queueA
         tee_src_pad_to_appsink_bin = self.splitter.get_request_pad('src_%u')
         logger.debug("Obtained request pad Name({}) Type({}) for audio branch.".format(
@@ -365,17 +318,6 @@ class ScarlettSpeaker(object):
         #######################################################################
         # QUEUE B
         #######################################################################
-
-        self.queueB = Gst.ElementFactory.make('queue', None)
-        self.pulsesink = Gst.ElementFactory.make('pulsesink', None)
-
-        self.pipeline.add(self.queueB)
-        self.pipeline.add(self.pulsesink)
-
-        self.queueB.link(self.pulsesink)
-
-        self.queueB_sink_pad = self.queueB.get_static_pad('sink')
-
         # link tee to queueB
         tee_src_pad_to_appsink_bin = self.splitter.get_request_pad('src_%u')
         logger.debug("Obtained request pad Name({}) Type({}) for audio branch.".format(
@@ -409,10 +351,6 @@ class ScarlettSpeaker(object):
             # An error occurred before the stream became ready.
             self.close(True)
             raise self.read_exc
-
-    def _source_setup_cb(self, discoverer, source):
-        logger.debug("Discoverer object: ({})".format(discoverer))
-        logger.debug("Source object: ({})".format(source))
 
     def _on_state_changed(self, bus, msg):
         states = msg.parse_state_changed()
@@ -484,18 +422,89 @@ class ScarlettSpeaker(object):
         logger.debug("args: {}".format(args))
         self.got_caps = True
         info = pad.get_current_caps().get_structure(0)
+        logger.error("pprint info:")
+        pp.pprint(info)
 
         # Stream attributes.
         self.channels = info.get_int('channels')[1]
         self.samplerate = info.get_int('rate')[1]
+        self.width = info.get_int('width')[1]
+
+        # espeak has num-buffers
+
+        logger.error("pad.get_peer: {}".format(pad.get_peer()))
+        logger.error("pad.get_peer.name: {}".format(pad.get_peer().name))
+        logger.error("pad.get_peer.get_parent: {}".format(pad.get_peer().get_parent()))
 
         # Query duration.
         success, length = pad.get_peer().query_duration(Gst.Format.TIME)
+        logger.debug("success: {}".format(success))
+        logger.debug("length: {}".format(length))
+
+        # self.caps_handler = self.appsink.get_static_pad("sink").connect(
+        #     "notify::caps", self._notify_caps
+        # )
+
+        _espeak_src_pad = self.source.get_static_pad('src')
+        _espeak_duration = _espeak_src_pad.query_duration(Gst.Format.TIME)
+        _espeak_get_num_buffers = self.source.get_property('num-buffers')
+        _espeak_get_blocksize = self.source.get_property('blocksize')
+        _espeak_get_typefind = self.source.get_property('typefind')
+        _espeak_get_pitch = self.source.get_property('pitch')
+        _espeak_get_rate = self.source.get_property('rate')
+        _espeak_get_voice = self.source.get_property('voice')
+
+        logger.error('_espeak_src_pad:')
+        pp.pprint(dir(_espeak_src_pad))
+
+        logger.error('self.source:')
+        pp.pprint(dir(self.source))
+
+        logger.error(textwrap.dedent("""
+        _espeak_src_pad = {}
+        _espeak_duration = {}
+        _espeak_get_num_buffers = {}
+        _espeak_get_blocksize = {}
+        _espeak_get_typefind = {}
+        _espeak_get_pitch = {}
+        _espeak_get_rate = {}
+        _espeak_get_voice = {}
+        """).format(_espeak_src_pad,
+                    _espeak_duration,
+                    _espeak_get_num_buffers,
+                    _espeak_get_blocksize,
+                    _espeak_get_typefind,
+                    _espeak_get_pitch,
+                    _espeak_get_rate,
+                    _espeak_get_voice))
+
+    # print(textwrap.dedent("""
+    #     ERROR: A GObject Python package was not found.
+    #
+    #     Mopidy requires GStreamer to work. GStreamer is a C library with a
+    #     number of dependencies itself, and cannot be installed with the regular
+    #     Python tools like pip.
+    #
+    #     Please see http://docs.mopidy.com/en/latest/installation/ for
+    #     instructions on how to install the required dependencies.
+    # """))
+
+        logger.error("espeak duration: {}".format(_espeak_duration))
+
+        # define SYNC_BUFFER_SIZE_MS 200
+        # define BYTES_PER_SAMPLE 2
+        # define SPIN_QUEUE_SIZE 2
+        # define SPIN_FRAME_SIZE 255
+        # espeak_sample_rate = espeak_Initialize (AUDIO_OUTPUT_SYNCHRONOUS,
+        #         SYNC_BUFFER_SIZE_MS, NULL, 0);
+        # espeak_buffer_size =
+        #         (SYNC_BUFFER_SIZE_MS * espeak_sample_rate) /
+        #         1000 / BYTES_PER_SAMPLE;
         if success:
             self.duration = length / 1000000000
             logger.debug("FILE DURATION: {}".format(self.duration))
         else:
-            self.read_exc = MetadataMissingError('duration not available')
+            self.read_exc = generator_utils.MetadataMissingError('duration not available')
 
         # Allow constructor to complete.
         self.ready_sem.release()
@@ -525,7 +534,7 @@ class ScarlettSpeaker(object):
         if not self._got_a_pad:
             logger.error(
                 "If we haven't gotten at least one decodable stream, raise an exception.")
-            self.read_exc = NoStreamError()
+            self.read_exc = generator_utils.NoStreamError()
             self.ready_sem.release()  # No effect if we've already started.
 
     def _new_sample(self, sink):
@@ -540,7 +549,7 @@ class ScarlettSpeaker(object):
             self.queue.put(buf.extract_dup(0, buf.get_size()))
         return Gst.FlowReturn.OK
 
-    def _unkown_type(self, uridecodebin, decodebin, caps):
+    def _unknown_type(self, uridecodebin, decodebin, caps):
         """The callback for decodebin's "unknown-type" signal.
         """
         # This is called *before* the stream becomes ready when the
@@ -551,7 +560,7 @@ class ScarlettSpeaker(object):
             return
         logger.error("Ignore non-audio (e.g., video) decode errors.")
         logger.error("streaminfo: {}".format(streaminfo))
-        self.read_exc = UnknownTypeError(streaminfo)
+        self.read_exc = generator_utils.UnknownTypeError(streaminfo)
         self.ready_sem.release()
 
     def _message(self, bus, message):
@@ -567,18 +576,18 @@ class ScarlettSpeaker(object):
                         "If the stream ends before _notify_caps was called, this is an invalid file.")
                     # If the stream ends before _notify_caps was called, this
                     # is an invalid file.
-                    self.read_exc = NoStreamError()
+                    self.read_exc = generator_utils.NoStreamError()
                     self.ready_sem.release()
 
             elif message.type == Gst.MessageType.ERROR:
                 gerror, debug = message.parse_error()
                 if 'not-linked' in debug:
                     logger.error('not-linked')
-                    self.read_exc = NoStreamError()
+                    self.read_exc = generator_utils.NoStreamError()
                 elif 'No such file' in debug:
                     self.read_exc = IOError('resource not found')
                 else:
-                    self.read_exc = FileReadError(debug)
+                    self.read_exc = generator_utils.FileReadError(debug)
                 self.ready_sem.release()
 
     # Iteration.
@@ -613,9 +622,11 @@ class ScarlettSpeaker(object):
             self.pipeline.get_bus().remove_signal_watch()
 
             # Stop reading the file.
-            self.source.set_property("uri", None)
+            # self.source.set_property("uri", None)
+            self.source.set_property('text', None)
+
             # Block spurious signals.
-            self.appsink.get_static_pad("sink").disconnect(self.caps_handler)
+            self.appsink.get_static_pad("sink").disconnect(self._notify_caps)
 
             # Make space in the output queue to let the decoder thread
             # finish. (Otherwise, the thread blocks on its enqueue and
@@ -647,15 +658,16 @@ class ScarlettSpeaker(object):
 
 # Smoke test.
 if __name__ == '__main__':
-    wavefile = [
-        '/home/pi/dev/bossjones-github/scarlett-dbus-poc/static/sounds/pi-listening.wav']
+    tts_list = [
+        'Hello sir. How are you doing this afternoon? I am full lee function nall, andd red ee for your commands']
     # ORIG # for path in sys.argv[1:]:
-    for path in wavefile:
-        path = os.path.abspath(os.path.expanduser(path))
-        with ScarlettSpeaker(path) as f:
-            print(f.channels)
-            print(f.samplerate)
-            print(f.duration)
-            for s in f:
-                pass
-                # READ IN BLOCKS # print(len(s), ord(s[0]))
+    for scarlett_text in tts_list:
+        with time_logger('Scarlett Speaks'):
+            ScarlettSpeaker(scarlett_text)
+        # with ScarlettSpeaker(scarlett_text) as f:
+        #     print(f.channels)
+        #     print(f.samplerate)
+        #     print(f.duration)
+        #     for s in f:
+        #         pass
+        #        # READ IN BLOCKS # print(len(s), ord(s[0]))

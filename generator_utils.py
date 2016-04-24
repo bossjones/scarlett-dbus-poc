@@ -42,6 +42,25 @@ sys.excepthook = ultratb.FormattedTB(mode='Verbose',
 import generator_log
 
 
+def calculate_duration(num_samples, sample_rate):
+    """Determine duration of samples using GStreamer helper for precise
+    math."""
+    if _gst_available():
+        return Gst.util_uint64_scale(num_samples, Gst.SECOND, sample_rate)
+
+
+def millisecond_to_clocktime(value):
+    """Convert a millisecond time to internal GStreamer time."""
+    if _gst_available():
+        return value * Gst.MSECOND
+
+
+def clocktime_to_millisecond(value):
+    """Convert an internal GStreamer time to millisecond time."""
+    if _gst_available():
+        return value // Gst.MSECOND
+
+
 class DecodeError(Exception):
     """The base exception class for all decoding errors raised by this
     package.
@@ -116,6 +135,7 @@ def _gst_available():
 
     try:
         from gi.repository import Gst  # noqa
+        # from gi.repository import GLib, GObject, Gst # noqa
     except ImportError:
         return False
 
