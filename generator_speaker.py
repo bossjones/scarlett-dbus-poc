@@ -161,7 +161,7 @@ class ScarlettSpeaker(object):
         self.running = False
         self.finished = False
 
-        espeak_pipeline = 'espeak name=source ! queue2 name=buffer'
+        espeak_pipeline = 'espeak name=source ! decodebin name=dec ! capsfilter name=capsfilter ! audioconvert name=audioconvert ! tee name=t ! queue2 name=appsink_queue ! appsink name=appsink t. ! queue2 name=autoaudio_queue ! audioresample name=audioresample ! autoaudiosink name=autoaudiosink'
         self.pipeline = Gst.parse_launch(espeak_pipeline)
 
         # Set up the Gstreamer pipeline.
@@ -177,24 +177,42 @@ class ScarlettSpeaker(object):
 
         # 1. Create pipeline's elements
         self.source = self.pipeline.get_by_name("source")
-        self.buffer = self.pipeline.get_by_name("buffer")
-        # self.dec = self.pipeline.get_by_name("dec")
+        self.dec = self.pipeline.get_by_name("dec")
         # self.source = Gst.ElementFactory.make("espeak", 'source')
-        self.dec = Gst.ElementFactory.make("decodebin", None)
+        # self.dec = Gst.ElementFactory.make("decodebin", None)
         # self.capsfilter = Gst.ElementFactory.make('capsfilter', None)
+        self.capsfilter = self.pipeline.get_by_name("capsfilter")
 
-        self.audioconvert = Gst.ElementFactory.make('audioconvert', None)
-        self.splitter = Gst.ElementFactory.make("tee", 'splitter')
+        # self.audioconvert = Gst.ElementFactory.make('audioconvert', None)
+        # self.splitter = Gst.ElementFactory.make("tee", 'splitter')
+        self.audioconvert = self.pipeline.get_by_name("audioconvert")
+        self.splitter = self.pipeline.get_by_name("t")
 
-        self.queueA = Gst.ElementFactory.make('queue2', None)
-        self.appsink = Gst.ElementFactory.make('appsink', None)
+        # self.queueA = Gst.ElementFactory.make('queue2', None)
+        # self.appsink = Gst.ElementFactory.make('appsink', None)
+        self.queueA = self.pipeline.get_by_name("appsink_queue")
+        self.appsink = self.pipeline.get_by_name("appsink")
 
-        self.queueB = Gst.ElementFactory.make('queue2', None)
-        self.audioresample = Gst.ElementFactory.make('audioresample', None)
-        self.pulsesink = Gst.ElementFactory.make('pulsesink', None)
+        # self.queueB = Gst.ElementFactory.make('queue2', None)
+        # self.audioresample = Gst.ElementFactory.make('audioresample', None)
+        # self.pulsesink = Gst.ElementFactory.make('pulsesink', None)
+        self.queueB = self.pipeline.get_by_name("autoaudio_queue")
+        self.audioresample = self.pipeline.get_by_name("audioresample")
+        self.pulsesink = self.pipeline.get_by_name("autoaudiosink")
+
+        logger.error(self.source)
+        logger.error(self.dec)
+        logger.error(self.capsfilter)
+        logger.error(self.audioconvert)
+        logger.error(self.splitter)
+        logger.error(self.appsink)
+        logger.error(self.queueB)
+        logger.error(self.audioresample)
+        logger.error(self.pulsesink)
 
         if (not self.source
                 or not self.dec
+                or not self.capsfilter
                 or not self.audioconvert
                 or not self.splitter
                 or not self.queueA
@@ -224,6 +242,11 @@ class ScarlettSpeaker(object):
         source.props.voice = "en+f3"
         self.text = source.props.text
 
+        source.set_property('text', _text)
+        source.set_property('pitch', 50)
+        source.set_property('rate', 100)
+        source.set_property('voice', "en+f3")
+
         # _pitch = '50'
         # _rate = '100'
         # _uint_pitch = _pitch & 0xff
@@ -234,16 +257,16 @@ class ScarlettSpeaker(object):
         # espeak, testing props
         # self.source.props.text = _text
         # self.source.props.pitch = 50
-        #self.source.props.rate = 100
+        # self.source.props.rate = 100
 
         # decodebin
         self.dec.set_property('use-buffering', True)
 
         # capsfilter
-        # self.capsfilter.set_property(
-        #     'caps',
-        #     Gst.Caps.from_string('audio/x-raw, format=(string)S16LE, layout=(string)interleaved, rate=(int)22050, channels=(int)1'),
-        # )
+        self.capsfilter.set_property(
+            'caps',
+            Gst.Caps.from_string('audio/x-raw, format=(string)S16LE, layout=(string)interleaved, rate=(int)22050, channels=(int)1'),
+        )
 
         # audioconvert
 
@@ -278,54 +301,54 @@ class ScarlettSpeaker(object):
         # pulsesink
         self.pulsesink.set_property('sync', True)
 
-        # 3. Add all to pipeline
-        self.pipeline.add(self.dec,
-                          self.audioconvert,
-                          self.splitter,
-                          self.queueA,
-                          self.appsink,
-                          self.queueB,
-                          self.audioresample,
-                          self.pulsesink)
+        # # 3. Add all to pipeline
+        # self.pipeline.add(self.dec,
+        #                   self.audioconvert,
+        #                   self.splitter,
+        #                   self.queueA,
+        #                   self.appsink,
+        #                   self.queueB,
+        #                   self.audioresample,
+        #                   self.pulsesink)
 
-        # link elements
-        # ret = self.source.link(self.dec)
-        ret = self.buffer.link(self.dec)
-        ret = ret and self.audioconvert.link(self.splitter)
-        ret = ret and self.queueA.link(self.appsink)
-        ret = ret and self.queueB.link(self.audioresample)
-        ret = ret and self.audioresample.link(self.pulsesink)
+        # # link elements
+        # # ret = self.source.link(self.dec)
+        # ret = self.buffer.link(self.dec)
+        # ret = ret and self.audioconvert.link(self.splitter)
+        # ret = ret and self.queueA.link(self.appsink)
+        # ret = ret and self.queueB.link(self.audioresample)
+        # ret = ret and self.audioresample.link(self.pulsesink)
 
-        logger.error("ret: {}".format(ret))
+        # logger.error("ret: {}".format(ret))
 
         # 4.a. uridecodebin has a "sometimes" pad (created after prerolling)
         self.dec.connect('pad-added', self._decode_src_created)
         self.dec.connect('no-more-pads', self._no_more_pads)
         self.dec.connect("unknown-type", self._unknown_type)
 
-        #######################################################################
-        # QUEUE A
-        #######################################################################
-        # link tee to queueA
-        tee_src_pad_to_appsink_bin = self.splitter.get_request_pad('src_%u')
-        logger.debug("Obtained request pad Name({}) Type({}) for audio branch.".format(
-            self.splitter.name, self.splitter))
-        queueAsinkPad = self.queueA.get_static_pad('sink')
-        logger.debug(
-            "Obtained sink pad for element ({}) for tee -> queueA.".format(queueAsinkPad))
-        tee_src_pad_to_appsink_bin.link(queueAsinkPad)
+        # #######################################################################
+        # # QUEUE A
+        # #######################################################################
+        # # link tee to queueA
+        # tee_src_pad_to_appsink_bin = self.splitter.get_request_pad('src_%u')
+        # logger.debug("Obtained request pad Name({}) Type({}) for audio branch.".format(
+        #     self.splitter.name, self.splitter))
+        # queueAsinkPad = self.queueA.get_static_pad('sink')
+        # logger.debug(
+        #     "Obtained sink pad for element ({}) for tee -> queueA.".format(queueAsinkPad))
+        # tee_src_pad_to_appsink_bin.link(queueAsinkPad)
 
-        #######################################################################
-        # QUEUE B
-        #######################################################################
-        # link tee to queueB
-        tee_src_pad_to_appsink_bin = self.splitter.get_request_pad('src_%u')
-        logger.debug("Obtained request pad Name({}) Type({}) for audio branch.".format(
-            self.splitter.name, self.splitter))
-        queueAsinkPad = self.queueB.get_static_pad('sink')
-        logger.debug(
-            "Obtained sink pad for element ({}) for tee -> queueB.".format(queueAsinkPad))
-        tee_src_pad_to_appsink_bin.link(queueAsinkPad)
+        # #######################################################################
+        # # QUEUE B
+        # #######################################################################
+        # # link tee to queueB
+        # tee_src_pad_to_appsink_bin = self.splitter.get_request_pad('src_%u')
+        # logger.debug("Obtained request pad Name({}) Type({}) for audio branch.".format(
+        #     self.splitter.name, self.splitter))
+        # queueAsinkPad = self.queueB.get_static_pad('sink')
+        # logger.debug(
+        #     "Obtained sink pad for element ({}) for tee -> queueB.".format(queueAsinkPad))
+        # tee_src_pad_to_appsink_bin.link(queueAsinkPad)
 
         # recursively print elements
         self._listElements(self.pipeline)
@@ -453,6 +476,7 @@ class ScarlettSpeaker(object):
         _espeak_get_pitch = self.source.get_property('pitch')
         _espeak_get_rate = self.source.get_property('rate')
         _espeak_get_voice = self.source.get_property('voice')
+        _espeak_get_text = self.source.get_property('text')
 
         logger.error('_espeak_src_pad:')
         pp.pprint(dir(_espeak_src_pad))
@@ -469,6 +493,7 @@ class ScarlettSpeaker(object):
         _espeak_get_pitch = {}
         _espeak_get_rate = {}
         _espeak_get_voice = {}
+        _espeak_get_text = {}
         """).format(_espeak_src_pad,
                     _espeak_duration,
                     _espeak_get_num_buffers,
@@ -476,18 +501,8 @@ class ScarlettSpeaker(object):
                     _espeak_get_typefind,
                     _espeak_get_pitch,
                     _espeak_get_rate,
-                    _espeak_get_voice))
-
-    # print(textwrap.dedent("""
-    #     ERROR: A GObject Python package was not found.
-    #
-    #     Mopidy requires GStreamer to work. GStreamer is a C library with a
-    #     number of dependencies itself, and cannot be installed with the regular
-    #     Python tools like pip.
-    #
-    #     Please see http://docs.mopidy.com/en/latest/installation/ for
-    #     instructions on how to install the required dependencies.
-    # """))
+                    _espeak_get_voice,
+                    _espeak_get_text))
 
         logger.error("espeak duration: {}".format(_espeak_duration))
 
