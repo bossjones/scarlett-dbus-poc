@@ -93,6 +93,12 @@ RATE_MAX = 200
 PITCH_DEFAULT = PITCH_MAX / 2
 RATE_DEFAULT = RATE_MAX / 2
 
+_GST_STATE_MAPPING = {
+    Gst.State.PLAYING: 'playing',
+    Gst.State.PAUSED: 'paused',
+    Gst.State.NULL: 'stopped',
+}
+
 import signal
 
 from IPython.core.debugger import Tracer
@@ -160,12 +166,14 @@ class ScarlettSpeaker(object):
         # anythning defined here belongs to the INSTANCE of the class
         self.running = False
         self.finished = False
+        self._target_state = Gst.State.NULL
 
-        espeak_pipeline = 'espeak name=source ! decodebin name=dec ! capsfilter name=capsfilter ! audioconvert name=audioconvert ! tee name=t ! queue2 name=appsink_queue ! appsink name=appsink t. ! queue2 name=autoaudio_queue ! audioresample name=audioresample ! autoaudiosink name=autoaudiosink'
+        espeak_pipeline = 'espeak name=source ! decodebin name=dec ! capsfilter name=capsfilter ! audioconvert name=audioconvert ! tee name=t ! queue2 name=appsink_queue ! appsink name=appsink t. ! queue2 name=fakesink_queue ! fakesink name=fakesink t. ! queue2 name=autoaudio_queue ! audioresample name=audioresample ! autoaudiosink name=autoaudiosink'
         self.pipeline = Gst.parse_launch(espeak_pipeline)
 
         # Set up the Gstreamer pipeline.
         # self.pipeline = Gst.Pipeline('speaker-main-pipeline')
+        # ORIG # self.ready_sem = threading.Semaphore(0)
         self.ready_sem = threading.Semaphore(0)
 
         # Register for bus signals.
@@ -200,15 +208,18 @@ class ScarlettSpeaker(object):
         self.audioresample = self.pipeline.get_by_name("audioresample")
         self.pulsesink = self.pipeline.get_by_name("autoaudiosink")
 
-        logger.error(self.source)
-        logger.error(self.dec)
-        logger.error(self.capsfilter)
-        logger.error(self.audioconvert)
-        logger.error(self.splitter)
-        logger.error(self.appsink)
-        logger.error(self.queueB)
-        logger.error(self.audioresample)
-        logger.error(self.pulsesink)
+        self.queueC = self.pipeline.get_by_name("fakesink_queue")
+        self.fakesink = self.pipeline.get_by_name("fakesink")
+
+        # logger.error(self.source)
+        # logger.error(self.dec)
+        # logger.error(self.capsfilter)
+        # logger.error(self.audioconvert)
+        # logger.error(self.splitter)
+        # logger.error(self.appsink)
+        # logger.error(self.queueB)
+        # logger.error(self.audioresample)
+        # logger.error(self.pulsesink)
 
         if (not self.source
                 or not self.dec
@@ -219,7 +230,9 @@ class ScarlettSpeaker(object):
                 or not self.appsink
                 or not self.queueB
                 or not self.audioresample
-                or not self.pulsesink):
+                or not self.pulsesink
+                or not self.queueC
+                or not self.fakesink):
             logger.error("ERROR: Not all elements could be created.")
             raise generator_utils.IncompleteGStreamerError()
 
@@ -298,8 +311,27 @@ class ScarlettSpeaker(object):
 
         # audioresample
 
+        # Queue element to buy us time between the about-to-finish event and
+        # the actual switch, i.e. about to switch can block for longer thanks
+        # to this queue.
+        # TODO: See if settings should be set to minimize latency. Previous
+        # setting breaks appsrc, and settings before that broke on a few
+        # systems. So leave the default to play it safe.
+        # self.queueC.set_property('max-size-bytes', 0)
+        # self.queueC.set_property('max-size-buffers', 0)
+        self.queueC.set_property('max-size-time', 1 * Gst.MSECOND)
+
+        # playbin.set_property('buffer-size', 5 << 20)  # 5MB
+        # playbin.set_property('buffer-duration', 5 * Gst.SECOND)
+
         # pulsesink
-        self.pulsesink.set_property('sync', True)
+        self.pulsesink.set_property('sync', False)
+
+        # fakesink
+        # NOTE: Taken from mopidy _Outputs
+        # Add an always connected fakesink which respects the clock so the tee
+        # doesn't fail even if we don't have any outputs.
+        self.fakesink.set_property('sync', True)
 
         # # 3. Add all to pipeline
         # self.pipeline.add(self.dec,
@@ -351,7 +383,7 @@ class ScarlettSpeaker(object):
         # tee_src_pad_to_appsink_bin.link(queueAsinkPad)
 
         # recursively print elements
-        self._listElements(self.pipeline)
+        # self._listElements(self.pipeline)
 
         #######################################################################
 
@@ -366,6 +398,7 @@ class ScarlettSpeaker(object):
         # Return as soon as the stream is ready!
         self.running = True
         self.got_caps = False
+        self._buffering = False
         self.pipeline.set_state(Gst.State.PLAYING)
         self.on_debug_activate()
         self.ready_sem.acquire()
@@ -445,8 +478,8 @@ class ScarlettSpeaker(object):
         logger.debug("args: {}".format(args))
         self.got_caps = True
         info = pad.get_current_caps().get_structure(0)
-        logger.error("pprint info:")
-        pp.pprint(info)
+        # logger.error("pprint info:")
+        # pp.pprint(info)
 
         # Stream attributes.
         self.channels = info.get_int('channels')[1]
@@ -478,11 +511,11 @@ class ScarlettSpeaker(object):
         _espeak_get_voice = self.source.get_property('voice')
         _espeak_get_text = self.source.get_property('text')
 
-        logger.error('_espeak_src_pad:')
-        pp.pprint(dir(_espeak_src_pad))
-
-        logger.error('self.source:')
-        pp.pprint(dir(self.source))
+        # logger.error('_espeak_src_pad:')
+        # pp.pprint(dir(_espeak_src_pad))
+        #
+        # logger.error('self.source:')
+        # pp.pprint(dir(self.source))
 
         logger.error(textwrap.dedent("""
         _espeak_src_pad = {}
@@ -532,11 +565,16 @@ class ScarlettSpeaker(object):
         # Decoded data is ready. Connect up the decoder, finally.
         name = pad.query_caps(None).to_string()
         logger.debug("pad: {}".format(pad))
-        logger.debug("pad name: {} parent: {}".format(
-            pad.name, pad.get_parent()))
+        logger.debug("Parent:{} of Pad:{} ".format(
+            pad.get_parent(), pad.name))
         if name.startswith('audio/x-raw'):
+            logger.error("inside if name.startswith('audio/x-raw')")
+            logger.error("If we are inside here, we are recieving data, so we can set _got_a_pad to True")
             nextpad = self.audioconvert.get_static_pad('sink')
+            self._got_a_pad = True
+            # NOTE: For this speaker example, we don't care about linking, since we have to use gst-launch
             if not nextpad.is_linked():
+                logger.error("inside if not nextpad.is_linked()")
                 self._got_a_pad = True
                 pad.link(nextpad)
 
@@ -583,8 +621,17 @@ class ScarlettSpeaker(object):
         messages).
         """
         if not self.finished:
-            if message.type == Gst.MessageType.EOS:
+            # NOTE: Took this from mopidy
+            if message.type == Gst.MessageType.STATE_CHANGED:
+                if message.src != self._element:
+                    return
+                old_state, new_state, pending_state = message.parse_state_changed()
+                self.on_playbin_state_changed(old_state, new_state, pending_state)
+            elif message.type == Gst.MessageType.BUFFERING:
+                self.on_buffering(message.parse_buffering(), message.get_structure())
+            elif message.type == Gst.MessageType.EOS:
                 # The file is done. Tell the consumer thread.
+                logger.info("The file is done. Tell the consumer thread.")
                 self.queue.put(SENTINEL)
                 if not self.got_caps:
                     logger.error(
@@ -604,6 +651,84 @@ class ScarlettSpeaker(object):
                 else:
                     self.read_exc = generator_utils.FileReadError(debug)
                 self.ready_sem.release()
+            elif message.type == Gst.MessageType.WARNING:
+                error, debug = message.parse_warning()
+                self.on_warning(error, debug)
+            elif message.type == Gst.MessageType.ASYNC_DONE:
+                self.on_async_done()
+
+    def on_playbin_state_changed(self, old_state, new_state, pending_state):
+        logger.debug(
+            'Got STATE_CHANGED bus message: old=%s new=%s pending=%s',
+            old_state.value_name, new_state.value_name,
+            pending_state.value_name)
+
+        if new_state == Gst.State.READY and pending_state == Gst.State.NULL:
+            # XXX: We're not called on the last state change when going down to
+            # NULL, so we rewrite the second to last call to get the expected
+            # behavior.
+            new_state = Gst.State.NULL
+            pending_state = Gst.State.VOID_PENDING
+
+        if pending_state != Gst.State.VOID_PENDING:
+            return  # Ignore intermediate state changes
+
+        if new_state == Gst.State.READY:
+            return  # Ignore READY state as it's GStreamer specific
+
+        # new_state = _GST_STATE_MAPPING[new_state]
+        # old_state, self._audio.state = self._audio.state, new_state
+        #
+        # target_state = _GST_STATE_MAPPING.get(self._audio._target_state)
+        # if target_state is None:
+        #     # XXX: Workaround for #1430, to be fixed properly by #1222.
+        #     logger.debug('Race condition happened. See #1222 and #1430.')
+        #     return
+        # if target_state == new_state:
+        #     target_state = None
+        #
+        # logger.debug('Audio event: state_changed(old_state=%s, new_state=%s, '
+        #              'target_state=%s)', old_state, new_state, target_state)
+        # AudioListener.send('state_changed', old_state=old_state,
+        #                    new_state=new_state, target_state=target_state)
+        # if new_state == PlaybackState.STOPPED:
+        #     logger.debug('Audio event: stream_changed(uri=None)')
+        #     AudioListener.send('stream_changed', uri=None)
+        #
+        # if 'GST_DEBUG_DUMP_DOT_DIR' in os.environ:
+        #     Gst.debug_bin_to_dot_file(
+        #         self._audio._playbin, Gst.DebugGraphDetails.ALL, 'mopidy')
+
+    def on_buffering(self, percent, structure=None):
+        if structure is not None and structure.has_field('buffering-mode'):
+            buffering_mode = structure.get_enum(
+                'buffering-mode', Gst.BufferingMode)
+            if buffering_mode == Gst.BufferingMode.LIVE:
+                return  # Live sources stall in paused.
+
+        level = logging.getLevelName('TRACE')
+        if percent < 10 and not self._buffering:
+            self.pipeline.set_state(Gst.State.PAUSED)
+            self._buffering = True
+            level = logging.DEBUG
+        if percent == 100:
+            self._buffering = False
+            if self._target_state == Gst.State.PLAYING:
+                self.pipeline.set_state(Gst.State.PLAYING)
+            level = logging.DEBUG
+
+        logger.log(
+            level, 'Got BUFFERING bus message: percent=%d%%', percent)
+
+    def on_warning(self, error, debug):
+        error_msg = str(error).decode('utf-8')
+        debug_msg = debug.decode('utf-8')
+        logger.warning('GStreamer warning: %s', error_msg)
+        logger.debug(
+            'Got WARNING bus message: error=%r debug=%r', error_msg, debug_msg)
+
+    def on_async_done(self):
+        logger.debug('Got ASYNC_DONE bus message.')
 
     # Iteration.
 
@@ -679,10 +804,3 @@ if __name__ == '__main__':
     for scarlett_text in tts_list:
         with time_logger('Scarlett Speaks'):
             ScarlettSpeaker(scarlett_text)
-        # with ScarlettSpeaker(scarlett_text) as f:
-        #     print(f.channels)
-        #     print(f.samplerate)
-        #     print(f.duration)
-        #     for s in f:
-        #         pass
-        #        # READ IN BLOCKS # print(len(s), ord(s[0]))
