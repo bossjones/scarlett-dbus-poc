@@ -39,12 +39,12 @@ import generator_subprocess
 
 # command, name=None, fork=False
 
-_pitch = 50
-_speed = 100
+_pitch = 75
+_speed = 175
 _wavpath = "/home/pi/dev/bossjones-github/scarlett-dbus-poc/espeak_tmp.wav"
 _voice = "en+f3"
 _text = _('{}'.format("Hello sir. How are you doing this afternoon? I am full lee function nall, andd red ee for your commands"))
-_word_gap = 2
+_word_gap = 1
 _rate = 100
 
 _command = ["espeak", "-p%s" % _pitch,
@@ -52,10 +52,4 @@ _command = ["espeak", "-p%s" % _pitch,
             "-w", _wavpath, "-v%s" % _voice,
             ".   %s   ." % _text]
 
-# subprocess.call(["espeak", "-p%s" % self.pitch,
-#                  "-s%s" % self.speed, "-g%s" % self.word_gap,
-#                  "-w", wavpath, "-v%s" % self.voice,
-#                  ".   %s   ." % text],
-#                 stdout=subprocess.PIPE)
-
-res = generator_subprocess.Subprocess(_command, name='espeak_tmp', fork=True)
+res = generator_subprocess.Subprocess(_command, name='espeak_tmp', fork=False).run()
