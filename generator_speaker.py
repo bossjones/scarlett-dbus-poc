@@ -84,21 +84,6 @@ try:
 except ImportError:
     from urllib import quote
 
-
-QUEUE_SIZE = 10
-BUFFER_SIZE = 10
-SENTINEL = '__GSTDEC_SENTINEL__'
-PITCH_MAX = 200
-RATE_MAX = 200
-PITCH_DEFAULT = PITCH_MAX / 2
-RATE_DEFAULT = RATE_MAX / 2
-
-_GST_STATE_MAPPING = {
-    Gst.State.PLAYING: 'playing',
-    Gst.State.PAUSED: 'paused',
-    Gst.State.NULL: 'stopped',
-}
-
 import signal
 
 from IPython.core.debugger import Tracer
@@ -136,7 +121,6 @@ class ScarlettSpeaker(object):
 
     def __init__(self, text_to_speak="", wavpath=""):
         # anything defined here belongs to the INSTANCE of the class
-        self.ready_sem = threading.Semaphore(0)
         self._wavefile = []
         self._pitch = 75
         self._speed = 175
@@ -145,7 +129,6 @@ class ScarlettSpeaker(object):
         self._voice = "en+f3"
         self._text = _('{}'.format(text_to_speak))
         self._word_gap = 1
-
         self._command = ["espeak", "-p%s" % self._pitch,
                          "-s%s" % self._speed, "-g%s" % self._word_gap,
                          "-w", self._wavpath, "-v%s" % self._voice,
