@@ -7,14 +7,16 @@ import sys
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
+# pylint: disable=E0611
 import gi
 gi.require_version('Gst', '1.0')
 from gi.repository import GObject
 from gi.repository import GLib
 from gi.repository import Gio
 import threading
+# pylint: enable=E0611
 
-GObject.threads_init()
+# GObject.threads_init()
 
 import signal
 
@@ -37,8 +39,6 @@ import textwrap
 
 import generator_subprocess
 
-# command, name=None, fork=False
-
 _pitch = 75
 _speed = 175
 _wavpath = "/home/pi/dev/bossjones-github/scarlett-dbus-poc/espeak_tmp.wav"
@@ -53,3 +53,5 @@ _command = ["espeak", "-p%s" % _pitch,
             ".   %s   ." % _text]
 
 res = generator_subprocess.Subprocess(_command, name='espeak_tmp', fork=False).run()
+
+print "Did is run successfully? {}".format(res)
