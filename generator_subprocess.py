@@ -21,9 +21,18 @@ import os
 import sys
 import logging
 from gi.repository import GObject, GLib
-# GObject.threads_init()
+
+
 logger = logging.getLogger('scarlettlogger')
 
+def check_pid(pid):
+    """ Check For the existence of a unix pid. """
+    try:
+        os.kill(pid, 0)
+    except OSError:
+        return False
+    else:
+        return True
 
 class SubProcessError(Exception):
     pass
@@ -99,29 +108,21 @@ class Subprocess(GObject.GObject):
                                                                           flags=GLib.SpawnFlags.SEARCH_PATH | GLib.SpawnFlags.DO_NOT_REAP_CHILD
                                                                           )
 
-        # self.pid = process_data[0]
-        # self.stdout = os.fdopen(process_data[2])
-        # self.stderr = os.fdopen(process_data[3])
-
-        # logger.debug(self.pid)
-        # logger.debug(self.stdin)
-        # logger.debug(self.stdout)
-        # logger.debug(self.stderr)
-
         logger.debug("command: ".format(self.command))
         logger.debug("stdin: ".format(self.stdin))
         logger.debug("stdout: ".format(self.stdout))
         logger.debug("stderr: ".format(self.stderr))
         logger.debug("pid: ".format(self.pid))
 
-        # self.pid.close()
+        # close file descriptor
+        self.pid.close()
 
         print self.stderr
 
         # NOTE: GLib.PRIORITY_HIGH = -100
         # Use this for high priority event sources.
         # It is not used within GLib or GTK+.
-        self.watch = GLib.child_watch_add(GLib.PRIORITY_HIGH, self.pid, self.exited_cb)
+        watch = GLib.child_watch_add(GLib.PRIORITY_HIGH, self.pid, self.exited_cb)
 
         return self.pid
 
