@@ -135,7 +135,7 @@ class ScarlettSpeaker(object):
     # Anything defined here belongs to the class itself
 
     def __init__(self, text_to_speak="", wavpath=""):
-        # anythning defined here belongs to the INSTANCE of the class
+        # anything defined here belongs to the INSTANCE of the class
         self.ready_sem = threading.Semaphore(0)
         self._wavefile = []
         self._pitch = 75
@@ -145,7 +145,6 @@ class ScarlettSpeaker(object):
         self._voice = "en+f3"
         self._text = _('{}'.format(text_to_speak))
         self._word_gap = 1
-        self._rate = 100
 
         self._command = ["espeak", "-p%s" % self._pitch,
                          "-s%s" % self._speed, "-g%s" % self._word_gap,
@@ -179,7 +178,6 @@ class ScarlettSpeaker(object):
         if self.running or force:
             self.running = False
             self.finished = True
-            del self.res
 
 
     def __del__(self):

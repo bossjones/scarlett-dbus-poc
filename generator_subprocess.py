@@ -128,7 +128,6 @@ class Subprocess(GObject.GObject):
 
     def exited_cb(self, pid, condition):
         if not self.forked:
-            logger.debug('exited', pid, condition)
             self.emit('exited', pid, condition)
 
     def fork(self):
