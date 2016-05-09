@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python   # NOQA
 # -*- coding: utf-8 -*-
 
 # NOTE: THIS IS THE CLASS THAT WILL STORE ALL OF THE EXCEPTIONS ETC
@@ -11,33 +11,11 @@ from __future__ import division
 import sys
 import os
 import errno
-# import tempfile
-# import codecs
-# import shlex
-# import urllib
-# import argparse
 from os import environ as environ
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
-try:
-    import queue
-except ImportError:
-    import Queue as queue
-
-try:
-    from urllib.parse import quote
-except ImportError:
-    from urllib import quote
-
-
-QUEUE_SIZE = 10
-BUFFER_SIZE = 10
-SENTINEL = '__GSTDEC_SENTINEL__'
-
-import signal
-
-from IPython.core.debugger import Tracer
+from IPython.core.debugger import Tracer  # NOQA
 from IPython.core import ultratb
 
 sys.excepthook = ultratb.FormattedTB(mode='Verbose',
@@ -47,9 +25,14 @@ sys.excepthook = ultratb.FormattedTB(mode='Verbose',
 
 import gi
 gi.require_version('Gst', '1.0')
-from gi.repository import GLib, GObject, Gst
+from gi.repository import GLib, GObject, Gst  # NOQA
 
-import generator_log
+import generator_log  # NOQA
+import contextlib
+import time
+import textwrap  # NOQA
+import logging
+logger = logging.getLogger('scarlettlogger')
 
 
 _FSCODING = "utf-8"
@@ -60,19 +43,12 @@ integer_types = (int, long)
 number_types = (int, long, float)
 
 
-"""
-Path related functions like open, os.listdir have different behavior on win32
-
-- Passing a string calls the old non unicode win API.
-  In case of listdir this leads to "?" for >1byte chars and to
-  1 byte chars encoded using the fs encoding. -> DO NOT USE!
-
-- Passing a unicode object internally calls the windows unicode functions.
-  This will mostly lead to proper unicode paths (except expanduser).
-
-  And that's why QL is using unicode paths on win and encoded paths
-  everywhere else.
-"""
+@contextlib.contextmanager
+def time_logger(name, level=logging.DEBUG):
+    """Time logger context manager. Shows how long it takes to run a particular method"""
+    start = time.time()
+    yield
+    logger.log(level, '%s took %dms', name, (time.time() - start) * 1000)
 
 
 def mkdir(dir_, *args):
@@ -105,20 +81,24 @@ def iscommand(s):
 
 
 def is_fsnative(path):
-            return isinstance(path, bytes)
+    """Check if file system native"""
+    return isinstance(path, bytes)
 
 
 def fsnative(path=u""):
+    """File system native"""
     assert isinstance(path, text_type)
     return path.encode(_FSCODING, 'replace')
 
 
 def glib2fsnative(path):
+    """Convert glib to native filesystem format"""
     assert isinstance(path, bytes)
     return path
 
 
 def fsnative2glib(path):
+    """Convert file system to native glib format"""
     assert isinstance(path, bytes)
     return path
 
@@ -218,6 +198,7 @@ class NoBackendError(DecodeError):
 
 
 class GStreamerError(DecodeError):
+    """Something went terribly wrong with Gstreamer"""
     pass
 
 

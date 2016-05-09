@@ -1,8 +1,6 @@
 import logging
 logger = logging.getLogger('scarlettlogger')
 
-# Initalize logging
-
 try:
     from colorlog import ColoredFormatter
     from gettext import gettext as _

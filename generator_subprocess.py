@@ -60,6 +60,7 @@ class Subprocess(GObject.GObject):
     }
 
     def __init__(self, command, name=None, fork=False):
+        """Create instance of Subprocess."""
 
         GObject.GObject.__init__(self)
 
@@ -92,7 +93,7 @@ class Subprocess(GObject.GObject):
             self.fork()
 
     def run(self):
-        """ Run the process. """
+        """Run the process."""
 
         # NOTE: DO_NOT_REAP_CHILD: the child will not be automatically reaped;
         # you must use g_child_watch_add yourself (or call waitpid or handle `SIGCHLD` yourself),
@@ -131,6 +132,7 @@ class Subprocess(GObject.GObject):
             self.emit('exited', pid, condition)
 
     def fork(self):
+        """Fork the process."""
         try:
             # first fork
             pid = os.fork()
