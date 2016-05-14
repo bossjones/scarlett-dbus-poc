@@ -74,8 +74,8 @@ from IPython.core import ultratb
 from gettext import gettext as _
 
 import generator_utils
-import generator_subprocess
-import generator_player
+# import generator_subprocess
+# import generator_player
 
 import scarlett_config
 
@@ -613,7 +613,7 @@ class ScarlettListener(Server):  # NOQA
         pocketsphinx.set_property('dsratio', 1)  # Evaluate acoustic model every N frames |  Integer. Range: 1 - 10 Default: 1
         pocketsphinx.set_property('maxhmmpf', 3000)  # Maximum number of HMMs searched per frame | Integer. Range: 1 - 100000 Default: 30000
         pocketsphinx.set_property('bestpath', True)  # Enable Graph Search | Boolean. Default: true
-        pocketsphinx.set_property('maxwpf', 20)  # Maximum number of words searched per frame | Range: 1 - 100000 Default: -1
+        # pocketsphinx.set_property('maxwpf', -1)  # pocketsphinx.set_property('maxwpf', 20)  # Maximum number of words searched per frame | Range: 1 - 100000 Default: -1
 
         gst_bus = pipeline.get_bus()
 
@@ -722,86 +722,6 @@ class ScarlettListener(Server):  # NOQA
         self.close()
         return False
 
-
-class FakeScarlettListener(object):
-    """Scarlett Listener Class."""
-
-    def __init__(self, text_to_speak="", wavpath=""):
-        """ScarlettListener object. Anything defined here belongs to the INSTANCE of the class."""
-        #####################################
-        #
-        # # Set up the queue for data and run the main thread.
-        # self.queue = queue.Queue(QUEUE_SIZE)
-        # self.thread = get_loop_thread()
-        #
-        # # This wil get filled with an exception if opening fails.
-        # self.read_exc = None
-        # self.dot_exc = None
-        #
-        # # Return as soon as the stream is ready!
-        # self.running = True
-        # self.got_caps = False
-        # self.pipeline.set_state(Gst.State.PLAYING)
-        # self.on_debug_activate()
-        # self.ready_sem.acquire()
-        #
-        # if self.read_exc:
-        #     # An error occurred before the stream became ready.
-        #     self.close(True)
-        #     raise self.read_exc
-        #####################################
-        self._wavefile = []
-        self._pitch = 75
-        self._speed = 175
-        self._wavpath = wavpath
-        self._wavefile.append(self._wavpath)
-        self._voice = "en+f3"
-        self._text = _('{}'.format(text_to_speak))
-        self._word_gap = 1
-        self._command = ["espeak", "-p%s" % self._pitch,
-                         "-s%s" % self._speed, "-g%s" % self._word_gap,
-                         "-w", self._wavpath, "-v%s" % self._voice,
-                         ".   %s   ." % self._text]
-
-        # Write espeak data
-        with generator_utils.time_logger('Espeak Subprocess To File'):
-            self.running = True
-            self.finished = False
-            self.res = generator_subprocess.Subprocess(
-                self._command, name='speaker_tmp', fork=False).run()
-            generator_subprocess.check_pid(int(self.res))
-            print "Did is run successfully? {}".format(self.res)
-
-        # Have Gstreamer play it
-        for path in self._wavefile:
-            path = os.path.abspath(os.path.expanduser(path))
-            with generator_player.ScarlettPlayer(path) as f:
-                print(f.channels)
-                print(f.samplerate)
-                print(f.duration)
-                for s in f:
-                    pass
-
-    # Cleanup.
-    def close(self, force=False):
-        """Close the file and clean up associated resources.
-
-        Calling `close()` a second time has no effect.
-        """
-        if self.running or force:
-            self.running = False
-            self.finished = True
-
-    def __del__(self):
-        """Garbage Collection, delete Speaker after using it."""
-        self.close()
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """If something goes wrong, close class, then return exceptions."""
-        self.close()
-        return False
-
-# Smoke test.
 if __name__ == '__main__':
     from pydbus import SessionBus
     bus = SessionBus()
@@ -846,8 +766,10 @@ if __name__ == '__main__':
 
     signal.signal(signal.SIGINT, sigint_handler)
 
-    with generator_utils.time_logger('Scarlett Listener'):
-        sl.run_pipeline(**vars(args))
+    sl.run_pipeline(**vars(args))
+
+    # with generator_utils.time_logger('Scarlett Listener'):
+    #     sl.run_pipeline(**vars(args))
 
     #
     # tts_list = [
