@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import StringIO
 import os
 import sys
@@ -36,6 +37,7 @@ elif 'SCARLETT_PATH' in os.environ:
 
 
 class Config(ConfigParser.SafeConfigParser):
+    """Scarlett Config Class."""
 
     def __init__(self, path=None, fp=None, do_load=True):
         # We don't use ``super`` here, because ``ConfigParser`` still uses
