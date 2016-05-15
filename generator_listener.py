@@ -448,17 +448,68 @@ class ScarlettListener(Server):  # NOQA
             "self.keyword_identified = %i" %
             (self.kw_found))
 
-    def get_pocketsphinx_definition(self, device, hmm, lm, dic):
+    def get_pocketsphinx_definition(self, device, hmm, lm, dic, override=False):
+        """
+        GST_DEBUG=2,pocketsphinx*:5 gst-launch-1.0 alsasrc device=plughw:CARD=Device,DEV=0 ! \
+                                                    queue name=capsfilter_queue \
+                                                          leaky=2 \
+                                                          max-size-buffers=0 \
+                                                          max-size-time=0 \
+                                                          max-size-bytes=0 ! \
+                                                    capsfilter caps='audio/x-raw,format=(string)S16LE,rate=(int)16000,channels=(int)1,layout=(string)interleaved' ! \
+                                                    audioconvert ! \
+                                                    audioresample ! \
+                                                    pocketsphinx \
+                                                    name=asr \
+                                                    lm=~/dev/bossjones-github/scarlett-dbus-poc/tests/fixtures/lm/1473.lm \
+                                                    dict=~/dev/bossjones-github/scarlett-dbus-poc/tests/fixtures/dict/1473.dic \
+                                                    hmm=~/.virtualenvs/scarlett-dbus-poc/share/pocketsphinx/model/en-us/en-us
+                                                    bestpath=true ! \
+                                                    tee name=tee ! \
+                                                    queue name=appsink_queue \
+                                                          leaky=2 \
+                                                          max-size-buffers=0 \
+                                                          max-size-time=0 \
+                                                          max-size-bytes=0 ! \
+                                                    appsink caps='audio/x-raw,format=(string)S16LE,rate=(int)16000,channels=(int)1,layout=(string)interleaved' \
+                                                    drop=false max-buffers=10 sync=false \
+                                                    emit-signals=true tee.
+                                                    queue name=fakesink_queue \
+                                                          leaky=2 \
+                                                          max-size-buffers=0 \
+                                                          max-size-time=0 \
+                                                          max-size-bytes=0 ! \
+                                                    fakesink sync=false
+        """
         logger.debug("Inside get_pocketsphinx_definition")
-        return ['alsasrc device=' +
-                device,
-                'queue silent=false leaky=2 max-size-buffers=0 max-size-time=0 max-size-bytes=0',
-                'audioconvert',
-                'audioresample',
-                'audio/x-raw,format=S16LE,channels=1,layout=interleaved',
-                'pocketsphinx name=asr bestpath=0',
-                'queue leaky=2',
-                'fakesink']
+
+        if override:
+            _gst_launch = override
+        else:
+            # ['alsasrc device=' +
+            #                device,
+            #                'queue silent=false leaky=2 max-size-buffers=0 max-size-time=0 max-size-bytes=0',
+            #                'audioconvert',
+            #                'audioresample',
+            #                'audio/x-raw,format=S16LE,channels=1,layout=interleaved',
+            #                'pocketsphinx name=asr bestpath=0',
+            #                'queue leaky=2',
+            #                'fakesink']
+            _gst_launch = ['alsasrc device=' +
+                           device,
+                           'queue name=capsfilter_queue silent=false leaky=2 max-size-buffers=0 max-size-time=0 max-size-bytes=0',
+                           'capsfilter name=capsfilter caps=audio/x-raw,format=S16LE,channels=1,layout=interleaved',
+                           'audioconvert name=audioconvert',
+                           'audioresample name=audioresample',
+                           'pocketsphinx name=asr',
+                           'tee name=tee',
+                           'queue name=appsink_queue silent=false leaky=2 max-size-buffers=0 max-size-time=0 max-size-bytes=0',
+                           #  caps=audio/x-raw,format=(string)S16LE,rate=(int)16000,channels=(int)1,layout=(string)interleaved   # NOQA
+                           'appsink name=appsink drop=false max-buffers=10 sync=false emit-signals=true tee.',
+                           'queue leaky=2 name=fakesink_queue',
+                           'fakesink']
+
+        return _gst_launch
 
     # NOTE: This function generates the dot file, checks that graphviz in installed and
     # then finally generates a png file, which it then displays
@@ -511,7 +562,7 @@ class ScarlettListener(Server):  # NOQA
             current_kw_identified = self.kw_found
             self.kw_found = current_kw_identified
             self.emitCommandRecognizedSignal(final_hyp)
-            logger.debug(
+            logger.info(
                 " Command = {}".format(final_hyp))
             logger.debug(
                 "AFTER run_cmd, self.kw_found = %i" %

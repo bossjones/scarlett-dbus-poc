@@ -20,7 +20,8 @@ try:
             'message': {
                 'ERROR': 'red',
                 'CRITICAL': 'red',
-                'DEBUG': 'yellow'
+                'DEBUG': 'yellow',
+                'INFO': 'yellow,bg_blue'
             }
         },
         style='%'
