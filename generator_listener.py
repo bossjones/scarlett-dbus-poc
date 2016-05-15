@@ -664,7 +664,7 @@ class ScarlettListener(Server):  # NOQA
 
         # Free resources
         # pipeline.set_state(Gst.State.NULL)
-        print "ScarlettListener stopped"
+        logger.info("ScarlettListener stopped")
 
 
 # def quit(self):
