@@ -32,6 +32,7 @@ import contextlib
 import time
 import textwrap  # NOQA
 import logging
+from functools import wraps
 logger = logging.getLogger('scarlettlogger')
 
 
@@ -41,6 +42,20 @@ text_type = unicode
 string_types = (str, unicode)
 integer_types = (int, long)
 number_types = (int, long, float)
+
+
+def trace(func):
+    """Tracing wrapper to log when function enter/exit happens.
+    :param func: Function to wrap
+    :type func: callable
+    """
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        logger.debug('Start {!r}'. format(func.__name__))
+        result = func(*args, **kwargs)
+        logger.debug('End {!r}'. format(func.__name__))
+        return result
+    return wrapper
 
 
 @contextlib.contextmanager
