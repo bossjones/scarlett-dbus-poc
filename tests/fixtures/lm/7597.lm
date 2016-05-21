@@ -1,0 +1,106 @@
+Language model created by QuickLM on Thu Feb 13 14:54:52 EST 2014
+Copyright (c) 1996-2010 Carnegie Mellon University and Alexander I. Rudnicky
+
+The model is in standard ARPA format, designed by Doug Paul while he was at MITRE.
+
+The code that was used to produce this language model is available in Open Source.
+Please visit http://www.speech.cs.cmu.edu/tools/ for more information
+
+The (fixed) discount mass is 0.5. The backoffs are computed using the ratio method.
+This model based on a corpus of 10 sentences and 22 words
+
+\data\
+ngram 1=22
+ngram 2=32
+ngram 3=29
+
+\1-grams:
+-1.0645 </s> -0.3010
+-1.0645 <s> -0.2619
+-2.0645 BLUE -0.2619
+-1.3655 CHANGE -0.2700
+-2.0645 GREEN -0.2619
+-2.0645 HBO -0.2619
+-2.0645 IS -0.2973
+-2.0645 IT -0.2619
+-1.3655 LIGHTS -0.2494
+-2.0645 MTV -0.2619
+-2.0645 OFF -0.2700
+-2.0645 ON -0.2700
+-2.0645 RED -0.2619
+-2.0645 SCARLETT -0.2619
+-1.1614 THE -0.2700
+-2.0645 TIME -0.2973
+-1.7634 TO -0.2935
+-1.7634 TURN -0.2935
+-1.7634 TV -0.2935
+-2.0645 WEATHER -0.2619
+-2.0645 WHAT -0.2973
+-2.0645 WHATS -0.2700
+
+\2-grams:
+-0.6021 <s> CHANGE 0.0000
+-1.3010 <s> SCARLETT 0.0000
+-1.0000 <s> TURN 0.0000
+-1.3010 <s> WHAT 0.0000
+-1.3010 <s> WHATS 0.0000
+-0.3010 BLUE </s> -0.3010
+-0.3010 CHANGE THE -0.0512
+-0.3010 GREEN </s> -0.3010
+-0.3010 HBO </s> -0.3010
+-0.3010 IS IT 0.0000
+-0.3010 IT </s> -0.3010
+-0.6990 LIGHTS </s> -0.3010
+-1.0000 LIGHTS BLUE 0.0000
+-1.0000 LIGHTS GREEN 0.0000
+-1.0000 LIGHTS RED 0.0000
+-0.3010 MTV </s> -0.3010
+-0.3010 OFF THE -0.1383
+-0.3010 ON THE -0.1383
+-0.3010 RED </s> -0.3010
+-0.3010 SCARLETT </s> -0.3010
+-0.5051 THE LIGHTS 0.0000
+-0.9031 THE TV 0.0000
+-1.2041 THE WEATHER 0.0000
+-0.3010 TIME IS 0.0000
+-0.6021 TO HBO 0.0000
+-0.6021 TO MTV 0.0000
+-0.6021 TURN OFF 0.0000
+-0.6021 TURN ON 0.0000
+-0.3010 TV TO 0.0000
+-0.3010 WEATHER </s> -0.3010
+-0.3010 WHAT TIME 0.0000
+-0.3010 WHATS THE -0.2730
+
+\3-grams:
+-0.3010 <s> CHANGE THE
+-0.3010 <s> SCARLETT </s>
+-0.6021 <s> TURN OFF
+-0.6021 <s> TURN ON
+-0.3010 <s> WHAT TIME
+-0.3010 <s> WHATS THE
+-0.5229 CHANGE THE LIGHTS
+-0.6990 CHANGE THE TV
+-0.3010 IS IT </s>
+-0.3010 LIGHTS BLUE </s>
+-0.3010 LIGHTS GREEN </s>
+-0.3010 LIGHTS RED </s>
+-0.3010 OFF THE LIGHTS
+-0.3010 ON THE LIGHTS
+-0.6990 THE LIGHTS </s>
+-1.0000 THE LIGHTS BLUE
+-1.0000 THE LIGHTS GREEN
+-1.0000 THE LIGHTS RED
+-0.3010 THE TV TO
+-0.3010 THE WEATHER </s>
+-0.3010 TIME IS IT
+-0.3010 TO HBO </s>
+-0.3010 TO MTV </s>
+-0.3010 TURN OFF THE
+-0.3010 TURN ON THE
+-0.6021 TV TO HBO
+-0.6021 TV TO MTV
+-0.3010 WHAT TIME IS
+-0.3010 WHATS THE WEATHER
+
+\end\

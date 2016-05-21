@@ -104,10 +104,11 @@ def setup_logger():
 
 
 class Server(object):
+
     def __init__(self, bus, path):
         self.loop = GLib.MainLoop()
-        self.dbus_stack       = []
-        self.pipelines_stack  = []
+        self.dbus_stack = []
+        self.pipelines_stack = []
 
         self._message = 'This is the DBusServer'
         self.config = scarlett_config.Config()
@@ -429,15 +430,17 @@ if __name__ == '__main__':
 
     from pydbus import SessionBus
     bus = SessionBus()
-    bus.own_name(name = 'org.scarlett')
+    bus.own_name(name='org.scarlett')
     sl = ScarlettListener(bus=bus.con, path='/org/scarlett/Listener')
 
     LANGUAGE_VERSION = 1473
     HOMEDIR = "/home/pi"
-    LANGUAGE_FILE_HOME = "{}/dev/bossjones-github/scarlett-gstreamer-pocketsphinx-demo".format(
+    LANGUAGE_FILE_HOME = "{}/dev/bossjones-github/scarlett-dbus-poc/tests/fixtures/lm".format(
+        HOMEDIR)
+    DICT_FILE_HOME = "{}/dev/bossjones-github/scarlett-dbus-poc/tests/fixtures/dict".format(
         HOMEDIR)
     LM_PATH = "{}/{}.lm".format(LANGUAGE_FILE_HOME, LANGUAGE_VERSION)
-    DICT_PATH = "{}/{}.dic".format(LANGUAGE_FILE_HOME, LANGUAGE_VERSION)
+    DICT_PATH = "{}/{}.dic".format(DICT_FILE_HOME, LANGUAGE_VERSION)
     HMM_PATH = "{}/.virtualenvs/scarlett-dbus-poc/share/pocketsphinx/model/en-us/en-us".format(
         HOMEDIR)
     bestpath = 0

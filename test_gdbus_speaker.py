@@ -114,6 +114,8 @@ gst = Gst
 from functools import wraps
 
 # source: https://github.com/jcollado/pygtk-webui/blob/master/demo.py
+
+
 def trace(func):
     """Tracing wrapper to log when function enter/exit happens.
     :param func: Function to wrap
@@ -156,7 +158,7 @@ class ScarlettSpeaker():
         self.debug = False
         self.create_dot = False
 
-        #########################################################################
+        #######################################################################
         espeak_pipeline = 'espeak name=source ! queue2 name=q ! autoaudiosink'
         player = Gst.parse_launch(espeak_pipeline)
         print '********************************************************'
@@ -204,24 +206,26 @@ class ScarlettSpeaker():
         GST_CLOCK_TIME_NONE = 18446744073709551615
 
         # wait for preroll or error
-        msg=gst_bus.timed_pop_filtered(GST_CLOCK_TIME_NONE, Gst.MessageType.ASYNC_DONE | Gst.MessageType.ERROR)
+        msg = gst_bus.timed_pop_filtered(
+            GST_CLOCK_TIME_NONE, Gst.MessageType.ASYNC_DONE | Gst.MessageType.ERROR)
 
         if msg.type == Gst.MessageType.ASYNC_DONE:
-          ret, dur = player.query_duration(Gst.Format.TIME)
-          print "Duration: %u seconds" % (dur / Gst.SECOND)
+            ret, dur = player.query_duration(Gst.Format.TIME)
+            print "Duration: %u seconds" % (dur / Gst.SECOND)
 
-          # wait for EOS or error
-        msg=gst_bus.timed_pop_filtered(GST_CLOCK_TIME_NONE, Gst.MessageType.EOS | Gst.MessageType.ERROR)
+        # wait for EOS or error
+        msg = gst_bus.timed_pop_filtered(
+            GST_CLOCK_TIME_NONE, Gst.MessageType.EOS | Gst.MessageType.ERROR)
 
         if msg.type == Gst.MessageType.ERROR:
-          gerror, dbg_msg = msg.parse_error()
-          print "Error         : ", gerror.message
-          print "Debug details : ", dbg_msg
+            gerror, dbg_msg = msg.parse_error()
+            print "Error         : ", gerror.message
+            print "Debug details : ", dbg_msg
 
         if msg.type == Gst.MessageType.EOS:
-          player.send_event(Gst.Event.new_eos())
-          self.loop.quit()
-          self.quit()
+            player.send_event(Gst.Event.new_eos())
+            self.loop.quit()
+            self.quit()
 
         print "ScarlettSpeaker stopped"
         player.set_state(Gst.State.NULL)
@@ -258,7 +262,6 @@ class ScarlettSpeaker():
         # Free resources
         # player.set_state(Gst.State.NULL)
 
-
     # def release(self):
     #     if hasattr(self, 'eod') and hasattr(self, 'loop'):
     #         self.end_cond.acquire()
@@ -278,7 +281,8 @@ class ScarlettSpeaker():
         # Note: not all state changes are signaled through here, in particular
         # transitions between Gst.State.READY and Gst.State.NULL are never async
         # and thus don't cause a message
-        # In practice, self means only Gst.State.PLAYING and Gst.State.PAUSED are
+        # In practice, self means only Gst.State.PLAYING and Gst.State.PAUSED
+        # are
         pass
 
     @trace
@@ -287,9 +291,9 @@ class ScarlettSpeaker():
         p = self.pipelines_stack[0]
         p.set_state(Gst.State.NULL)
         try:
-          self.loop.quit()
+            self.loop.quit()
         except:
-          print 'ERROR TRYING TO EXIT OUT FOOL'
+            print 'ERROR TRYING TO EXIT OUT FOOL'
         return True
 
     @trace
@@ -298,10 +302,10 @@ class ScarlettSpeaker():
         p = self.pipelines_stack[0]
         p.set_state(Gst.State.NULL)
         try:
-          self.loop.quit()
-          # self.quit()
+            self.loop.quit()
+            # self.quit()
         except:
-          print 'ERROR TRYING TO EXIT OUT FOOL'
+            print 'ERROR TRYING TO EXIT OUT FOOL'
         return True
 
     @trace

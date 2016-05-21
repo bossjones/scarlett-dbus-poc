@@ -340,6 +340,15 @@ Service: python test_gdbus_service.py
 Tasker: python test_gdbus_proxy_service.py
 ```
 
+## Beginning threading tasker fixes 3/6/2016
+
+### Got Proper Player working in generator_player.py [04/17/2016] / Properly using Threading RLocks + Semaphores to open wav files, play, stop, then clean up
+
+```
+CMD: python generator_player.py
+```
+
+### Beginning work on generator_speaker.py and generator_listener.py [04/17/2016] Threading RLocks + Semaphores
 
 ### TODO:
 
@@ -364,3 +373,12 @@ Tasker: python test_gdbus_proxy_service.py
   - [ ] TV
   - [ ] Sound
   - [ ] Blinds
+
+
+# Investigating Generators and No-Op functions in pygobject threading - 3/13/2016
+
+```
+Service: python test_gdbus_service.py
+
+Tasker: python FooThreadDbus.py
+```

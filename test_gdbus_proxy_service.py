@@ -92,35 +92,39 @@ def setup_logger():
 logger = setup_logger()
 
 # NOTE: enumerate req to iterate through tuple and find GVariant
+
+
 def player_cb(*args, **kwargs):
     if SCARLETT_DEBUG:
-      logger.debug("player_cb PrettyPrinter: ")
-      pp = pprint.PrettyPrinter(indent=4)
-      pp.pprint(args)
+        logger.debug("player_cb PrettyPrinter: ")
+        pp = pprint.PrettyPrinter(indent=4)
+        pp.pprint(args)
     for i, v in enumerate(args):
         if SCARLETT_DEBUG:
-          logger.debug("Type v: {}".format(type(v)))
-          logger.debug("Type i: {}".format(type(i)))
+            logger.debug("Type v: {}".format(type(v)))
+            logger.debug("Type i: {}".format(type(i)))
         if type(v) is gi.overrides.GLib.Variant:
             if SCARLETT_DEBUG:
-              logger.debug("THIS SHOULD BE A Tuple now: {}".format(v))
+                logger.debug("THIS SHOULD BE A Tuple now: {}".format(v))
             msg, scarlett_sound = v
             logger.warning(" msg: {}".format(msg))
             logger.warning(" scarlett_sound: {}".format(scarlett_sound))
 
 # NOTE: enumerate req to iterate through tuple and find GVariant
+
+
 def command_cb(*args, **kwargs):
     if SCARLETT_DEBUG:
-      logger.debug("player_cb PrettyPrinter: ")
-      pp = pprint.PrettyPrinter(indent=4)
-      pp.pprint(args)
+        logger.debug("player_cb PrettyPrinter: ")
+        pp = pprint.PrettyPrinter(indent=4)
+        pp.pprint(args)
     for i, v in enumerate(args):
         if SCARLETT_DEBUG:
-          logger.debug("Type v: {}".format(type(v)))
-          logger.debug("Type i: {}".format(type(i)))
+            logger.debug("Type v: {}".format(type(v)))
+            logger.debug("Type i: {}".format(type(i)))
         if type(v) is gi.overrides.GLib.Variant:
             if SCARLETT_DEBUG:
-              logger.debug("THIS SHOULD BE A Tuple now: {}".format(v))
+                logger.debug("THIS SHOULD BE A Tuple now: {}".format(v))
             msg, scarlett_sound, command = v
             logger.warning(" msg: {}".format(msg))
             logger.warning(" scarlett_sound: {}".format(scarlett_sound))
@@ -191,7 +195,7 @@ def sigint_handler(*args):
     # TOD: figure out if this is really needed or not
     signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-    GObject.MainLoop().quit()
+    GLib.MainLoop().quit()
 
 signal.signal(signal.SIGINT, sigint_handler)
 

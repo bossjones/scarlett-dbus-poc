@@ -112,6 +112,8 @@ gst = Gst
 from functools import wraps
 
 # source: https://github.com/jcollado/pygtk-webui/blob/master/demo.py
+
+
 def trace(func):
     """Tracing wrapper to log when function enter/exit happens.
     :param func: Function to wrap
@@ -124,6 +126,7 @@ def trace(func):
         logger.debug('End {!r}'. format(func.__name__))
         return result
     return wrapper
+
 
 def sigint_handler(*args):
     """Exit on Ctrl+C"""
@@ -142,7 +145,7 @@ class ScarlettPlayer():
         global PWD
         global logger
         self.loop = GLib.MainLoop()
-        self.pipelines_stack  = []
+        self.pipelines_stack = []
 
         self._message = 'This is the ScarlettPlayer'
         self.config = scarlett_config.Config()
@@ -185,13 +188,15 @@ class ScarlettPlayer():
                 msg = gst_bus.timed_pop(Gst.CLOCK_TIME_NONE)
                 if msg:
                     if msg.type == Gst.MessageType.EOS:
-                        logger.debug("OKAY, Gst.MessageType.EOS: ".format(Gst.MessageType.EOS))
+                        logger.debug("OKAY, Gst.MessageType.EOS: ".format(
+                            Gst.MessageType.EOS))
                         player.set_state(Gst.State.NULL)
                         self.loop.quit()
                         self.quit()
                         break
                     if msg.type == Gst.MessageType.ERROR:
-                        logger.debug("OKAY, Gst.MessageType.ERROR: ".format(Gst.MessageType.ERROR))
+                        logger.debug("OKAY, Gst.MessageType.ERROR: ".format(
+                            Gst.MessageType.ERROR))
                         player.set_state(Gst.State.NULL)
                         self.loop.quit()
                         self.end_reached = True
@@ -228,7 +233,8 @@ class ScarlettPlayer():
         # Note: not all state changes are signaled through here, in particular
         # transitions between Gst.State.READY and Gst.State.NULL are never async
         # and thus don't cause a message
-        # In practice, self means only Gst.State.PLAYING and Gst.State.PAUSED are
+        # In practice, self means only Gst.State.PLAYING and Gst.State.PAUSED
+        # are
         pass
 
     @trace

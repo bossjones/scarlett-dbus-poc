@@ -1,0 +1,10 @@
+#JSGF V1.0;
+
+// Define grammer called scarlett ( we'll use this to activate recording on the raspberry pi )
+grammar scarlett;
+
+// Create a greeting. Saying scarlett is mandatory
+public <greet> = Scarlett;
+
+// Complete greet. Everything in []'s are optional. You can say "Yo Scarlett" .... or just "Scarlett"
+public <completeGreet> = [ Hello | Hi | What's up | Hey | Excuse Me | Yo | Cancel ] <greet>;

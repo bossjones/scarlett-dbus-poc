@@ -105,8 +105,6 @@ class ScarlettTasker():
         except:
             print "Exception: %s" % sys.exec_info()[1]
 
-
-
         self._loop = gobject.MainLoop()
         bus = dbus.SessionBus()
 
