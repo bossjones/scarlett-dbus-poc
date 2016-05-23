@@ -93,6 +93,19 @@ SCARLETT_LISTENING = "pi-listening"
 SCARLETT_RESPONSE = "pi-response"
 SCARLETT_FAILED = "pi-response2"
 
+SCARLETT_LISTENER_I_SIGNALS = {
+    "completed": (
+        GObject.SignalFlags.RUN_LAST, None, []),
+    "progress": (
+        GObject.SignalFlags.RUN_LAST, None, [
+            GObject.TYPE_FLOAT]),  # percent complete
+    "eos": (GObject.SignalFlags.RUN_LAST, None, ()),
+    "error": (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_STRING, GObject.TYPE_STRING)),
+    "died": (GObject.SignalFlags.RUN_LAST, None, ()),
+    "async-done": (GObject.SignalFlags.RUN_LAST, None, ()),
+    "state-change": (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_INT, GObject.TYPE_INT))
+}
+
 
 class PlayerType:
     """Enum of Player Types."""
@@ -136,35 +149,35 @@ class MainLoopThread(threading.Thread):
         self.loop.run()
 
 
-#################################################################
-# Managing the GLib main loop thread.
-#################################################################
-
-_glib_shared_loop_thread = None
-_glib_loop_thread_lock = threading.RLock()
-
-
-def glib_get_loop_thread():
-    """Get the shared main-loop thread."""
-    global _glib_shared_loop_thread
-    with _glib_loop_thread_lock:
-        if not _glib_shared_loop_thread:
-            # Start a new thread.
-            _glib_shared_loop_thread = GLibMainLoopThread()
-            _glib_shared_loop_thread.start()
-        return _glib_shared_loop_thread
-
-
-class GLibMainLoopThread(threading.Thread):
-    """A daemon thread encapsulating a Gobject main loop."""
-
-    def __init__(self):
-        super(GLibMainLoopThread, self).__init__()
-        self.loop = GLib.MainLoop()
-        self.daemon = True
-
-    def run(self):
-        self.loop.run()
+# #################################################################
+# # Managing the GLib main loop thread.
+# #################################################################
+#
+# _glib_shared_loop_thread = None
+# _glib_loop_thread_lock = threading.RLock()
+#
+#
+# def glib_get_loop_thread():
+#     """Get the shared main-loop thread."""
+#     global _glib_shared_loop_thread
+#     with _glib_loop_thread_lock:
+#         if not _glib_shared_loop_thread:
+#             # Start a new thread.
+#             _glib_shared_loop_thread = GLibMainLoopThread()
+#             _glib_shared_loop_thread.start()
+#         return _glib_shared_loop_thread
+#
+#
+# class GLibMainLoopThread(threading.Thread):
+#     """A daemon thread encapsulating a Gobject main loop."""
+#
+#     def __init__(self):
+#         super(GLibMainLoopThread, self).__init__()
+#         self.loop = GLib.MainLoop()
+#         self.daemon = True
+#
+#     def run(self):
+#         self.loop.run()
 
 
 class _IdleObject(GObject.GObject):
@@ -300,8 +313,348 @@ class Server(object):
     """PyDbus Server Object."""
 
     def __init__(self, bus, path):
-        # self.loop = GLib.MainLoop()
-        self.loop = get_loop_thread()
+        self.loop = GObject.MainLoop()
+        method_outargs = {}
+        method_inargs = {}
+        for interface in Gio.DBusNodeInfo.new_for_xml(self.__doc__).interfaces:
+
+            for method in interface.methods:
+                method_outargs[method.name] = '(' + ''.join([arg.signature for arg in method.out_args]) + ')'
+                method_inargs[method.name] = tuple(arg.signature for arg in method.in_args)
+
+            bus.register_object(object_path=path,
+                                interface_info=interface,
+                                method_call_closure=self.on_method_call)
+
+        self.method_inargs = method_inargs
+        self.method_outargs = method_outargs
+
+    def on_method_call(self,
+                       connection,
+                       sender,
+                       object_path,
+                       interface_name,
+                       method_name,
+                       parameters,
+                       invocation):
+
+        args = list(parameters.unpack())
+        for i, sig in enumerate(self.method_inargs[method_name]):
+            if sig is 'h':
+                msg = invocation.get_message()
+                fd_list = msg.get_unix_fd_list()
+                args[i] = fd_list.get(args[i])
+
+        result = getattr(self, method_name)(*args)
+
+        # out_args is atleast (signature1). We therefore always wrap the result
+        # as a tuple. Refer to https://bugzilla.gnome.org/show_bug.cgi?id=765603
+        result = (result,)
+
+        out_args = self.method_outargs[method_name]
+        if out_args != '()':
+            variant = GLib.Variant(out_args, result)
+            invocation.return_value(variant)
+        else:
+            invocation.return_value(None)
+
+# OLD WAY OF STARTING THIS SERVER #    def __init__(self, bus, path):
+# OLD WAY OF STARTING THIS SERVER #        self.loop = GObject.MainLoop()
+        # # self.loop = get_loop_thread()
+        # self.dbus_stack = []
+        # self.pipelines_stack = []
+        # self.elements_stack = []
+        #
+        # self._message = 'This is the DBusServer'
+        # self.config = scarlett_config.Config()
+        # self.override_parse = ''
+        # self.failed = 0
+        # self.kw_found = 0
+        # self.debug = False
+        # self.create_dot = True
+        # self.terminate = False
+        #
+        # self.capsfilter_queue_overrun_handler = None
+        #
+        # # # Thread manager, maximum of 1 since it'll be long running
+        # # self.manager = FooThreadManager(1)
+        #
+        # self._status_ready = "  ScarlettListener is ready"
+        # self._status_kw_match = "  ScarlettListener caught a keyword match"
+        # self._status_cmd_match = "  ScarlettListener caught a command match"
+        # self._status_stt_failed = "  ScarlettListener hit Max STT failures"
+        # self._status_cmd_start = "  ScarlettListener emitting start command"
+        # self._status_cmd_fin = "  ScarlettListener Emitting Command run finish"
+        # self._status_cmd_cancel = "  ScarlettListener cancel speech Recognition"
+        #
+        # if self.debug:
+        #     # NOTE: For testing puposes, mainly when in public
+        #     # so you dont have to keep yelling scarlett in front of strangers
+        #     self.kw_to_find = ['yo', 'hello', 'man', 'children']
+        # else:
+        #     self.kw_to_find = self.config.get('scarlett', 'keywords')
+        #
+        # self.dbus_stack.append(bus)
+        # self.dbus_stack.append(path)
+        # logger.debug("Inside self.dbus_stack")
+        # pp.pprint(self.dbus_stack)
+
+# OLD WAY OF STARTING THIS SERVER #        method_outargs = {}
+# OLD WAY OF STARTING THIS SERVER #        method_inargs = {}
+# OLD WAY OF STARTING THIS SERVER #
+# OLD WAY OF STARTING THIS SERVER #        interface_info = Gio.DBusNodeInfo.new_for_xml(
+# OLD WAY OF STARTING THIS SERVER #            self.__doc__).interfaces[0]
+# OLD WAY OF STARTING THIS SERVER #
+# OLD WAY OF STARTING THIS SERVER #        for method in interface_info.methods:
+# OLD WAY OF STARTING THIS SERVER #            method_outargs[
+# OLD WAY OF STARTING THIS SERVER #                method.name] = '(' + ''.join([arg.signature for arg in method.out_args]) + ')'
+# OLD WAY OF STARTING THIS SERVER #            method_inargs[method.name] = tuple(
+# OLD WAY OF STARTING THIS SERVER #                arg.signature for arg in method.in_args)
+# OLD WAY OF STARTING THIS SERVER #
+# OLD WAY OF STARTING THIS SERVER #        self.method_inargs = method_inargs
+# OLD WAY OF STARTING THIS SERVER #        self.method_outargs = method_outargs
+# OLD WAY OF STARTING THIS SERVER #
+# OLD WAY OF STARTING THIS SERVER #        logger.debug("Inside self.method_inargs and self.method_outargs")
+# OLD WAY OF STARTING THIS SERVER #        logger.debug("Inside self.method_inargs")
+# OLD WAY OF STARTING THIS SERVER #        pp.pprint(self.method_inargs)
+# OLD WAY OF STARTING THIS SERVER #        logger.debug("Inside self.method_outargs")
+# OLD WAY OF STARTING THIS SERVER #        pp.pprint(self.method_outargs)
+# OLD WAY OF STARTING THIS SERVER #
+# OLD WAY OF STARTING THIS SERVER #        bus.register_object(
+# OLD WAY OF STARTING THIS SERVER #            object_path=path, interface_info=interface_info, method_call_closure=self.on_method_call)
+
+    ##############################################################
+    # threading related functions START
+    ##############################################################
+    # @trace
+    # def stop_threads(self, *args):
+    #     # THE ACTUAL THREAD BIT
+    #     self.manager.stop_all_threads()
+    #
+    # @trace
+    # def add_thread(self, sender):
+    #     # make a thread and start it
+    #     data = random.randint(20, 60)
+    #     name = "Thread #%s" % random.randint(0, 1000)
+    #     rowref = self.pendingModel.insert(0, (name, 0))
+    #
+    #     # THE ACTUAL THREAD BIT
+    #     self.manager.make_thread(
+    #         self.thread_finished,
+    #         self.thread_progress,
+    #         rowref, data, name)
+    #
+    # @trace
+    # def thread_finished(self, thread, rowref):
+    #     self.pendingModel.remove(rowref)
+    #     self.completeModel.insert(0, (thread.name,))
+    #
+    # @trace
+    # def thread_progress(self, thread, progress, rowref):
+    #     self.pendingModel.set_value(rowref, 1, int(progress))
+
+    ##############################################################
+    # threading related functions END
+    ##############################################################
+
+    def run(self):
+        self.loop.run()
+
+    # NOTE: quit needs to look like this
+    # @trace
+    # def quit(self, sender, event):
+    #     self.manager.stop_all_threads(block=True)
+    #     Gtk.main_quit()
+
+    def quit(self):
+        """quit method with ONLY dbus functionality."""
+        self.loop.quit()
+
+    # def quit(self):
+    #     """quit method with pipeline functionality."""
+    #     p = self.pipelines_stack[0]
+    #     p.set_state(Gst.State.NULL)
+    #     self.loop.quit()
+
+# OLD WAY OF STARTING THIS SERVER #            def on_method_call(self,
+# OLD WAY OF STARTING THIS SERVER #                               connection,
+# OLD WAY OF STARTING THIS SERVER #                               sender,
+# OLD WAY OF STARTING THIS SERVER #                               object_path,
+# OLD WAY OF STARTING THIS SERVER #                               interface_name,
+# OLD WAY OF STARTING THIS SERVER #                               method_name,
+# OLD WAY OF STARTING THIS SERVER #                               parameters,
+# OLD WAY OF STARTING THIS SERVER #                               invocation):
+# OLD WAY OF STARTING THIS SERVER #
+# OLD WAY OF STARTING THIS SERVER #                args = list(parameters.unpack())
+# OLD WAY OF STARTING THIS SERVER #                for i, sig in enumerate(self.method_inargs[method_name]):
+# OLD WAY OF STARTING THIS SERVER #                    # if UNIX_FD
+# OLD WAY OF STARTING THIS SERVER #                    if sig is 'h':
+# OLD WAY OF STARTING THIS SERVER #                        msg = invocation.get_message()
+# OLD WAY OF STARTING THIS SERVER #                        fd_list = msg.get_unix_fd_list()
+# OLD WAY OF STARTING THIS SERVER #                        args[i] = fd_list.get(args[i])
+# OLD WAY OF STARTING THIS SERVER #
+# OLD WAY OF STARTING THIS SERVER #                result = getattr(self, method_name)(*args)
+# OLD WAY OF STARTING THIS SERVER #
+# OLD WAY OF STARTING THIS SERVER #                if type(result) is list:
+# OLD WAY OF STARTING THIS SERVER #                    result = tuple(result)
+# OLD WAY OF STARTING THIS SERVER #                elif not type(result) is tuple:
+# OLD WAY OF STARTING THIS SERVER #                    result = (result,)
+# OLD WAY OF STARTING THIS SERVER #
+# OLD WAY OF STARTING THIS SERVER #                out_args = self.method_outargs[method_name]
+# OLD WAY OF STARTING THIS SERVER #                if out_args != '()':
+# OLD WAY OF STARTING THIS SERVER #                    logger.debug("Inside out_args in != ()")
+# OLD WAY OF STARTING THIS SERVER #                    pp.pprint(out_args)
+# OLD WAY OF STARTING THIS SERVER #                    logger.debug("Inside result != ()")
+# OLD WAY OF STARTING THIS SERVER #                    pp.pprint(result)
+# OLD WAY OF STARTING THIS SERVER #                    invocation.return_value(GLib.Variant(out_args, result))
+
+
+# class ScarlettListenerI(threading.Thread, _IdleObject):
+#     """
+#     Attempt to take out all Gstreamer logic and put it in a class ouside the dbus server.
+#     Cancellable thread which uses gobject signals to return information
+#     to the GUI.
+#     """
+#     __gsignals__ = SCARLETT_LISTENER_I_SIGNALS
+#
+#     @trace
+#     def __init__(self, *args):
+#         threading.Thread.__init__(self)
+#         _IdleObject.__init__(self)
+#         self.cancelled = False
+#         self.data = args[0]
+#         self.name = args[1]
+#         self.setName("%s" % self.name)
+#
+#     @trace
+#     def cancel(self):
+#         """
+#         Threads in python are not cancellable, so we implement our own
+#         cancellation logic
+#         """
+#         self.cancelled = True
+#
+#     @trace
+#     def run(self):
+#         print "Running %s" % str(self)
+#         for i in range(self.data):
+#             if self.cancelled:
+#                 break
+#             time.sleep(0.1)
+#             self.emit("progress", i / float(self.data) * 100)
+#         self.emit("completed")
+
+
+class ScarlettListener(Server):  # NOQA
+    '''
+    <!DOCTYPE node PUBLIC '-//freedesktop//DTD D-BUS Object Introspection 1.0//EN'
+    'http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd'>
+    <node>
+      <interface name='org.freedesktop.DBus.Introspectable'>
+          <method name='Introspect'>
+              <arg name='data' direction='out' type='s'/>
+          </method>
+      </interface>
+      <interface name='org.freedesktop.DBus.Properties'>
+          <method name='Get'>
+              <arg name='interface' direction='in' type='s'/>
+              <arg name='property' direction='in' type='s'/>
+              <arg name='value' direction='out' type='v'/>
+          </method>
+          <method name="Set">
+              <arg name="interface_name" direction="in" type="s"/>
+              <arg name="property_name" direction="in" type="s"/>
+              <arg name="value" direction="in" type="v"/>
+          </method>
+          <method name='GetAll'>
+              <arg name='interface' direction='in' type='s'/>
+              <arg name='properties' direction='out' type='a{sv}'/>
+          </method>
+      </interface>
+      <interface name='org.scarlett.Listener1'>
+        <method name='emitKeywordRecognizedSignal'>
+          <arg type='s' name='s_cmd' direction='out'/>
+        </method>
+        <method name='emitCommandRecognizedSignal'>
+          <arg type='s' name='command' direction='in'/>
+          <arg type='s' name='s_cmd' direction='out'/>
+        </method>
+        <method name='emitSttFailedSignal'>
+          <arg type='s' name='s_cmd' direction='out'/>
+        </method>
+        <method name='emitListenerCancelSignal'>
+          <arg type='s' name='s_cmd' direction='out'/>
+        </method>
+        <method name='emitListenerReadySignal'>
+          <arg type='s' name='s_cmd' direction='out'/>
+        </method>
+        <method name='emitConnectedToListener'>
+          <arg type='s' name='scarlett_plugin' direction='in'/>
+          <arg type='s' name='s_cmd' direction='out'/>
+        </method>
+        <method name='emitListenerMessage'>
+          <arg type='s' name='s_cmd' direction='out'/>
+        </method>
+        <method name='quit'>
+        </method>
+        <property name='CanQuit' type='b' access='read' />
+        <property name='Fullscreen' type='b' access='readwrite' />
+        <property name='CanRaise' type='b' access='read' />
+        <property name='HasTrackList' type='b' access='read'/>
+        <property name='Identity' type='s' access='read'/>
+        <property name='DesktopEntry' type='s' access='read'/>
+        <signal name='KeywordRecognizedSignal'>
+          <arg type='(ss)' name='kw_rec_status' direction='out'/>
+        </signal>
+        <signal name='CommandRecognizedSignal'>
+          <arg type='(sss)' name='cmd_rec_status' direction='out'/>
+        </signal>
+        <signal name='SttFailedSignal'>
+          <arg type='(ss)' name='stt_failed_status' direction='out'/>
+        </signal>
+        <signal name='ListenerCancelSignal'>
+          <arg type='(ss)' name='listener_cancel_status' direction='out'/>
+        </signal>
+        <signal name='ListenerReadySignal'>
+          <arg type='(ss)' name='listener_rdy_status' direction='out'/>
+        </signal>
+        <signal name='ConnectedToListener'>
+          <arg type='s' name='conn_to_lis_status' direction='out'/>
+        </signal>
+      </interface>
+    </node>
+    '''
+
+    LISTENER_IFACE = 'org.scarlett.Listener'
+    LISTENER_PLAYER_IFACE = 'org.scarlett.Listener.Player'
+    LISTENER_TRACKLIST_IFACE = 'org.scarlett.Listener.TrackList'
+    LISTENER_PLAYLISTS_IFACE = 'org.scarlett.Listener.Playlists'
+    LISTENER_EVENTS_IFACE = 'org.scarlett.Listener.event'
+
+    # def __repr__(self):
+    #     return '<ScarlettListener>'
+
+    def __repr__(self):
+        return '<ScarlettListener>'
+
+    def __init__(self, listener):
+        self.con = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+        Gio.bus_own_name_on_connection(self.con,
+                                       'org.scarlett',
+                                       Gio.BusNameOwnerFlags.NONE,
+                                       None,
+                                       None)
+        super().__init__(self.con, '/org/scarlett/Listener')
+
+        self.listener = listener
+        # self.player.connect('current-changed', self._on_current_changed)
+        # self.player.connect('thumbnail-updated', self._on_thumbnail_updated)
+        # self.player.connect('playback-status-changed', self._on_playback_status_changed)
+        # self.player.connect('repeat-mode-changed', self._on_repeat_mode_changed)
+        # self.player.connect('volume-changed', self._on_volume_changed)
+        # self.player.connect('prev-next-invalidated', self._on_prev_next_invalidated)
+        # self.player.connect('seeked', self._on_seeked)
+        # self.player.connect('playlist-changed', self._on_playlist_changed)
         self.dbus_stack = []
         self.pipelines_stack = []
         self.elements_stack = []
@@ -316,6 +669,9 @@ class Server(object):
         self.terminate = False
 
         self.capsfilter_queue_overrun_handler = None
+
+        # # Thread manager, maximum of 1 since it'll be long running
+        # self.manager = FooThreadManager(1)
 
         self._status_ready = "  ScarlettListener is ready"
         self._status_kw_match = "  ScarlettListener caught a keyword match"
@@ -337,130 +693,30 @@ class Server(object):
         logger.debug("Inside self.dbus_stack")
         pp.pprint(self.dbus_stack)
 
-        interface_info = Gio.DBusNodeInfo.new_for_xml(
-            self.__doc__).interfaces[0]
-
-        method_outargs = {}
-        method_inargs = {}
-        for method in interface_info.methods:
-            method_outargs[
-                method.name] = '(' + ''.join([arg.signature for arg in method.out_args]) + ')'
-            method_inargs[method.name] = tuple(
-                arg.signature for arg in method.in_args)
-
-        self.method_inargs = method_inargs
-        self.method_outargs = method_outargs
-
-        logger.debug("Inside self.method_inargs and self.method_outargs")
-        logger.debug("Inside self.method_inargs")
-        pp.pprint(self.method_inargs)
-        logger.debug("Inside self.method_outargs")
-        pp.pprint(self.method_outargs)
-
-        bus.register_object(
-            object_path=path, interface_info=interface_info, method_call_closure=self.on_method_call)
-
-    def run(self):
-        self.loop.run()
-
-    def quit(self):
-        p = self.pipelines_stack[0]
-        p.set_state(Gst.State.NULL)
-        self.loop.quit()
-
-    def on_method_call(self,
-                       connection,
-                       sender,
-                       object_path,
-                       interface_name,
-                       method_name,
-                       parameters,
-                       invocation):
-
-        args = list(parameters.unpack())
-        for i, sig in enumerate(self.method_inargs[method_name]):
-            # if UNIX_FD
-            if sig is 'h':
-                msg = invocation.get_message()
-                fd_list = msg.get_unix_fd_list()
-                args[i] = fd_list.get(args[i])
-
-        result = getattr(self, method_name)(*args)
-
-        if type(result) is list:
-            result = tuple(result)
-        elif not type(result) is tuple:
-            result = (result,)
-
-        out_args = self.method_outargs[method_name]
-        if out_args != '()':
-            logger.debug("Inside out_args in != ()")
-            pp.pprint(out_args)
-            logger.debug("Inside result != ()")
-            pp.pprint(result)
-            invocation.return_value(GLib.Variant(out_args, result))
-
-
-class ScarlettListener(Server):  # NOQA
-    '''
-<node>
-  <interface name='org.scarlett.Listener1'>
-    <method name='emitKeywordRecognizedSignal'>
-      <arg type='s' name='s_cmd' direction='out'/>
-    </method>
-    <method name='emitCommandRecognizedSignal'>
-      <arg type='s' name='command' direction='in'/>
-      <arg type='s' name='s_cmd' direction='out'/>
-    </method>
-    <method name='emitSttFailedSignal'>
-      <arg type='s' name='s_cmd' direction='out'/>
-    </method>
-    <method name='emitListenerCancelSignal'>
-      <arg type='s' name='s_cmd' direction='out'/>
-    </method>
-    <method name='emitListenerReadySignal'>
-      <arg type='s' name='s_cmd' direction='out'/>
-    </method>
-    <method name='emitConnectedToListener'>
-      <arg type='s' name='scarlett_plugin' direction='in'/>
-      <arg type='s' name='s_cmd' direction='out'/>
-    </method>
-    <method name='emitListenerMessage'>
-      <arg type='s' name='s_cmd' direction='out'/>
-    </method>
-    <method name='quit'>
-    </method>
-    <signal name='KeywordRecognizedSignal'>
-      <arg type='(ss)' name='kw_rec_status' direction='out'/>
-    </signal>
-    <signal name='CommandRecognizedSignal'>
-      <arg type='(sss)' name='cmd_rec_status' direction='out'/>
-    </signal>
-    <signal name='SttFailedSignal'>
-      <arg type='(ss)' name='stt_failed_status' direction='out'/>
-    </signal>
-    <signal name='ListenerCancelSignal'>
-      <arg type='(ss)' name='listener_cancel_status' direction='out'/>
-    </signal>
-    <signal name='ListenerReadySignal'>
-      <arg type='(ss)' name='listener_rdy_status' direction='out'/>
-    </signal>
-    <signal name='ConnectedToListener'>
-      <arg type='s' name='conn_to_lis_status' direction='out'/>
-    </signal>
-  </interface>
-</node>
-    '''
-
-    LISTENER_IFACE = 'org.scarlett.Listener'
-    LISTENER_PLAYER_IFACE = 'org.scarlett.Listener.Player'
-    LISTENER_TRACKLIST_IFACE = 'org.scarlett.Listener.TrackList'
-    LISTENER_PLAYLISTS_IFACE = 'org.scarlett.Listener.Playlists'
-    LISTENER_EVENTS_IFACE = 'org.scarlett.Listener.event'
-
-    # def __repr__(self):
-    #     return '<ScarlettListener>'
-
+##########################################################################################
+# NOTE: I USED CODE SNIPPETS BELOW TO SETUP ^
+##########################################################################################
+# bus.own_name(name='org.scarlett')
+# sl = ScarlettListener(bus=bus.con, path='/org/scarlett/Listener')
+# bus = SessionBus()
+# ss = bus.get("org.scarlett", object_path='/org/scarlett/Listener')  # NOQA
+#
+# self.bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+# self.proxy = Gio.DBusProxy.new_sync(self.bus,
+#                                     Gio.DBusProxyFlags.NONE,
+#                                     None,
+#                                     'com.example.service',
+#                                     '/com/example/service',
+#                                     'com.example.service',
+#                                     None)
+#
+# # NOTE: This is a proxy dbus command
+# service = bus.get_object('com.example.service', "/com/example/service")
+# self._quit = service.get_dbus_method(
+#     'quit', 'com.example.service.Quit')
+# self._tasker_connected = service.get_dbus_method(
+#     'emitConnectedToListener',
+#     'com.example.service.emitConnectedToListener')
     #########################################################
     # Scarlett dbus signals ( out = func args )
     #########################################################
@@ -576,6 +832,55 @@ class ScarlettListener(Server):  # NOQA
     #########################################################
     # END Scarlett dbus methods
     #########################################################
+
+    #########################################################
+    # START Dbus Introspection method calls required
+    #########################################################
+
+    def Get(self, interface_name, property_name):
+        return self.GetAll(interface_name)[property_name]
+
+    def GetAll(self, interface_name):
+        if interface_name == ScarlettListener.LISTENER_IFACE:
+            return {
+                'CanQuit': GLib.Variant('b', True),
+                'Fullscreen': GLib.Variant('b', False),
+                'HasTrackList': GLib.Variant('b', True),
+                'Identity': GLib.Variant('s', 'Scarlett'),
+                'DesktopEntry': GLib.Variant('s', 'scarlett-listener')
+            }
+        elif interface_name == 'org.freedesktop.DBus.Properties':
+            return {}
+        elif interface_name == 'org.freedesktop.DBus.Introspectable':
+            return {}
+        else:
+            raise Exception(
+                'org.scarlett.ScarlettListener1',
+                'This object does not implement the %s interface'
+                % interface_name)
+
+    def Set(self, interface_name, property_name, new_value):
+        if interface_name == ScarlettListener.LISTENER_IFACE:
+            if property_name == 'Fullscreen':
+                pass
+        else:
+            raise Exception(
+                'org.scarlett.ScarlettListener1',
+                'This object does not implement the %s interface'
+                % interface_name)
+
+    def PropertiesChanged(self, interface_name, changed_properties,
+                          invalidated_properties):
+        self.con.emit_signal(None,
+                             '/org/scarlett/Listener',
+                             'org.freedesktop.DBus.Properties',
+                             'PropertiesChanged',
+                             GLib.Variant.new_tuple(GLib.Variant('s', interface_name),
+                                                    GLib.Variant('a{sv}', changed_properties),
+                                                    GLib.Variant('as', invalidated_properties)))
+
+    def Introspect(self):
+        return self.__doc__
 
     def scarlett_reset_listen(self):
         self.failed = 0
@@ -1273,18 +1578,33 @@ if __name__ == '__main__':
                         help='Path to a pocketsphinx CMU dictionary file')
     args = parser.parse_args()
 
+# TEMP #    def sigint_handler(*args):
+# TEMP #        """Exit on Ctrl+C"""
+# TEMP #        # Unregister handler, next Ctrl-C will kill app
+# TEMP #        # TODO: figure out if this is really needed or not
+# TEMP #        signal.signal(signal.SIGINT, signal.SIG_DFL)
+# TEMP #
+# TEMP #        sl.close(True)
+# TEMP #
+# TEMP #    signal.signal(signal.SIGINT, sigint_handler)
+# TEMP #
+# TEMP #    # with generator_utils.time_logger('Espeak Subprocess To File'):
+# TEMP #    #     sl.run_pipeline(**vars(args))
+# TEMP #
+# TEMP #    sl.run_pipeline(**vars(args))
+
     def sigint_handler(*args):
         """Exit on Ctrl+C"""
+
         # Unregister handler, next Ctrl-C will kill app
         # TODO: figure out if this is really needed or not
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-        sl.close(True)
+        sl.quit()
 
     signal.signal(signal.SIGINT, sigint_handler)
 
-    with generator_utils.time_logger('Espeak Subprocess To File'):
-        sl.run_pipeline(**vars(args))
+    sl.run_pipeline(**vars(args))
 
     # with generator_utils.time_logger('Scarlett Listener'):
     #     sl.run_pipeline(**vars(args))
