@@ -110,6 +110,7 @@ SCARLETT_LISTENER_I_SIGNALS = {
     "died": (GObject.SignalFlags.RUN_LAST, None, ()),
     "async-done": (GObject.SignalFlags.RUN_LAST, None, ()),
     "state-change": (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_INT, GObject.TYPE_INT)),
+    'playing-changed': (GObject.SignalFlags.RUN_FIRST, None, ()),
     'playback-status-changed': (GObject.SignalFlags.RUN_FIRST, None, ()),
     # FIXME: AUDIT THE RETURN TYPES
     "bitrate-changed": (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_INT, GObject.TYPE_INT)),
@@ -762,12 +763,13 @@ class ScarlettListenerI(threading.Thread, _IdleObject):
                                 self.result(struct['hypothesis'])
             elif message.type == Gst.MessageType.ERROR:
                 gerror, debug = message.parse_error()
+                pp.pprint(("gerror,debug:", gerror, debug))
                 if 'not-linked' in debug:
                     logger.error('not-linked')
                     self.read_exc = generator_utils.NoStreamError()
                 else:
                     logger.info("FileReadError")
-                    pp.pprint(("SOME FileReadError", bus, message))
+                    pp.pprint(("SOME FileReadError", bus, message, struct, struct.get_name()))
                     self.read_exc = generator_utils.FileReadError(debug)
                 self.ready_sem.release()
 
