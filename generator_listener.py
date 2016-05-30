@@ -79,7 +79,7 @@ import traceback
 from gettext import gettext as _
 
 import generator_utils
-from generator_utils import trace
+from generator_utils import trace, abort_on_exception
 # import generator_subprocess
 # import generator_player
 
@@ -146,31 +146,6 @@ HMM_PATH = "{}/.virtualenvs/scarlett-dbus-poc/share/pocketsphinx/model/en-us/en-
 bestpath = 0
 PS_DEVICE = 'plughw:CARD=Device,DEV=0'
 
-
-# source: https://github.com/hpcgam/dicomimport/blob/1f265b1a5c9e631a536333633893ab525da87f16/doc-dcm/SAMPLEZ/nostaples/utils/scanning.py  # NOQA
-def abort_on_exception(func):  # NOQA
-    """
-    This function decorator wraps the run() method of a thread
-    so that any exceptions in that thread will be logged and
-    cause the threads 'abort' signal to be emitted with the exception
-    as an argument.  This way all exception handling can occur
-    on the main thread.
-
-    Note that the entire sys.exc_info() tuple is passed out, this
-    allows the current traceback to be used in the other thread.
-    """
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except Exception, e:
-            thread_object = args[0]
-            exc_type, exc_value, exc_tb = exc_info = sys.exc_info()
-            filename, line_num, func_name, text = traceback.extract_tb(exc_tb)[-1]
-            logger.error('Exception Thrown from [%s] on line [%s] via function [%s]' % (filename, line_num, func_name))
-            logger.error('Exception type %s: %s' % (e.__class__.__name__, e.message))
-            # NOTE: ORIGINAL # thread_object.log.error('Exception type %s: %s' % (e.__class__.__name__, e.message))
-            thread_object.emit('aborted', exc_info)
-    return wrapper
 
 #################################################################
 # Managing the Gobject main loop thread.
