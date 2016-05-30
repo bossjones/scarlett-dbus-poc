@@ -110,6 +110,7 @@ SCARLETT_LISTENER_I_SIGNALS = {
     "died": (GObject.SignalFlags.RUN_LAST, None, ()),
     "async-done": (GObject.SignalFlags.RUN_LAST, None, ()),
     "state-change": (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_INT, GObject.TYPE_INT)),
+    'playback-status-changed': (GObject.SignalFlags.RUN_FIRST, None, ()),
     # FIXME: AUDIT THE RETURN TYPES
     "bitrate-changed": (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_INT, GObject.TYPE_INT)),
     "keyword-recgonized": (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_STRING, GObject.TYPE_STRING)),
@@ -605,7 +606,7 @@ class ScarlettListenerI(threading.Thread, _IdleObject):
         self.bus_message_state_changed_handler_id = gst_bus.connect("message::state-changed", self._on_state_changed)
 
         # Add bus obj to stack we can pull from later
-        self.gst_bus_stack(gst_bus)
+        self.gst_bus_stack.append(gst_bus)
 
         appsink = pipeline.get_by_name('appsink')
         appsink.set_property(
@@ -629,11 +630,11 @@ class ScarlettListenerI(threading.Thread, _IdleObject):
 
         # get gst pipeline element pocketsphinx and set properties
         pocketsphinx = pipeline.get_by_name('asr')
-        if hmm:
+        if ScarlettListenerI.hmm:
             pocketsphinx.set_property('hmm', ScarlettListenerI.hmm)
-        if lm:
+        if ScarlettListenerI.lm:
             pocketsphinx.set_property('lm', ScarlettListenerI.lm)
-        if dict_ps:
+        if ScarlettListenerI.dic:
             pocketsphinx.set_property('dict', ScarlettListenerI.dic)
 
         pocketsphinx.set_property('fwdflat', True)  # Enable Flat Lexicon Search | Default: true
@@ -791,6 +792,7 @@ class ScarlettListenerI(threading.Thread, _IdleObject):
                     self.read_exc = generator_utils.NoStreamError()
                 else:
                     logger.info("FileReadError")
+                    pp.pprint(("SOME FileReadError", bus, message))
                     self.read_exc = generator_utils.FileReadError(debug)
                 self.ready_sem.release()
 
