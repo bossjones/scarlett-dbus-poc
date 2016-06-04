@@ -50,6 +50,9 @@ import traceback
 from functools import wraps
 import Queue
 
+import pprint
+pp = pprint.PrettyPrinter(indent=4)
+
 
 def setup_logger():
     """Return a logger with a default ColoredFormatter."""
@@ -197,6 +200,9 @@ class FooThreadManager:
         Makes a thread with args. The thread will be started when there is
         a free slot
         """
+        pp.pprint('BOSSJONES - pp.pprint userData')
+        pp.pprint(userData)
+
         running = len(self.fooThreads) - len(self.pendingFooThreadArgs)
 
         if args not in self.fooThreads:
@@ -289,9 +295,11 @@ class Demo:
 
         # THE ACTUAL THREAD BIT
         self.manager.make_thread(
-            self.thread_finished,
-            self.thread_progress,
-            rowref, data, name)
+            self.thread_finished,  # completedCb
+            self.thread_progress,  # progressCb
+            rowref,  # userData
+            data,  # args[0]
+            name)  # args[1]
 
     @trace
     def thread_finished(self, thread, rowref):

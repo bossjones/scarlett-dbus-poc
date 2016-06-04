@@ -508,6 +508,77 @@ class ScarlettListenerI(threading.Thread, _IdleObject):
         self.emit('playing-changed')
         # FIXME: is this needed? # self.mainloop.run()
 
+    def _connect_to_dbus(self):
+        self.dbus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+
+        self.dbus_proxy = Gio.DBusProxy.new_sync(self.dbus,
+                                                 Gio.DBusProxyFlags.NONE,
+                                                 None,
+                                                 'org.scarlett',
+                                                 '/org/scarlett/Listener',
+                                                 'org.scarlett',
+                                                 None)
+        result = self.dbus_proxy.ListNames('()')
+        logger.debug('_connect_to_dbus')
+        pp.pprint(result)
+
+        # proxy = Gio.DBusProxy.new_sync(Gio.bus_get_sync(Gio.BusType.SESSION, None),
+        #                                Gio.DBusProxyFlags.NONE,
+        #                                None,
+        #                                'org.freedesktop.PackageKit',
+        #                                '/org/freedesktop/PackageKit',
+        #                                'org.freedesktop.PackageKit.Modify2',
+        #                                None)
+        #
+        # bus = SessionBus()
+        # ss = bus.get("org.scarlett", object_path='/org/scarlett/Listener')  # NOQA
+
+        # # SttFailedSignal / player_cb
+        # ss_failed_signal = bus.con.signal_subscribe(None,  # NOQA
+        #                                             "org.scarlett.Listener",
+        #                                             "SttFailedSignal",
+        #                                             '/org/scarlett/Listener',
+        #                                             None,
+        #                                             0,
+        #                                             player_cb)
+        #
+        # # ListenerReadySignal / player_cb
+        # ss_rdy_signal = bus.con.signal_subscribe(None,  # NOQA
+        #                                          "org.scarlett.Listener",
+        #                                          "ListenerReadySignal",
+        #                                          '/org/scarlett/Listener',
+        #                                          None,
+        #                                          0,
+        #                                          player_cb)
+        #
+        # # KeywordRecognizedSignal / player_cb
+        # ss_kw_rec_signal = bus.con.signal_subscribe(None,  # NOQA
+        #                                             "org.scarlett.Listener",
+        #                                             "KeywordRecognizedSignal",
+        #                                             '/org/scarlett/Listener',
+        #                                             None,
+        #                                             0,
+        #                                             player_cb)
+        #
+        # # CommandRecognizedSignal /command_cb
+        # ss_cmd_rec_signal = bus.con.signal_subscribe(None,  # NOQA
+        #                                              "org.scarlett.Listener",
+        #                                              "CommandRecognizedSignal",
+        #                                              '/org/scarlett/Listener',
+        #                                              None,
+        #                                              0,
+        #                                              command_cb)
+        #
+        # # ListenerCancelSignal / player_cb
+        # # signal_subscribe (sender, interface_name, member, object_path, arg0, flags, callback, *user_data)
+        # ss_cancel_signal = bus.con.signal_subscribe(None,  # NOQA
+        #                                             "org.scarlett.Listener",
+        #                                             "ListenerCancelSignal",
+        #                                             '/org/scarlett/Listener',
+        #                                             None,
+        #                                             0,
+        #                                             player_cb)
+
     # NOTE: This function generates the dot file, checks that graphviz in installed and
     # then finally generates a png file, which it then displays
     def on_debug_activate(self):
@@ -766,6 +837,9 @@ class ScarlettListenerI(threading.Thread, _IdleObject):
                 pp.pprint(("gerror,debug:", gerror, debug))
                 if 'not-linked' in debug:
                     logger.error('not-linked')
+                    self.read_exc = generator_utils.NoStreamError()
+                elif 'No such device' in debug:
+                    logger.error('No such device')
                     self.read_exc = generator_utils.NoStreamError()
                 else:
                     logger.info("FileReadError")
