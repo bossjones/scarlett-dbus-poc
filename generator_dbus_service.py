@@ -1,21 +1,7 @@
 #!/usr/bin/env python  # NOQA
 # -*- coding: utf-8 -*-
 
-"""Scarlett Listener Module."""
-
-# NOTE: THIS IS THE CLASS THAT WILL BE REPLACING scarlett_speaker.py eventually.
-# It is cleaner, more object oriented, and will allows us to run proper tests.
-# Also threading.RLock() and threading.Semaphore() works correctly.
-
-# There are a LOT of threads going on here, all of them managed by Gstreamer.
-# If pyglet ever needs to run under a Python that doesn't have a GIL, some
-# locks will need to be introduced to prevent concurrency catastrophes.
-#
-# At the moment, no locks are used because we assume only one thread is
-# executing Python code at a time.  Some semaphores are used to block and wake
-# up the main thread when needed, these are all instances of
-# threading.Semaphore.  Note that these don't represent any kind of
-# thread-safety.
+"""Scarlett Dbus Service."""
 
 from __future__ import with_statement
 from __future__ import division
@@ -64,7 +50,7 @@ from IPython.core import ultratb
 from gettext import gettext as _
 
 import generator_utils
-from generator_utils import trace, abort_on_exception
+from generator_utils import abort_on_exception
 # import generator_subprocess
 # import generator_player
 
@@ -83,32 +69,32 @@ SCARLETT_LISTENING = "pi-listening"
 SCARLETT_RESPONSE = "pi-response"
 SCARLETT_FAILED = "pi-response2"
 
-SCARLETT_LISTENER_I_SIGNALS = {
-    "completed": (
-        GObject.SignalFlags.RUN_LAST, None, []),
-    "progress": (
-        GObject.SignalFlags.RUN_LAST, None, [
-            GObject.TYPE_FLOAT]),  # percent complete
-    "eos": (GObject.SignalFlags.RUN_LAST, None, ()),
-    "error": (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_STRING, GObject.TYPE_STRING)),
-    "died": (GObject.SignalFlags.RUN_LAST, None, ()),
-    "async-done": (GObject.SignalFlags.RUN_LAST, None, ()),
-    "state-change": (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_INT, GObject.TYPE_INT)),
-    # FIXME: AUDIT THE RETURN TYPES
-    "bitrate-changed": (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_INT, GObject.TYPE_INT)),
-    "keyword-recgonized": (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_STRING, GObject.TYPE_STRING)),
-    "command-recgonized": (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_STRING, GObject.TYPE_STRING)),
-    "stt-failed": (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_STRING, GObject.TYPE_STRING)),
-    "listener-cancel": (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_STRING, GObject.TYPE_STRING)),
-    "listener-ready": (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_STRING, GObject.TYPE_STRING)),
-    "connected-to-server": (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_STRING, GObject.TYPE_STRING)),
-    "listener-message": (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_STRING, GObject.TYPE_STRING)),
-    'finished': (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_PYOBJECT,)),
-    'aborted': (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_PYOBJECT,))
-}
+# SCARLETT_LISTENER_I_SIGNALS = {
+#     "completed": (
+#         GObject.SignalFlags.RUN_LAST, None, []),
+#     "progress": (
+#         GObject.SignalFlags.RUN_LAST, None, [
+#             GObject.TYPE_FLOAT]),  # percent complete
+#     "eos": (GObject.SignalFlags.RUN_LAST, None, ()),
+#     "error": (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_STRING, GObject.TYPE_STRING)),
+#     "died": (GObject.SignalFlags.RUN_LAST, None, ()),
+#     "async-done": (GObject.SignalFlags.RUN_LAST, None, ()),
+#     "state-change": (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_INT, GObject.TYPE_INT)),
+#     # FIXME: AUDIT THE RETURN TYPES
+#     "bitrate-changed": (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_INT, GObject.TYPE_INT)),
+#     "keyword-recgonized": (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_STRING, GObject.TYPE_STRING)),
+#     "command-recgonized": (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_STRING, GObject.TYPE_STRING)),
+#     "stt-failed": (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_STRING, GObject.TYPE_STRING)),
+#     "listener-cancel": (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_STRING, GObject.TYPE_STRING)),
+#     "listener-ready": (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_STRING, GObject.TYPE_STRING)),
+#     "connected-to-server": (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_STRING, GObject.TYPE_STRING)),
+#     "listener-message": (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_STRING, GObject.TYPE_STRING)),
+#     'finished': (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_PYOBJECT,)),
+#     'aborted': (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_PYOBJECT,))
+# }
 
 
-class PlayerType:
+class ScarlettSignals:
     """Enum of Player Types."""
     SCARLETT_CANCEL = "pi-cancel"
     SCARLETT_LISTENING = "pi-listening"
@@ -120,30 +106,19 @@ HERE = os.path.dirname(__file__)
 
 # Pocketsphinx defaults
 
-LANGUAGE_VERSION = 1473
-HOMEDIR = "/home/pi"
-LANGUAGE_FILE_HOME = "{}/dev/bossjones-github/scarlett-dbus-poc/tests/fixtures/lm".format(
-    HOMEDIR)
-DICT_FILE_HOME = "{}/dev/bossjones-github/scarlett-dbus-poc/tests/fixtures/dict".format(
-    HOMEDIR)
-LM_PATH = "{}/{}.lm".format(LANGUAGE_FILE_HOME, LANGUAGE_VERSION)
-DICT_PATH = "{}/{}.dic".format(DICT_FILE_HOME, LANGUAGE_VERSION)
-HMM_PATH = "{}/.virtualenvs/scarlett-dbus-poc/share/pocketsphinx/model/en-us/en-us".format(
-    HOMEDIR)
-bestpath = 0
-PS_DEVICE = 'plughw:CARD=Device,DEV=0'
+# LANGUAGE_VERSION = 1473
+# HOMEDIR = "/home/pi"
+# LANGUAGE_FILE_HOME = "{}/dev/bossjones-github/scarlett-dbus-poc/tests/fixtures/lm".format(
+#     HOMEDIR)
+# DICT_FILE_HOME = "{}/dev/bossjones-github/scarlett-dbus-poc/tests/fixtures/dict".format(
+#     HOMEDIR)
+# LM_PATH = "{}/{}.lm".format(LANGUAGE_FILE_HOME, LANGUAGE_VERSION)
+# DICT_PATH = "{}/{}.dic".format(DICT_FILE_HOME, LANGUAGE_VERSION)
+# HMM_PATH = "{}/.virtualenvs/scarlett-dbus-poc/share/pocketsphinx/model/en-us/en-us".format(
+#     HOMEDIR)
+# bestpath = 0
+# PS_DEVICE = 'plughw:CARD=Device,DEV=0'
 loop = GObject.MainLoop()
-
-class MainLoopThread(threading.Thread):
-    """A daemon thread encapsulating a Gobject main loop."""
-
-    def __init__(self):
-        super(MainLoopThread, self).__init__()
-        self.loop = GObject.MainLoop()
-        self.daemon = True
-
-    def run(self):
-        self.loop.run()
 
 
 class _IdleObject(GObject.GObject):
@@ -296,7 +271,7 @@ class ScarlettListener(_IdleObject, Server):  # NOQA
     LISTENER_PLAYLISTS_IFACE = 'org.scarlett.Listener.Playlists'
     LISTENER_EVENTS_IFACE = 'org.scarlett.Listener.event'
 
-    def __repr__(self):
+    def __repr__(self):  # NOQA
         return '<ScarlettListener>'
 
     @abort_on_exception
