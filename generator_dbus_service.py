@@ -46,16 +46,6 @@ import argparse
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
-# try:
-#     import queue
-# except ImportError:
-#     import Queue as queue
-
-# try:
-#     from urllib.parse import quote
-# except ImportError:
-#     from urllib import quote
-
 
 QUEUE_SIZE = 10
 BUFFER_SIZE = 10
@@ -169,31 +159,7 @@ class _IdleObject(GObject.GObject):
         GObject.idle_add(GObject.GObject.emit, self, *args)
 
 
-class _FooThread(threading.Thread, _IdleObject):
-    """
-    Cancellable thread which uses gobject signals to return information
-    to the GUI.
-    """
-    __gsignals__ = {
-        "completed": (
-            GObject.SignalFlags.RUN_LAST, None, []),
-        "progress": (
-            GObject.SignalFlags.RUN_LAST, None, [
-                GObject.TYPE_FLOAT])  # percent complete
-    }
-
-    @trace
-    def __init__(self, *args):
-        threading.Thread.__init__(self)
-        _IdleObject.__init__(self)
-        self.cancelled = False
-        self.data = args[0]
-        self.name = args[1]
-        self.setName("%s" % self.name)
-
-
-class Server(object):
-
+class Server(object):  # NOQA
     def __repr__(self):
         return '<Server>'
 
@@ -343,37 +309,14 @@ class ScarlettListener(_IdleObject, Server):  # NOQA
                                        Gio.BusNameOwnerFlags.NONE,
                                        None,
                                        None)
+
         Server.__init__(self, bus, path)
-        #super(ScarlettListener, self).__init__(self.con, '/org/scarlett/Listener')
+
         super(ScarlettListener, self).__init__()
 
-        # self.listener = listener
-        # self.player.connect('current-changed', self._on_current_changed)
-        # self.player.connect('thumbnail-updated', self._on_thumbnail_updated)
-        # self.player.connect('playback-status-changed', self._on_playback_status_changed)
-        # self.player.connect('repeat-mode-changed', self._on_repeat_mode_changed)
-        # self.player.connect('volume-changed', self._on_volume_changed)
-        # self.player.connect('prev-next-invalidated', self._on_prev_next_invalidated)
-        # self.player.connect('seeked', self._on_seeked)
-        # self.player.connect('playlist-changed', self._on_playlist_changed)
         self.dbus_stack = []
-        self.pipelines_stack = []
-        self.elements_stack = []
-
-        self._message = 'This is the DBusServer'
         self.config = scarlett_config.Config()
-        self.override_parse = ''
-        self.failed = 0
-        self.kw_found = 0
-        self.debug = False
-        self.create_dot = True
-        self.terminate = False
-
-        self.capsfilter_queue_overrun_handler = None
-
-        # # Thread manager, maximum of 1 since it'll be long running
-        # self.manager = FooThreadManager(1)
-
+        self._message = 'This is the DBusServer'
         self._status_ready = "  ScarlettListener is ready"
         self._status_kw_match = "  ScarlettListener caught a keyword match"
         self._status_cmd_match = "  ScarlettListener caught a command match"
@@ -382,42 +325,11 @@ class ScarlettListener(_IdleObject, Server):  # NOQA
         self._status_cmd_fin = "  ScarlettListener Emitting Command run finish"
         self._status_cmd_cancel = "  ScarlettListener cancel speech Recognition"
 
-        if self.debug:
-            # NOTE: For testing puposes, mainly when in public
-            # so you dont have to keep yelling scarlett in front of strangers
-            self.kw_to_find = ['yo', 'hello', 'man', 'children']
-        else:
-            self.kw_to_find = self.config.get('scarlett', 'keywords')
-
         self.dbus_stack.append(bus)
         self.dbus_stack.append(path)
         logger.debug("Inside self.dbus_stack")
         pp.pprint(self.dbus_stack)
 
-##########################################################################################
-# NOTE: I USED CODE SNIPPETS BELOW TO SETUP ^
-##########################################################################################
-# bus.own_name(name='org.scarlett')
-# sl = ScarlettListener(bus=bus.con, path='/org/scarlett/Listener')
-# bus = SessionBus()
-# ss = bus.get("org.scarlett", object_path='/org/scarlett/Listener')  # NOQA
-#
-# self.bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
-# self.proxy = Gio.DBusProxy.new_sync(self.bus,
-#                                     Gio.DBusProxyFlags.NONE,
-#                                     None,
-#                                     'com.example.service',
-#                                     '/com/example/service',
-#                                     'com.example.service',
-#                                     None)
-#
-# # NOTE: This is a proxy dbus command
-# service = bus.get_object('com.example.service', "/com/example/service")
-# self._quit = service.get_dbus_method(
-#     'quit', 'com.example.service.Quit')
-# self._tasker_connected = service.get_dbus_method(
-#     'emitConnectedToListener',
-#     'com.example.service.emitConnectedToListener')
     #########################################################
     # Scarlett dbus signals ( out = func args )
     #########################################################
@@ -586,49 +498,6 @@ if __name__ == '__main__':
     bus.own_name(name='org.scarlett')
     sl = ScarlettListener(bus=bus.con, path='/org/scarlett/Listener')
 
-    # LANGUAGE_VERSION = 1473
-    # HOMEDIR = "/home/pi"
-    # LANGUAGE_FILE_HOME = "{}/dev/bossjones-github/scarlett-dbus-poc/tests/fixtures/lm".format(
-    #     HOMEDIR)
-    # DICT_FILE_HOME = "{}/dev/bossjones-github/scarlett-dbus-poc/tests/fixtures/dict".format(
-    #     HOMEDIR)
-    # LM_PATH = "{}/{}.lm".format(LANGUAGE_FILE_HOME, LANGUAGE_VERSION)
-    # DICT_PATH = "{}/{}.dic".format(DICT_FILE_HOME, LANGUAGE_VERSION)
-    # HMM_PATH = "{}/.virtualenvs/scarlett-dbus-poc/share/pocketsphinx/model/en-us/en-us".format(
-    #     HOMEDIR)
-    # bestpath = 0
-    # PS_DEVICE = 'plughw:CARD=Device,DEV=0'
-    #
-    # parser = argparse.ArgumentParser(description='Recognize speech from audio')
-    # parser.add_argument('--device',
-    #                     default=PS_DEVICE,
-    #                     help='Pocketsphinx audio source device')
-    # parser.add_argument('--hmm',
-    #                     default=HMM_PATH,
-    #                     help='Path to a pocketsphinx HMM data directory')
-    # parser.add_argument('--lm',
-    #                     default=LM_PATH,
-    #                     help='Path to a pocketsphinx language model file')
-    # parser.add_argument('--dict_ps',
-    #                     default=DICT_PATH,
-    #                     help='Path to a pocketsphinx CMU dictionary file')
-    # args = parser.parse_args()
-
-# TEMP #    def sigint_handler(*args):
-# TEMP #        """Exit on Ctrl+C"""
-# TEMP #        # Unregister handler, next Ctrl-C will kill app
-# TEMP #        # TODO: figure out if this is really needed or not
-# TEMP #        signal.signal(signal.SIGINT, signal.SIG_DFL)
-# TEMP #
-# TEMP #        sl.close(True)
-# TEMP #
-# TEMP #    signal.signal(signal.SIGINT, sigint_handler)
-# TEMP #
-# TEMP #    # with generator_utils.time_logger('Espeak Subprocess To File'):
-# TEMP #    #     sl.run_pipeline(**vars(args))
-# TEMP #
-# TEMP #    sl.run_pipeline(**vars(args))
-
     def sigint_handler(*args):
         """Exit on Ctrl+C"""
 
@@ -636,20 +505,8 @@ if __name__ == '__main__':
         # TODO: figure out if this is really needed or not
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-        sl.quit()
+        loop.quit()
 
     signal.signal(signal.SIGINT, sigint_handler)
 
     loop.run()
-
-    # sl.run_pipeline(**vars(args))
-
-    # with generator_utils.time_logger('Scarlett Listener'):
-    #     sl.run_pipeline(**vars(args))
-
-    #
-    # tts_list = [
-    #     'Hello sir. How are you doing this afternoon? I am full lee function nall, andd red ee for your commands']
-    # for scarlett_text in tts_list:
-    #     with generator_utils.time_logger('Scarlett Speaks'):
-    #         ScarlettListener()
