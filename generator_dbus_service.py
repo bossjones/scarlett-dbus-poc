@@ -46,10 +46,10 @@ import argparse
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
-try:
-    import queue
-except ImportError:
-    import Queue as queue
+# try:
+#     import queue
+# except ImportError:
+#     import Queue as queue
 
 # try:
 #     from urllib.parse import quote
@@ -144,47 +144,6 @@ bestpath = 0
 PS_DEVICE = 'plughw:CARD=Device,DEV=0'
 loop = GObject.MainLoop()
 
-# # source: https://github.com/hpcgam/dicomimport/blob/1f265b1a5c9e631a536333633893ab525da87f16/doc-dcm/SAMPLEZ/nostaples/utils/scanning.py  # NOQA
-# def abort_on_exception(func):  # NOQA
-#     """
-#     This function decorator wraps the run() method of a thread
-#     so that any exceptions in that thread will be logged and
-#     cause the threads 'abort' signal to be emitted with the exception
-#     as an argument.  This way all exception handling can occur
-#     on the main thread.
-#
-#     Note that the entire sys.exc_info() tuple is passed out, this
-#     allows the current traceback to be used in the other thread.
-#     """
-#     def wrapper(*args, **kwargs):
-#         try:
-#             return func(*args, **kwargs)
-#         except Exception, e:
-#             thread_object = args[0]
-#             exc_info = sys.exc_info()
-#             thread_object.log.error('Exception type %s: %s' % (e.__class__.__name__, e.message))
-#             thread_object.emit('aborted', exc_info)
-#     return wrapper
-
-#################################################################
-# Managing the Gobject main loop thread.
-#################################################################
-
-# _shared_loop_thread = None
-# _loop_thread_lock = threading.RLock()
-#
-#
-# def get_loop_thread():
-#     """Get the shared main-loop thread."""
-#     global _shared_loop_thread
-#     with _loop_thread_lock:
-#         if not _shared_loop_thread:
-#             # Start a new thread.
-#             _shared_loop_thread = MainLoopThread()
-#             _shared_loop_thread.start()
-#         return _shared_loop_thread
-
-
 class MainLoopThread(threading.Thread):
     """A daemon thread encapsulating a Gobject main loop."""
 
@@ -203,11 +162,9 @@ class _IdleObject(GObject.GObject):
     by emmitting on an idle handler
     """
 
-    @trace
     def __init__(self):
         GObject.GObject.__init__(self)
 
-    @trace
     def emit(self, *args):
         GObject.idle_add(GObject.GObject.emit, self, *args)
 
@@ -236,7 +193,6 @@ class _FooThread(threading.Thread, _IdleObject):
 
 
 class Server(object):
-    """PyDbus Server Object."""
 
     def __repr__(self):
         return '<Server>'
@@ -387,8 +343,9 @@ class ScarlettListener(_IdleObject, Server):  # NOQA
                                        Gio.BusNameOwnerFlags.NONE,
                                        None,
                                        None)
-        ScarlettListener.__init__(self.con, '/org/scarlett/Listener')
-        # super(ScarlettListener, self).__init__(self.con, '/org/scarlett/Listener')
+        Server.__init__(self, bus, path)
+        #super(ScarlettListener, self).__init__(self.con, '/org/scarlett/Listener')
+        super(ScarlettListener, self).__init__()
 
         # self.listener = listener
         # self.player.connect('current-changed', self._on_current_changed)
@@ -416,7 +373,6 @@ class ScarlettListener(_IdleObject, Server):  # NOQA
 
         # # Thread manager, maximum of 1 since it'll be long running
         # self.manager = FooThreadManager(1)
-        # CM MAC: 083E0CD975F2
 
         self._status_ready = "  ScarlettListener is ready"
         self._status_kw_match = "  ScarlettListener caught a keyword match"
