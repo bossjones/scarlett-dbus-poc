@@ -235,8 +235,7 @@ class ScarlettListener(_IdleObject, Server):  # NOQA
         <method name='emitListenerMessage'>
           <arg type='s' name='s_cmd' direction='out'/>
         </method>
-        <method name='quit'>
-        </method>
+        <method name='Quit'/>
         <property name='CanQuit' type='b' access='read' />
         <property name='Fullscreen' type='b' access='readwrite' />
         <property name='CanRaise' type='b' access='read' />
@@ -467,11 +466,17 @@ class ScarlettListener(_IdleObject, Server):  # NOQA
     def Introspect(self):
         return self.__doc__
 
+    def Quit(self):
+        """removes this object from the DBUS connection and exits"""
+        loop.quit()
+
 if __name__ == '__main__':
     from pydbus import SessionBus
     bus = SessionBus()
     bus.own_name(name='org.scarlett')
     sl = ScarlettListener(bus=bus.con, path='/org/scarlett/Listener')
+    # bus.publish("org.scarlett.Listener", sl)
+    loop.run()
 
     def sigint_handler(*args):
         """Exit on Ctrl+C"""
@@ -480,8 +485,6 @@ if __name__ == '__main__':
         # TODO: figure out if this is really needed or not
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-        loop.quit()
+        sl.Quit()
 
     signal.signal(signal.SIGINT, sigint_handler)
-
-    loop.run()

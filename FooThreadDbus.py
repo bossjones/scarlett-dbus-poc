@@ -361,10 +361,12 @@ class FooThreadManager:
                     thread.join()
 
 
-class ScarlettTasker:
+class ScarlettTasker(_IdleObject):
 
     @trace
-    def __init__(self):
+    def __init__(self, *args):
+        _IdleObject.__init__(self)
+        
         self.bucket = bucket = Queue.Queue()  # NOQA
         self.loop = GLib.MainLoop()
         self.hello = None
@@ -418,6 +420,9 @@ class ScarlettTasker:
                                                     None,
                                                     0,
                                                     player_cb)
+
+        pp.pprint(dir(ss))
+        ss.ConnectedToListener('tasker')
 
         # THE ACTUAL THREAD BIT
         self.manager = FooThreadManager(3)
