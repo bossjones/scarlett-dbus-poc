@@ -87,6 +87,8 @@ import scarlett_config
 
 import logging
 logger = logging.getLogger('scarlettlogger')
+from pydbus import SessionBus
+from pydbus.green import sleep
 
 sys.excepthook = ultratb.FormattedTB(mode='Verbose',
                                      color_scheme='Linux',
@@ -135,6 +137,8 @@ class PlayerType:
 
 gst = Gst
 HERE = os.path.dirname(__file__)
+
+loop = GObject.MainLoop()
 
 # Pocketsphinx defaults
 LANGUAGE_VERSION = 1473
@@ -199,7 +203,7 @@ class FooThreadManager:
     said threads, and respecting a maximum num of concurrent threads limit
     """
 
-    @trace
+    # @trace
     def __init__(self, maxConcurrentThreads):
         self.maxConcurrentThreads = maxConcurrentThreads
         # stores all threads, running or stopped
@@ -207,7 +211,7 @@ class FooThreadManager:
         # the pending thread args are used as an index for the stopped threads
         self.pendingFooThreadArgs = []
 
-    @trace
+    # @trace
     def _register_thread_completed(self, thread, *args):
         """
         Decrements the count of concurrent threads and starts any
@@ -227,7 +231,7 @@ class FooThreadManager:
             except IndexError:
                 pass
 
-    @trace
+    # @trace
     def make_thread(self, completedCb, progressCb, *args):
         """
         Makes a thread with args. The thread will be started when there is
@@ -253,7 +257,7 @@ class FooThreadManager:
                 print "Queuing %s" % thread
                 self.pendingFooThreadArgs.append(args)
 
-    @trace
+    # @trace
     def stop_all_threads(self, block=False):
         """
         Stops all threads. If block is True then actually wait for the thread
@@ -302,7 +306,6 @@ class ScarlettListenerI(threading.Thread, _IdleObject):
     #     'aborted': (GObject.SignalFlags.RUN_LAST, None, (GObject.TYPE_PYOBJECT,))
     # }
 
-    @trace
     def __init__(self, *args):
         threading.Thread.__init__(self)
         _IdleObject.__init__(self)
@@ -391,7 +394,6 @@ class ScarlettListenerI(threading.Thread, _IdleObject):
             "self.keyword_identified = %i" %
             (self.kw_found))
 
-    @trace
     def play(self):
         p = self.pipelines_stack[0]
         self.state = "active"
@@ -416,7 +418,7 @@ class ScarlettListenerI(threading.Thread, _IdleObject):
         logger.debug("AFTER: self.ready_sem.acquire()")
         logger.info("Press Ctrl+C to quit ...")
 
-    @trace
+    # @trace
     def stop(self):
         p = self.pipelines_stack[0]
         self.state = "stopped"
@@ -486,7 +488,7 @@ class ScarlettListenerI(threading.Thread, _IdleObject):
 
         return _gst_launch
 
-    @trace
+    # @trace
     def cancel(self):
         """
         Threads in python are not cancellable, so we implement our own
@@ -501,6 +503,7 @@ class ScarlettListenerI(threading.Thread, _IdleObject):
         # TODO: lock.acquire() / event / condition
         # TODO: self.connect_to_dbus()
         # TODO: self.setup_dbus_callbacks_handlers()
+        self._connect_to_dbus()
         self.init_gst()
         print "Running %s" % str(self)
         self.play()
@@ -509,75 +512,11 @@ class ScarlettListenerI(threading.Thread, _IdleObject):
         # FIXME: is this needed? # self.mainloop.run()
 
     def _connect_to_dbus(self):
-        self.dbus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
-
-        self.dbus_proxy = Gio.DBusProxy.new_sync(self.dbus,
-                                                 Gio.DBusProxyFlags.NONE,
-                                                 None,
-                                                 'org.scarlett',
-                                                 '/org/scarlett/Listener',
-                                                 'org.scarlett',
-                                                 None)
-        result = self.dbus_proxy.ListNames('()')
-        logger.debug('_connect_to_dbus')
-        pp.pprint(result)
-
-        # proxy = Gio.DBusProxy.new_sync(Gio.bus_get_sync(Gio.BusType.SESSION, None),
-        #                                Gio.DBusProxyFlags.NONE,
-        #                                None,
-        #                                'org.freedesktop.PackageKit',
-        #                                '/org/freedesktop/PackageKit',
-        #                                'org.freedesktop.PackageKit.Modify2',
-        #                                None)
-        #
-        # bus = SessionBus()
-        # ss = bus.get("org.scarlett", object_path='/org/scarlett/Listener')  # NOQA
-
-        # # SttFailedSignal / player_cb
-        # ss_failed_signal = bus.con.signal_subscribe(None,  # NOQA
-        #                                             "org.scarlett.Listener",
-        #                                             "SttFailedSignal",
-        #                                             '/org/scarlett/Listener',
-        #                                             None,
-        #                                             0,
-        #                                             player_cb)
-        #
-        # # ListenerReadySignal / player_cb
-        # ss_rdy_signal = bus.con.signal_subscribe(None,  # NOQA
-        #                                          "org.scarlett.Listener",
-        #                                          "ListenerReadySignal",
-        #                                          '/org/scarlett/Listener',
-        #                                          None,
-        #                                          0,
-        #                                          player_cb)
-        #
-        # # KeywordRecognizedSignal / player_cb
-        # ss_kw_rec_signal = bus.con.signal_subscribe(None,  # NOQA
-        #                                             "org.scarlett.Listener",
-        #                                             "KeywordRecognizedSignal",
-        #                                             '/org/scarlett/Listener',
-        #                                             None,
-        #                                             0,
-        #                                             player_cb)
-        #
-        # # CommandRecognizedSignal /command_cb
-        # ss_cmd_rec_signal = bus.con.signal_subscribe(None,  # NOQA
-        #                                              "org.scarlett.Listener",
-        #                                              "CommandRecognizedSignal",
-        #                                              '/org/scarlett/Listener',
-        #                                              None,
-        #                                              0,
-        #                                              command_cb)
-        #
-        # # ListenerCancelSignal / player_cb
-        # # signal_subscribe (sender, interface_name, member, object_path, arg0, flags, callback, *user_data)
-        # ss_cancel_signal = bus.con.signal_subscribe(None,  # NOQA
-        #                                             "org.scarlett.Listener",
-        #                                             "ListenerCancelSignal",
-        #                                             '/org/scarlett/Listener',
-        #                                             None,
-        #                                             0,
-        #                                             player_cb)
+        self.bus = SessionBus()
+        self.dbus_proxy = self.bus.get("org.scarlett", object_path='/org/scarlett/Listener')  # NOQA
+        self.dbus_proxy.emitConnectedToListener('ScarlettListener')
+        sleep(2)
+        logger.info('_connect_to_dbus')
 
     # NOTE: This function generates the dot file, checks that graphviz in installed and
     # then finally generates a png file, which it then displays
@@ -598,14 +537,14 @@ class ScarlettListenerI(threading.Thread, _IdleObject):
         logger.debug("final_hyp: {}".format(final_hyp))
         pp.pprint(final_hyp)
         logger.debug("kw_to_find: {}".format(self.kw_to_find))
-        if final_hyp in self.kw_to_find:
+        if final_hyp in self.kw_to_find and final_hyp != '':
             logger.debug(
                 "HYP-IS-SOMETHING: " +
                 final_hyp +
                 "\n\n\n")
             self.failed = 0
             self.kw_found = 1
-            self.emitKeywordRecognizedSignal()  # CHANGEME
+            self.dbus_proxy.emitKeywordRecognizedSignal()  # CHANGEME
         else:
             failed_temp = self.failed + 1
             self.failed = failed_temp
@@ -614,7 +553,7 @@ class ScarlettListenerI(threading.Thread, _IdleObject):
                 (self.failed))
             if self.failed > 4:
                 # reset pipline
-                self.emitSttFailedSignal()  # CHANGEME
+                self.dbus_proxy.emitSttFailedSignal()  # CHANGEME
                 self.scarlett_reset_listen()
 
     def run_cmd(self, final_hyp):
@@ -624,12 +563,12 @@ class ScarlettListenerI(threading.Thread, _IdleObject):
             "self.kw_found = %i" %
             (self.kw_found))
         if final_hyp == 'CANCEL':
-            self.emitListenerCancelSignal()  # CHANGEME
+            self.dbus_proxy.emitListenerCancelSignal()  # CHANGEME
             self.cancel_listening()
         else:
             current_kw_identified = self.kw_found
             self.kw_found = current_kw_identified
-            self.emitCommandRecognizedSignal(final_hyp)  # CHANGEME
+            self.dbus_proxy.emitCommandRecognizedSignal(final_hyp)  # CHANGEME
             logger.info(
                 " Command = {}".format(final_hyp))
             logger.debug(
@@ -919,21 +858,22 @@ class ScarlettListenerI(threading.Thread, _IdleObject):
 class Demo:
     """Demo Class strictly for testing out ScarlettListenerI."""
 
+    @abort_on_exception
     def __init__(self):
         self.manager = FooThreadManager(1)
         self.add_thread()
 
-    @trace
+    # @trace
     def quit(self):
         # NOTE: when we connect this as a callback to a signal being emitted, we'll need to chage quit to look
         # like this quit(self, sender, event):
         self.manager.stop_all_threads(block=True)
 
-    @trace
+    # @trace
     def stop_threads(self, *args):
         self.manager.stop_all_threads()
 
-    @trace
+    # @trace
     def add_thread(self):
         # NOTE: if we do this via a gobject connect we need def add_thread(self, sender):
         # make a thread and start it
@@ -943,11 +883,11 @@ class Demo:
             self.thread_progress,  # progressCb
             name)  # args[1]
 
-    @trace
+    # @trace
     def thread_finished(self, thread):
         logger.debug("thread_finished.")
 
-    @trace
+    # @trace
     def thread_progress(self, thread):
         logger.debug("thread_progress.")
 
@@ -956,6 +896,22 @@ if __name__ == '__main__':
     # bus = SessionBus()
     # bus.own_name(name='org.scarlett')
     # sl = ScarlettListener(bus=bus.con, path='/org/scarlett/Listener')
+    # # bus.publish("org.scarlett.Listener", sl)
+    # loop.run()
+    #
+    # def sigint_handler(*args):
+    #     """Exit on Ctrl+C"""
+    #
+    #     # Unregister handler, next Ctrl-C will kill app
+    #     # TODO: figure out if this is really needed or not
+    #     signal.signal(signal.SIGINT, signal.SIG_DFL)
+    #
+    #     sl.Quit()
+    #
+    # signal.signal(signal.SIGINT, sigint_handler)
+
+    demo = Demo()
+    loop.run()
 
     def sigint_handler(*args):
         """Exit on Ctrl+C"""
@@ -966,6 +922,6 @@ if __name__ == '__main__':
 
         demo.quit()
 
-    signal.signal(signal.SIGINT, sigint_handler)
+        loop.quit()
 
-    demo = Demo()
+    signal.signal(signal.SIGINT, sigint_handler)
