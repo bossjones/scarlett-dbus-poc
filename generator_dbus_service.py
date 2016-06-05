@@ -363,7 +363,7 @@ class ScarlettListener(_IdleObject, Server):  # NOQA
                         listener_rdy_status)
 
     def ConnectedToListener(self, scarlett_plugin):
-        logger.debug(" sending message: {}".format(scarlett_plugin))
+        logger.debug(" Client Connected: {}".format(scarlett_plugin))
         bus = self.dbus_stack[0]
         conn_to_lis_status = GLib.Variant("s", scarlett_plugin)
         bus.emit_signal(None,
@@ -405,7 +405,7 @@ class ScarlettListener(_IdleObject, Server):  # NOQA
         return SCARLETT_LISTENING
 
     def emitConnectedToListener(self, scarlett_plugin):
-        logger.debug("  sending message")
+        logger.debug("emitConnectedToListener")
         self.ConnectedToListener(scarlett_plugin)
         return " {} is connected to ScarlettListener".format(scarlett_plugin)
 

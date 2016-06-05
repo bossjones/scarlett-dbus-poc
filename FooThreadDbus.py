@@ -203,11 +203,11 @@ class _IdleObject(GObject.GObject):
     by emmitting on an idle handler
     """
 
-    @trace
+    # @trace
     def __init__(self):
         GObject.GObject.__init__(self)
 
-    @trace
+    # @trace
     def emit(self, *args):
         GObject.idle_add(GObject.GObject.emit, self, *args)
 
@@ -225,7 +225,7 @@ class _FooThread(threading.Thread, _IdleObject):
                 GObject.TYPE_FLOAT])  # percent complete
     }
 
-    @trace
+    # @trace
     def __init__(self, *args):
         threading.Thread.__init__(self)
         _IdleObject.__init__(self)
@@ -269,7 +269,7 @@ class _FooThread(threading.Thread, _IdleObject):
         #     toggle_button_is_active = result[0]
         #     print(toggle_button_is_active)
 
-    @trace
+    # @trace
     def cancel(self):
         """
         Threads in python are not cancellable, so we implement our own
@@ -277,7 +277,7 @@ class _FooThread(threading.Thread, _IdleObject):
         """
         self.cancelled = True
 
-    @trace
+    # @trace
     def run(self):
         print "Running %s" % str(self)
         for i in range(self.data):
@@ -294,7 +294,7 @@ class FooThreadManager:
     said threads, and respecting a maximum num of concurrent threads limit
     """
 
-    @trace
+    # @trace
     def __init__(self, maxConcurrentThreads):
         self.maxConcurrentThreads = maxConcurrentThreads
         # stores all threads, running or stopped
@@ -302,7 +302,7 @@ class FooThreadManager:
         # the pending thread args are used as an index for the stopped threads
         self.pendingFooThreadArgs = []
 
-    @trace
+    # @trace
     def _register_thread_completed(self, thread, *args):
         """
         Decrements the count of concurrent threads and starts any
@@ -322,7 +322,7 @@ class FooThreadManager:
             except IndexError:
                 pass
 
-    @trace
+    # @trace
     def make_thread(self, completedCb, progressCb, userData, *args):
         """
         Makes a thread with args. The thread will be started when there is
@@ -348,7 +348,7 @@ class FooThreadManager:
                 print "Queing %s" % thread
                 self.pendingFooThreadArgs.append(args)
 
-    @trace
+    # @trace
     def stop_all_threads(self, block=False):
         """
         Stops all threads. If block is True then actually wait for the thread
@@ -363,10 +363,10 @@ class FooThreadManager:
 
 class ScarlettTasker(_IdleObject):
 
-    @trace
+    # @trace
     def __init__(self, *args):
         _IdleObject.__init__(self)
-        
+
         self.bucket = bucket = Queue.Queue()  # NOQA
         self.loop = GLib.MainLoop()
         self.hello = None
@@ -375,54 +375,58 @@ class ScarlettTasker(_IdleObject):
         bus = SessionBus()
         ss = bus.get("org.scarlett", object_path='/org/scarlett/Listener')  # NOQA
 
-        # SttFailedSignal / player_cb
-        ss_failed_signal = bus.con.signal_subscribe(None,  # NOQA
-                                                    "org.scarlett.Listener",
-                                                    "SttFailedSignal",
-                                                    '/org/scarlett/Listener',
-                                                    None,
-                                                    0,
-                                                    player_cb)
+        # # SttFailedSignal / player_cb
+        # ss_failed_signal = bus.con.signal_subscribe(None,  # NOQA
+        #                                             "org.scarlett.Listener",
+        #                                             "SttFailedSignal",
+        #                                             '/org/scarlett/Listener',
+        #                                             None,
+        #                                             0,
+        #                                             player_cb)
+        ss_failed_signal = ss.SttFailedSignal.connect(player_cb)
 
-        # ListenerReadySignal / player_cb
-        ss_rdy_signal = bus.con.signal_subscribe(None,  # NOQA
-                                                 "org.scarlett.Listener",
-                                                 "ListenerReadySignal",
-                                                 '/org/scarlett/Listener',
-                                                 None,
-                                                 0,
-                                                 player_cb)
+        # # ListenerReadySignal / player_cb
+        # ss_rdy_signal = bus.con.signal_subscribe(None,  # NOQA
+        #                                          "org.scarlett.Listener",
+        #                                          "ListenerReadySignal",
+        #                                          '/org/scarlett/Listener',
+        #                                          None,
+        #                                          0,
+        #                                          player_cb)
+        ss_rdy_signal = ss.ListenerReadySignal.connect(player_cb)
 
-        # KeywordRecognizedSignal / player_cb
-        ss_kw_rec_signal = bus.con.signal_subscribe(None,  # NOQA
-                                                    "org.scarlett.Listener",
-                                                    "KeywordRecognizedSignal",
-                                                    '/org/scarlett/Listener',
-                                                    None,
-                                                    0,
-                                                    player_cb)
+        # # KeywordRecognizedSignal / player_cb
+        # ss_kw_rec_signal = bus.con.signal_subscribe(None,  # NOQA
+        #                                             "org.scarlett.Listener",
+        #                                             "KeywordRecognizedSignal",
+        #                                             '/org/scarlett/Listener',
+        #                                             None,
+        #                                             0,
+        #                                             player_cb)
+        ss_kw_rec_signal = ss.KeywordRecognizedSignal.connect(player_cb)
 
-        # CommandRecognizedSignal /command_cb
-        ss_cmd_rec_signal = bus.con.signal_subscribe(None,  # NOQA
-                                                     "org.scarlett.Listener",
-                                                     "CommandRecognizedSignal",
-                                                     '/org/scarlett/Listener',
-                                                     None,
-                                                     0,
-                                                     command_cb)
+        # # CommandRecognizedSignal /command_cb
+        # ss_cmd_rec_signal = bus.con.signal_subscribe(None,  # NOQA
+        #                                              "org.scarlett.Listener",
+        #                                              "CommandRecognizedSignal",
+        #                                              '/org/scarlett/Listener',
+        #                                              None,
+        #                                              0,
+        #                                              command_cb)
+        ss_cmd_rec_signal = ss.CommandRecognizedSignal.connect(command_cb)
 
-        # ListenerCancelSignal / player_cb
-        # signal_subscribe (sender, interface_name, member, object_path, arg0, flags, callback, *user_data)
-        ss_cancel_signal = bus.con.signal_subscribe(None,  # NOQA
-                                                    "org.scarlett.Listener",
-                                                    "ListenerCancelSignal",
-                                                    '/org/scarlett/Listener',
-                                                    None,
-                                                    0,
-                                                    player_cb)
+        # # ListenerCancelSignal / player_cb
+        # # signal_subscribe (sender, interface_name, member, object_path, arg0, flags, callback, *user_data)
+        # ss_cancel_signal = bus.con.signal_subscribe(None,  # NOQA
+        #                                             "org.scarlett.Listener",
+        #                                             "ListenerCancelSignal",
+        #                                             '/org/scarlett/Listener',
+        #                                             None,
+        #                                             0,
+        #                                             player_cb)
+        ss_cancel_signal = ss.ListenerCancelSignal.connect(player_cb)
 
-        pp.pprint(dir(ss))
-        ss.ConnectedToListener('tasker')
+        ss.emitConnectedToListener('ScarlettTasker')
 
         # THE ACTUAL THREAD BIT
         self.manager = FooThreadManager(3)
@@ -431,20 +435,25 @@ class ScarlettTasker(_IdleObject):
             print "ScarlettTasker Thread Started", self
             self.loop.run()
         except Exception:
+            ss_failed_signal.disconnect()
+            ss_rdy_signal.disconnect()
+            ss_kw_rec_signal.disconnect()
+            ss_cmd_rec_signal.disconnect()
+            ss_cancel_signal.disconnect()
             self.bucket.put(sys.exc_info())
             raise
 
-    @trace
+    # @trace
     def quit(self, sender, event):
         self.manager.stop_all_threads(block=True)
         self.loop.quit()
 
-    @trace
+    # @trace
     def stop_threads(self, *args):
         # THE ACTUAL THREAD BIT
         self.manager.stop_all_threads()
 
-    @trace
+    # @trace
     def add_thread(self, sender):
         # make a thread and start it
         data = random.randint(20, 60)
@@ -459,7 +468,7 @@ class ScarlettTasker(_IdleObject):
             self.thread_progress,
             rowref, data, name)
 
-    @trace
+    # @trace
     def thread_finished(self, thread, rowref):
         pass
         # log
@@ -468,7 +477,7 @@ class ScarlettTasker(_IdleObject):
         # self.pendingModel.remove(rowref)
         # self.completeModel.insert(0, (thread.name,))
 
-    @trace
+    # @trace
     def thread_progress(self, thread, progress, rowref):
         pass
         # self.pendingModel.set_value(rowref, 1, int(progress))
@@ -481,7 +490,7 @@ def print_keyword_args(**kwargs):
 
 
 # NOTE: enumerate req to iterate through tuple and find GVariant
-@trace
+# @trace
 def player_cb(*args, **kwargs):
     if SCARLETT_DEBUG:
         logger.debug("player_cb PrettyPrinter: ")
@@ -513,7 +522,7 @@ def player_cb(*args, **kwargs):
 
 
 # NOTE: enumerate req to iterate through tuple and find GVariant
-@trace
+# @trace
 def command_cb(*args, **kwargs):
     if SCARLETT_DEBUG:
         logger.debug("command_cb PrettyPrinter: ")
