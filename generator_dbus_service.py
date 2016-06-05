@@ -23,10 +23,10 @@ from gi.repository import Gio
 import threading
 
 GObject.threads_init()
-Gst.init(None)
-
-Gst.debug_set_active(True)
-Gst.debug_set_default_threshold(3)
+# Gst.init(None)
+#
+# Gst.debug_set_active(True)
+# Gst.debug_set_default_threshold(3)
 
 import argparse
 import pprint

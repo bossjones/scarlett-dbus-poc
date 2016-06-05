@@ -36,8 +36,6 @@ from functools import wraps
 import traceback
 logger = logging.getLogger('scarlettlogger')
 
-
-
 _FSCODING = "utf-8"
 
 text_type = unicode
