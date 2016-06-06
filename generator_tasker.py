@@ -1,5 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python  # NOQA
 # -*- coding: UTF-8 -*-
+from __future__ import print_function
 
 # Refactored by Malcolm Jones to work with GTK+3 PyGobject( aka PyGI ).
 # Mar 2016.
@@ -41,19 +42,10 @@ import gi
 # gi.require_version('Gst', '1.0')
 from gi.repository import GObject
 # from gi.repository import Gst
-from gi.repository import GLib
-from gi.repository import Gio
+# from gi.repository import GLib
+# from gi.repository import Gio
 # from gi.repository import Gtk
 import threading
-
-# GObject.threads_init()
-# Gst.init(None)
-
-import StringIO
-
-import re
-import ConfigParser
-from signal import signal, SIGWINCH, SIGKILL, SIGTERM
 
 from IPython.core.debugger import Tracer
 from IPython.core import ultratb
@@ -63,18 +55,11 @@ sys.excepthook = ultratb.FormattedTB(mode='Verbose',
                                      call_pdb=True,
                                      ostream=sys.__stdout__)
 
-from colorlog import ColoredFormatter
-
-
-from gettext import gettext as _
-
 import traceback
 from functools import wraps
 import Queue
-from random import randint
 from pydbus import SessionBus
 
-import generator_utils
 from generator_utils import trace, abort_on_exception
 import generator_player
 import generator_speaker
@@ -101,6 +86,7 @@ class SoundType:
 
 
 class SpeakerType:
+    """Enum of Player Types."""
     def speaker_to_array(self, sentance):
         return ["{}".format(sentance)]
 
@@ -117,7 +103,7 @@ class SpeakerType:
 #
 # def create_buffer(data, timestamp=None, duration=None):
 #     """Create a new GStreamer buffer based on provided data.
-# 
+#
 #     Mainly intended to keep gst imports out of non-audio modules.
 #
 #     .. versionchanged:: 2.0
@@ -161,78 +147,78 @@ class _IdleObject(GObject.GObject):
     def emit(self, *args):
         GObject.idle_add(GObject.GObject.emit, self, *args)
 
-
-class FooThreadManager:
-    """
-    Manages many FooThreads. This involves starting and stopping
-    said threads, and respecting a maximum num of concurrent threads limit
-    """
-
-    # @trace
-    def __init__(self, maxConcurrentThreads):
-        self.maxConcurrentThreads = maxConcurrentThreads
-        # stores all threads, running or stopped
-        self.fooThreads = {}
-        # the pending thread args are used as an index for the stopped threads
-        self.pendingFooThreadArgs = []
-
-    # @trace
-    def _register_thread_completed(self, thread, *args):
-        """
-        Decrements the count of concurrent threads and starts any
-        pending threads if there is space
-        """
-        del(self.fooThreads[args])
-        running = len(self.fooThreads) - len(self.pendingFooThreadArgs)
-
-        print "%s completed. %s running, %s pending" % (
-            thread, running, len(self.pendingFooThreadArgs))
-
-        if running < self.maxConcurrentThreads:
-            try:
-                args = self.pendingFooThreadArgs.pop()
-                print "Starting pending %s" % self.fooThreads[args]
-                self.fooThreads[args].start()
-            except IndexError:
-                pass
-
-    # @trace
-    def make_thread(self, completedCb, progressCb, userData, *args):
-        """
-        Makes a thread with args. The thread will be started when there is
-        a free slot
-        """
-        running = len(self.fooThreads) - len(self.pendingFooThreadArgs)
-
-        if args not in self.fooThreads:
-            thread = _FooThread(*args)
-            # signals run in the order connected. Connect the user completed
-            # callback first incase they wish to do something
-            # before we delete the thread
-            thread.connect("completed", completedCb, userData)
-            thread.connect("completed", self._register_thread_completed, *args)
-            thread.connect("progress", progressCb, userData)
-            # This is why we use args, not kwargs, because args are hashable
-            self.fooThreads[args] = thread
-
-            if running < self.maxConcurrentThreads:
-                print "Starting %s" % thread
-                self.fooThreads[args].start()
-            else:
-                print "Queing %s" % thread
-                self.pendingFooThreadArgs.append(args)
-
-    # @trace
-    def stop_all_threads(self, block=False):
-        """
-        Stops all threads. If block is True then actually wait for the thread
-        to finish (may block the UI)
-        """
-        for thread in self.fooThreads.values():
-            thread.cancel()
-            if block:
-                if thread.isAlive():
-                    thread.join()
+#
+# class FooThreadManager:
+#     """
+#     Manages many FooThreads. This involves starting and stopping
+#     said threads, and respecting a maximum num of concurrent threads limit
+#     """
+#
+#     # @trace
+#     def __init__(self, maxConcurrentThreads):
+#         self.maxConcurrentThreads = maxConcurrentThreads
+#         # stores all threads, running or stopped
+#         self.fooThreads = {}
+#         # the pending thread args are used as an index for the stopped threads
+#         self.pendingFooThreadArgs = []
+#
+#     # @trace
+#     def _register_thread_completed(self, thread, *args):
+#         """
+#         Decrements the count of concurrent threads and starts any
+#         pending threads if there is space
+#         """
+#         del(self.fooThreads[args])
+#         running = len(self.fooThreads) - len(self.pendingFooThreadArgs)
+#
+#         print("%s completed. %s running, %s pending" % (
+#             thread, running, len(self.pendingFooThreadArgs)))
+#
+#         if running < self.maxConcurrentThreads:
+#             try:
+#                 args = self.pendingFooThreadArgs.pop()
+#                 print("Starting pending %s" % self.fooThreads[args])
+#                 self.fooThreads[args].start()
+#             except IndexError:
+#                 pass
+#
+#     # @trace
+#     def make_thread(self, completedCb, progressCb, userData, *args):
+#         """
+#         Makes a thread with args. The thread will be started when there is
+#         a free slot
+#         """
+#         running = len(self.fooThreads) - len(self.pendingFooThreadArgs)
+#
+#         if args not in self.fooThreads:
+#             thread = _FooThread(*args)
+#             # signals run in the order connected. Connect the user completed
+#             # callback first incase they wish to do something
+#             # before we delete the thread
+#             thread.connect("completed", completedCb, userData)
+#             thread.connect("completed", self._register_thread_completed, *args)
+#             thread.connect("progress", progressCb, userData)
+#             # This is why we use args, not kwargs, because args are hashable
+#             self.fooThreads[args] = thread
+#
+#             if running < self.maxConcurrentThreads:
+#                 print("Starting %s" % thread)
+#                 self.fooThreads[args].start()
+#             else:
+#                 print("Queing %s" % thread)
+#                 self.pendingFooThreadArgs.append(args)
+#
+#     # @trace
+#     def stop_all_threads(self, block=False):
+#         """
+#         Stops all threads. If block is True then actually wait for the thread
+#         to finish (may block the UI)
+#         """
+#         for thread in self.fooThreads.values():
+#             thread.cancel()
+#             if block:
+#                 if thread.isAlive():
+#                     thread.join()
 
 
 class ScarlettTasker(_IdleObject):
@@ -240,29 +226,180 @@ class ScarlettTasker(_IdleObject):
     @abort_on_exception
     def __init__(self, *args):
         _IdleObject.__init__(self)
+        context = GObject.MainContext.default()
+        # context = loop.get_context()
+
+        # @abort_on_exception
+        # def player_cb(*args, **kwargs):
+        #     if SCARLETT_DEBUG:
+        #         logger.debug("player_cb PrettyPrinter: ")
+        #         pp = pprint.PrettyPrinter(indent=4)
+        #         pp.pprint(args)
+        #         # MAR 13 2016
+        #         logger.debug("player_cb kwargs")
+        #         print_keyword_args(**kwargs)
+        #     for i, v in enumerate(args):
+        #         if SCARLETT_DEBUG:
+        #             logger.debug("Type v: {}".format(type(v)))
+        #             logger.debug("Type i: {}".format(type(i)))
+        #         if type(v) is gi.overrides.GLib.Variant:
+        #             if SCARLETT_DEBUG:
+        #                 logger.debug(
+        #                     "THIS SHOULD BE A Tuple now: {}".format(v))
+        #             msg, scarlett_sound = v
+        #             logger.warning(" msg: {}".format(msg))
+        #             logger.warning(
+        #                 " scarlett_sound: {}".format(scarlett_sound))
+        #             player_run = True
+        #             if player_run:
+        #                 wavefile = SoundType.get_path(scarlett_sound)
+        #                 for path in wavefile:
+        #                     path = os.path.abspath(os.path.expanduser(path))
+        #                     with generator_player.ScarlettPlayer(path) as f:
+        #                         print(f.channels)
+        #                         print(f.samplerate)
+        #                         print(f.duration)
+        #                         for s in f:
+        #                             pass
+        #                 wavefile = None
+        #                 player_run = False
+        #
+        #                 #     #
+        #                 #     # wavefile = [
+        #                 #     #     '/home/pi/dev/bossjones-github/scarlett-dbus-poc/static/sounds/pi-listening.wav']
+        #                 #     # # ORIG # for path in sys.argv[1:]:
+        #                 #     # for path in wavefile:
+        #                 #     #     path = os.path.abspath(os.path.expanduser(path))
+        #                 #     #     with ScarlettPlayer(path) as f:
+        #                 #     #         print(f.channels)
+        #                 #     #         print(f.samplerate)
+        #                 #     #         print(f.duration)
+        #                 #     #         for s in f:
+        #                 #     #             pass
+        #                 # test_gdbus_player.ScarlettPlayer(scarlett_sound)
+        #                 # player_run = False
+        #             # NOTE: Create something like test_gdbus_player.ScarlettPlayer('pi-listening')
+        #             # NOTE: test_gdbus_player.ScarlettPlayer
+        #             # NOTE: self.bucket.put()
+        #             # NOTE: ADD self.queue.put(v)
+        #
+        #
+        # # NOTE: enumerate req to iterate through tuple and find GVariant
+        # # @trace
+        # @abort_on_exception
+        # def command_cb(*args, **kwargs):
+        #     if SCARLETT_DEBUG:
+        #         logger.debug("command_cb PrettyPrinter: ")
+        #         pp = pprint.PrettyPrinter(indent=4)
+        #         pp.pprint(args)
+        #         # MAR 13 2016
+        #         logger.debug("command_cb kwargs")
+        #         print_keyword_args(**kwargs)
+        #     for i, v in enumerate(args):
+        #         if SCARLETT_DEBUG:
+        #             logger.debug("Type v: {}".format(type(v)))
+        #             logger.debug("Type i: {}".format(type(i)))
+        #         if type(v) is gi.overrides.GLib.Variant:
+        #             if SCARLETT_DEBUG:
+        #                 logger.debug(
+        #                     "THIS SHOULD BE A Tuple now: {}".format(v))
+        #             msg, scarlett_sound, command = v
+        #             logger.warning(" msg: {}".format(msg))
+        #             logger.warning(
+        #                 " scarlett_sound: {}".format(scarlett_sound))
+        #             logger.warning(" command: {}".format(command))
+        #             command_run = True
+        #             if command_run:
+        #                 tts_list = SpeakerType.speaker_to_array('Hello sir. How are you doing this afternoon? I am full lee function nall, andd red ee for your commands')
+        #                 for scarlett_text in tts_list:
+        #                     with generator_speaker.time_logger('Scarlett Speaks'):
+        #                         generator_speaker.ScarlettSpeaker(text_to_speak=scarlett_text,
+        #                                                           wavpath="/home/pi/dev/bossjones-github/scarlett-dbus-poc/espeak_tmp.wav")
+        #                 tts_list = None
+        #                 command_run = False
+        #                 # test_gdbus_speaker.ScarlettSpeaker('Hello sir. How are you doing this afternoon? I am full lee function nall, andd red ee for your commands')  # NOQA
+        #             # NOTE: Create something like test_gdbus_player.ScarlettPlayer('pi-listening')
+        #             # NOTE: test_gdbus_player.ScarlettPlayer
+        #             # NOTE: self.bucket.put()
+        #             # NOTE: ADD self.queue.put(v)
+        #                 #
+        #                 # tts_list = [
+        #                 #     'Hello sir. How are you doing this afternoon? I am full lee function nall, andd red ee for your commands']
+        #                 # for scarlett_text in tts_list:
+        #                 #     with generator_utils.time_logger('Scarlett Speaks'):
+        #                 #         ScarlettSpeaker(text_to_speak=scarlett_text,
+        #                 #                         wavpath="/home/pi/dev/bossjones-github/scarlett-dbus-poc/espeak_tmp.wav")
+        #
+        #         # player_run = True
+        #         # if player_run:
+        #         #     wavefile = SoundType.get_path(scarlett_sound)
+        #         #     for path in wavefile:
+        #         #         path = os.path.abspath(os.path.expanduser(path))
+        #         #         with generator_player.ScarlettPlayer(path) as f:
+        #         #             print(f.channels)
+        #         #             print(f.samplerate)
+        #         #             print(f.duration)
+        #         #             for s in f:
+        #         #                 pass
+        #         #     wavefile = None
+        #         #     player_run = False
 
         self.bucket = bucket = Queue.Queue()  # NOQA
-        self.loop = GLib.MainLoop()
         self.hello = None
 
         # with SessionBus() as bus:
         bus = SessionBus()
         ss = bus.get("org.scarlett", object_path='/org/scarlett/Listener')  # NOQA
+        time.sleep(1)
 
-        # ss_failed_signal = ss.SttFailedSignal.connect(print)  # NOQA
-        ss_failed_signal = ss.SttFailedSignal.connect(player_cb)
+        # # ss_failed_signal = ss.SttFailedSignal.connect(print)  # NOQA
+        # bus.con.signal_subscribe(None,  # NOQA
+        # #                                             "org.scarlett.Listener",
+        # #                                             "SttFailedSignal",
+        # #                                             '/org/scarlett/Listener',
+        # #                                             None,
+        # #                                             0,
+        # #                                             player_cb)
+
+        # sender=None, iface=None, signal=None, object=None, arg0=None, flags=0, signal_fired=None
+        ss_failed_signal = bus.subscribe(sender=None,
+                                         # iface="org.scarlett.Listener1",
+                                         iface=None,
+                                         #  object="SttFailedSignal",
+                                         object="/org/scarlett/Listener",
+                                         arg0=None,
+                                         flags=0,
+                                         signal_fired=player_cb)
+
+        # ss_failed_signal = ss.SttFailedSignal.connect(player_cb)
+        # ss_failed_signal = ss.SttFailedSignal.connect(print)
+        # Tracer()()
+
         ss_rdy_signal = ss.ListenerReadySignal.connect(player_cb)
         ss_kw_rec_signal = ss.KeywordRecognizedSignal.connect(player_cb)
         ss_cmd_rec_signal = ss.CommandRecognizedSignal.connect(command_cb)
         ss_cancel_signal = ss.ListenerCancelSignal.connect(player_cb)
 
+        pp.pprint((ss_failed_signal,
+                  ss_rdy_signal,
+                  ss_kw_rec_signal,
+                  ss_cmd_rec_signal,
+                  ss_cancel_signal))
+
+        logger.debug("ss_failed_signal: {}".format(ss_failed_signal))
+        logger.debug("ss_rdy_signal: {}".format(ss_rdy_signal))
+        logger.debug("ss_kw_rec_signal: {}".format(ss_kw_rec_signal))
+        logger.debug("ss_cmd_rec_signal: {}".format(ss_cmd_rec_signal))
+        logger.debug("ss_cancel_signal: {}".format(ss_cancel_signal))
+
         ss.emitConnectedToListener('ScarlettTasker')
+        loop.run()
 
         # THE ACTUAL THREAD BIT
         # self.manager = FooThreadManager(3)
 
         try:
-            print "ScarlettTasker Thread Started", self
+            print("ScarlettTasker Thread Started")
         except Exception:
             ss_failed_signal.disconnect()
             ss_rdy_signal.disconnect()
@@ -316,11 +453,12 @@ class ScarlettTasker(_IdleObject):
 def print_keyword_args(**kwargs):
     # kwargs is a dict of the keyword args passed to the function
     for key, value in kwargs.iteritems():
-        print "%s = %s" % (key, value)
+        print("%s = %s" % (key, value))
 
 
 # NOTE: enumerate req to iterate through tuple and find GVariant
 # @trace
+@abort_on_exception
 def player_cb(*args, **kwargs):
     if SCARLETT_DEBUG:
         logger.debug("player_cb PrettyPrinter: ")
@@ -377,6 +515,7 @@ def player_cb(*args, **kwargs):
 
 # NOTE: enumerate req to iterate through tuple and find GVariant
 # @trace
+@abort_on_exception
 def command_cb(*args, **kwargs):
     if SCARLETT_DEBUG:
         logger.debug("command_cb PrettyPrinter: ")
@@ -437,4 +576,4 @@ def command_cb(*args, **kwargs):
 
 if __name__ == "__main__":
     _INSTANCE = st = ScarlettTasker()
-    loop.run()
+    # loop.run()
