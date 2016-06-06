@@ -33,25 +33,21 @@ if SCARLETT_DEBUG:
     os.putenv('GST_DEBUG_DUMP_DIR_DIR',
               '/home/pi/dev/bossjones-github/scarlett-dbus-poc/_debug')
 
-import argparse
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
 import gi
-gi.require_version('Gtk', '3.0')
-gi.require_version('Gst', '1.0')
+# gi.require_version('Gtk', '3.0')
+# gi.require_version('Gst', '1.0')
 from gi.repository import GObject
-from gi.repository import Gst
+# from gi.repository import Gst
 from gi.repository import GLib
 from gi.repository import Gio
-from gi.repository import Gtk
+# from gi.repository import Gtk
 import threading
 
-GObject.threads_init()
-Gst.init(None)
-
-import time
-import random
+# GObject.threads_init()
+# Gst.init(None)
 
 import StringIO
 
@@ -69,7 +65,6 @@ sys.excepthook = ultratb.FormattedTB(mode='Verbose',
 
 from colorlog import ColoredFormatter
 
-import logging
 
 from gettext import gettext as _
 
@@ -79,14 +74,19 @@ import Queue
 from random import randint
 from pydbus import SessionBus
 
-# import test_gdbus_speaker
-# import test_gdbus_player
-
+import generator_utils
+from generator_utils import trace, abort_on_exception
 import generator_player
 import generator_speaker
 
+import logging
+logger = logging.getLogger('scarlettlogger')
+
+
 STATIC_SOUNDS_PATH = '/home/pi/dev/bossjones-github/scarlett-dbus-poc/static/sounds'
 # /pi-listening.wav
+
+loop = GObject.MainLoop()
 
 
 class SoundType:
@@ -107,116 +107,44 @@ class SpeakerType:
 ###################################################################################################
 # Audio Utils Start
 ###################################################################################################
-
-
-def calculate_duration(num_samples, sample_rate):
-    """Determine duration of samples using GStreamer helper for precise
-    math."""
-    return Gst.util_uint64_scale(num_samples, Gst.SECOND, sample_rate)
-
-
-def create_buffer(data, timestamp=None, duration=None):
-    """Create a new GStreamer buffer based on provided data.
-
-    Mainly intended to keep gst imports out of non-audio modules.
-
-    .. versionchanged:: 2.0
-        ``capabilites`` argument was removed.
-    """
-    if not data:
-        raise ValueError('Cannot create buffer without data')
-    buffer_ = Gst.Buffer.new_wrapped(data)
-    if timestamp is not None:
-        buffer_.pts = timestamp
-    if duration is not None:
-        buffer_.duration = duration
-    return buffer_
-
-
-def millisecond_to_clocktime(value):
-    """Convert a millisecond time to internal GStreamer time."""
-    return value * Gst.MSECOND
-
-
-def clocktime_to_millisecond(value):
-    """Convert an internal GStreamer time to millisecond time."""
-    return value // Gst.MSECOND
+#
+#
+# def calculate_duration(num_samples, sample_rate):
+#     """Determine duration of samples using GStreamer helper for precise
+#     math."""
+#     return Gst.util_uint64_scale(num_samples, Gst.SECOND, sample_rate)
+#
+#
+# def create_buffer(data, timestamp=None, duration=None):
+#     """Create a new GStreamer buffer based on provided data.
+# 
+#     Mainly intended to keep gst imports out of non-audio modules.
+#
+#     .. versionchanged:: 2.0
+#         ``capabilites`` argument was removed.
+#     """
+#     if not data:
+#         raise ValueError('Cannot create buffer without data')
+#     buffer_ = Gst.Buffer.new_wrapped(data)
+#     if timestamp is not None:
+#         buffer_.pts = timestamp
+#     if duration is not None:
+#         buffer_.duration = duration
+#     return buffer_
+#
+#
+# def millisecond_to_clocktime(value):
+#     """Convert a millisecond time to internal GStreamer time."""
+#     return value * Gst.MSECOND
+#
+#
+# def clocktime_to_millisecond(value):
+#     """Convert an internal GStreamer time to millisecond time."""
+#     return value // Gst.MSECOND
 
 ###################################################################################################
 # Audio Utils End
 ###################################################################################################
-
-
-def setup_logger():
-    """Return a logger with a default ColoredFormatter."""
-    formatter = ColoredFormatter(
-        "(%(threadName)-9s) %(log_color)s%(levelname)-8s%(reset)s %(message_log_color)s%(message)s",
-        datefmt=None,
-        reset=True,
-        log_colors={
-            'DEBUG': 'cyan',
-            'INFO': 'green',
-            'WARNING': 'yellow',
-            'ERROR': 'red',
-            'CRITICAL': 'red',
-        },
-        secondary_log_colors={
-            'message': {
-                'ERROR': 'red',
-                'CRITICAL': 'red',
-                'DEBUG': 'yellow'
-            }
-        },
-        style='%'
-    )
-
-    logger = logging.getLogger(__name__)
-    handler = logging.StreamHandler()
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-    logger.setLevel(logging.DEBUG)
-
-    return logger
-
-
-def trace(func):
-    """Tracing wrapper to log when function enter/exit happens.
-    :param func: Function to wrap
-    :type func: callable
-    """
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        logger.debug('Start {!r}'. format(func.__name__))
-        result = func(*args, **kwargs)
-        logger.debug('End {!r}'. format(func.__name__))
-        return result
-    return wrapper
-
-
-# source: https://github.com/hpcgam/dicomimport/blob/1f265b1a5c9e631a536333633893ab525da87f16/doc-dcm/SAMPLEZ/nostaples/utils/scanning.py # NOQA
-def abort_on_exception(func):
-    """
-    This function decorator wraps the run() method of a thread
-    so that any exceptions in that thread will be logged and
-    cause the threads 'abort' signal to be emitted with the exception
-    as an argument.  This way all exception handling can occur
-    on the main thread.
-
-    Note that the entire sys.exc_info() tuple is passed out, this
-    allows the current traceback to be used in the other thread.
-    """
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except Exception, e:
-            thread_object = args[0]
-            exc_info = sys.exc_info()
-            thread_object.log.error('Exception type %s: %s' % (e.__class__.__name__, e.message))
-            thread_object.emit('aborted', exc_info)
-    return wrapper
-
-# Create a player
-logger = setup_logger()
 
 
 class _IdleObject(GObject.GObject):
@@ -232,82 +160,6 @@ class _IdleObject(GObject.GObject):
     # @trace
     def emit(self, *args):
         GObject.idle_add(GObject.GObject.emit, self, *args)
-
-
-class _FooThread(threading.Thread, _IdleObject):
-    """
-    Cancellable thread which uses gobject signals to return information
-    to the GUI.
-    """
-    __gsignals__ = {
-        "completed": (
-            GObject.SignalFlags.RUN_LAST, None, []),
-        "progress": (
-            GObject.SignalFlags.RUN_LAST, None, [
-                GObject.TYPE_FLOAT])  # percent complete
-    }
-
-    # @trace
-    def __init__(self, *args):
-        threading.Thread.__init__(self)
-        _IdleObject.__init__(self)
-        self.cancelled = False
-        self.data = args[0]
-        self.name = args[1]
-        # TODO: Add one more option to pass in object ScarlettPlayer or
-        # ScarlettSpeaker
-        self.setName("%s" % self.name)
-        self.event_do_exit = threading.Event()
-
-        # test_gdbus_player.ScarlettPlayer('pi-listening')
-
-        player = test_gdbus_player
-
-        def signal_handler_in_thread():
-
-            def function_calling_gtk(event, result):
-                result.append(player.ScarlettPlayer('pi-listening'))
-                event.set()
-
-            event = threading.Event()
-            result = []
-            GLib.idle_add(function_calling_gtk, event, result)
-            event.wait()
-            toggle_button_is_active = result[0]
-            print(toggle_button_is_active)
-
-        # toggle_button = Gtk.ToggleButton()
-        #
-        # def signal_handler_in_thread():
-        #
-        #     def function_calling_gtk(event, result):
-        #         result.append(toggle_button.get_active())
-        #         event.set()
-        #
-        #     event = threading.Event()
-        #     result = []
-        #     GLib.idle_add(function_calling_gtk, event, result)
-        #     event.wait()
-        #     toggle_button_is_active = result[0]
-        #     print(toggle_button_is_active)
-
-    # @trace
-    def cancel(self):
-        """
-        Threads in python are not cancellable, so we implement our own
-        cancellation logic
-        """
-        self.cancelled = True
-
-    # @trace
-    def run(self):
-        print "Running %s" % str(self)
-        for i in range(self.data):
-            if self.cancelled:
-                break
-            time.sleep(0.1)
-            self.emit("progress", i / float(self.data) * 100)
-        self.emit("completed")
 
 
 class FooThreadManager:
@@ -385,7 +237,7 @@ class FooThreadManager:
 
 class ScarlettTasker(_IdleObject):
 
-    # @trace
+    @abort_on_exception
     def __init__(self, *args):
         _IdleObject.__init__(self)
 
@@ -397,6 +249,7 @@ class ScarlettTasker(_IdleObject):
         bus = SessionBus()
         ss = bus.get("org.scarlett", object_path='/org/scarlett/Listener')  # NOQA
 
+        # ss_failed_signal = ss.SttFailedSignal.connect(print)  # NOQA
         ss_failed_signal = ss.SttFailedSignal.connect(player_cb)
         ss_rdy_signal = ss.ListenerReadySignal.connect(player_cb)
         ss_kw_rec_signal = ss.KeywordRecognizedSignal.connect(player_cb)
@@ -410,13 +263,13 @@ class ScarlettTasker(_IdleObject):
 
         try:
             print "ScarlettTasker Thread Started", self
-            self.loop.run()
         except Exception:
             ss_failed_signal.disconnect()
             ss_rdy_signal.disconnect()
             ss_kw_rec_signal.disconnect()
             ss_cmd_rec_signal.disconnect()
             ss_cancel_signal.disconnect()
+            loop.quit()
             self.bucket.put(sys.exc_info())
             raise
 
@@ -584,3 +437,4 @@ def command_cb(*args, **kwargs):
 
 if __name__ == "__main__":
     _INSTANCE = st = ScarlettTasker()
+    loop.run()
