@@ -699,7 +699,7 @@ class ScarlettListenerI(threading.Thread, _IdleObject):
             self.ready_sem.release()
             return False
         else:
-            logger.error('NOTHING RETURNED in _on_state_changed')
+            # logger.error('NOTHING RETURNED in _on_state_changed')
             logger.info("State: {}".format(states[1]))
 
     def _on_overrun(self, element):

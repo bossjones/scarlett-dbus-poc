@@ -410,45 +410,11 @@ class ScarlettTasker(_IdleObject):
             self.bucket.put(sys.exc_info())
             raise
 
-    # # @trace
-    # def quit(self, sender, event):
-    #     self.manager.stop_all_threads(block=True)
-    #     self.loop.quit()
-    #
-    # # @trace
-    # def stop_threads(self, *args):
-    #     # THE ACTUAL THREAD BIT
-    #     self.manager.stop_all_threads()
-    #
-    # # @trace
-    # def add_thread(self, sender):
-    #     # make a thread and start it
-    #     data = random.randint(20, 60)
-    #     name = "Thread #%s" % random.randint(0, 1000)
-    #     # rowref = self.pendingModel.insert(0, (name, 0))
-    #     rowref = 'rowref userData'
-    #
-    #     # THE ACTUAL THREAD BIT
-    #     # def make_thread(self, completedCb, progressCb, userData, *args):
-    #     self.manager.make_thread(
-    #         self.thread_finished,
-    #         self.thread_progress,
-    #         rowref, data, name)
-    #
-    # # @trace
-    # def thread_finished(self, thread, rowref):
-    #     pass
-    #     # log
-    #     # logger.info("thread: " + thread)
-    #     # logger.info("rowref: " + rowref)
-    #     # self.pendingModel.remove(rowref)
-    #     # self.completeModel.insert(0, (thread.name,))
-    #
-    # # @trace
-    # def thread_progress(self, thread, progress, rowref):
-    #     pass
-    #     # self.pendingModel.set_value(rowref, 1, int(progress))
 
+@abort_on_exception
+def fake_cb(*args, **kwargs):
+    if SCARLETT_DEBUG:
+        logger.debug("fake_cb")
 
 def print_keyword_args(**kwargs):
     # kwargs is a dict of the keyword args passed to the function
@@ -456,8 +422,6 @@ def print_keyword_args(**kwargs):
         print("%s = %s" % (key, value))
 
 
-# NOTE: enumerate req to iterate through tuple and find GVariant
-# @trace
 @abort_on_exception
 def player_cb(*args, **kwargs):
     if SCARLETT_DEBUG:
@@ -493,25 +457,6 @@ def player_cb(*args, **kwargs):
                 wavefile = None
                 player_run = False
 
-                #     #
-                #     # wavefile = [
-                #     #     '/home/pi/dev/bossjones-github/scarlett-dbus-poc/static/sounds/pi-listening.wav']
-                #     # # ORIG # for path in sys.argv[1:]:
-                #     # for path in wavefile:
-                #     #     path = os.path.abspath(os.path.expanduser(path))
-                #     #     with ScarlettPlayer(path) as f:
-                #     #         print(f.channels)
-                #     #         print(f.samplerate)
-                #     #         print(f.duration)
-                #     #         for s in f:
-                #     #             pass
-                # test_gdbus_player.ScarlettPlayer(scarlett_sound)
-                # player_run = False
-            # NOTE: Create something like test_gdbus_player.ScarlettPlayer('pi-listening')
-            # NOTE: test_gdbus_player.ScarlettPlayer
-            # NOTE: self.bucket.put()
-            # NOTE: ADD self.queue.put(v)
-
 
 # NOTE: enumerate req to iterate through tuple and find GVariant
 # @trace
@@ -546,33 +491,6 @@ def command_cb(*args, **kwargs):
                                                           wavpath="/home/pi/dev/bossjones-github/scarlett-dbus-poc/espeak_tmp.wav")
                 tts_list = None
                 command_run = False
-                # test_gdbus_speaker.ScarlettSpeaker('Hello sir. How are you doing this afternoon? I am full lee function nall, andd red ee for your commands')  # NOQA
-            # NOTE: Create something like test_gdbus_player.ScarlettPlayer('pi-listening')
-            # NOTE: test_gdbus_player.ScarlettPlayer
-            # NOTE: self.bucket.put()
-            # NOTE: ADD self.queue.put(v)
-                #
-                # tts_list = [
-                #     'Hello sir. How are you doing this afternoon? I am full lee function nall, andd red ee for your commands']
-                # for scarlett_text in tts_list:
-                #     with generator_utils.time_logger('Scarlett Speaks'):
-                #         ScarlettSpeaker(text_to_speak=scarlett_text,
-                #                         wavpath="/home/pi/dev/bossjones-github/scarlett-dbus-poc/espeak_tmp.wav")
-
-        # player_run = True
-        # if player_run:
-        #     wavefile = SoundType.get_path(scarlett_sound)
-        #     for path in wavefile:
-        #         path = os.path.abspath(os.path.expanduser(path))
-        #         with generator_player.ScarlettPlayer(path) as f:
-        #             print(f.channels)
-        #             print(f.samplerate)
-        #             print(f.duration)
-        #             for s in f:
-        #                 pass
-        #     wavefile = None
-        #     player_run = False
-
 
 if __name__ == "__main__":
     _INSTANCE = st = ScarlettTasker()
