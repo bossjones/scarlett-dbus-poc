@@ -30,7 +30,7 @@ import gi
 # gi.require_version('Gst', '1.0')
 from gi.repository import GObject
 # from gi.repository import Gst
-# from gi.repository import GLib
+from gi.repository import GLib
 # from gi.repository import Gio
 # from gi.repository import Gtk
 import threading
@@ -48,6 +48,7 @@ from functools import wraps
 import Queue
 from pydbus import SessionBus
 
+import generator_utils
 from generator_utils import trace, abort_on_exception
 import generator_player
 import generator_speaker
@@ -76,7 +77,8 @@ class SoundType:
 class SpeakerType:
     """Enum of Player Types."""
 
-    def speaker_to_array(self, sentance):
+    @staticmethod
+    def speaker_to_array(sentance):
         return ["{}".format(sentance)]
 
 
@@ -111,27 +113,23 @@ class ScarlettTasker(_IdleObject):
         time.sleep(1)
 
         ss_failed_signal = bus.subscribe(sender=None,
-                                         # iface="org.scarlett.Listener1",
-                                         iface=None,
-                                         #  object="SttFailedSignal",
+                                         iface="org.scarlett.Listener",
                                          signal="SttFailedSignal",
                                          object="/org/scarlett/Listener",
                                          arg0=None,
                                          flags=0,
                                          signal_fired=player_cb)
+
         ss_rdy_signal = bus.subscribe(sender=None,
-                                      # iface="org.scarlett.Listener1",
-                                      iface=None,
-                                      #  object="SttFailedSignal",
+                                      iface="org.scarlett.Listener",
                                       signal="ListenerReadySignal",
                                       object="/org/scarlett/Listener",
                                       arg0=None,
                                       flags=0,
                                       signal_fired=player_cb)
+
         ss_kw_rec_signal = bus.subscribe(sender=None,
-                                         # iface="org.scarlett.Listener1",
-                                         iface=None,
-                                         #  object="SttFailedSignal",
+                                         iface="org.scarlett.Listener",
                                          signal="KeywordRecognizedSignal",
                                          object="/org/scarlett/Listener",
                                          arg0=None,
@@ -139,18 +137,15 @@ class ScarlettTasker(_IdleObject):
                                          signal_fired=player_cb)
 
         ss_cmd_rec_signal = bus.subscribe(sender=None,
-                                          # iface="org.scarlett.Listener1",
-                                          iface=None,
-                                          #  object="SttFailedSignal",
+                                          iface="org.scarlett.Listener",
                                           signal="CommandRecognizedSignal",
                                           object="/org/scarlett/Listener",
                                           arg0=None,
                                           flags=0,
                                           signal_fired=command_cb)
+
         ss_cancel_signal = bus.subscribe(sender=None,
-                                         # iface="org.scarlett.Listener1",
-                                         iface=None,
-                                         #  object="SttFailedSignal",
+                                         iface="org.scarlett.Listener",
                                          signal="ListenerCancelSignal",
                                          object="/org/scarlett/Listener",
                                          arg0=None,
@@ -209,11 +204,17 @@ def player_cb(*args, **kwargs):
         # MAR 13 2016
         logger.debug("player_cb kwargs")
         print_keyword_args(**kwargs)
+        # (con=<DBusConnection object at 0x7f3fba21f0f0 (GDBusConnection at 0x2ede000)>,
+        # sender=':1.0',
+        # object='/org/scarlett/Listener',
+        # iface='org.scarlett.Listener',
+        # signal='CommandRecognizedSignal',
+        # params=GLib.Variant('(sss)', ('  ScarlettListener caugh...ommand match', 'pi-response', 'what time is it')))
     for i, v in enumerate(args):
         if SCARLETT_DEBUG:
             logger.debug("Type v: {}".format(type(v)))
             logger.debug("Type i: {}".format(type(i)))
-        if type(v) is gi.overrides.GLib.Variant:
+        if isinstance(v, tuple):
             if SCARLETT_DEBUG:
                 logger.debug(
                     "THIS SHOULD BE A Tuple now: {}".format(v))
@@ -234,6 +235,8 @@ def player_cb(*args, **kwargs):
                             pass
                 wavefile = None
                 player_run = False
+        else:
+            logger.debug("THIS IS NOT A GLib.Variant: {} - TYPE {}".format(v, type(v)))
 
 
 # NOTE: enumerate req to iterate through tuple and find GVariant
@@ -247,11 +250,17 @@ def command_cb(*args, **kwargs):
         # MAR 13 2016
         logger.debug("command_cb kwargs")
         print_keyword_args(**kwargs)
+        # (con=<DBusConnection object at 0x7f3fba21f0f0 (GDBusConnection at 0x2ede000)>,
+        # sender=':1.0',
+        # object='/org/scarlett/Listener',
+        # iface='org.scarlett.Listener',
+        # signal='CommandRecognizedSignal',
+        # params=GLib.Variant('(sss)', ('  ScarlettListener caugh...ommand match', 'pi-response', 'what time is it')))
     for i, v in enumerate(args):
         if SCARLETT_DEBUG:
             logger.debug("Type v: {}".format(type(v)))
             logger.debug("Type i: {}".format(type(i)))
-        if type(v) is gi.overrides.GLib.Variant:
+        if isinstance(v, tuple):
             if SCARLETT_DEBUG:
                 logger.debug(
                     "THIS SHOULD BE A Tuple now: {}".format(v))
@@ -265,11 +274,13 @@ def command_cb(*args, **kwargs):
                 tts_list = SpeakerType.speaker_to_array(
                     'Hello sir. How are you doing this afternoon? I am full lee function nall, andd red ee for your commands')
                 for scarlett_text in tts_list:
-                    with generator_speaker.time_logger('Scarlett Speaks'):
+                    with generator_utils.time_logger('Scarlett Speaks'):
                         generator_speaker.ScarlettSpeaker(text_to_speak=scarlett_text,
                                                           wavpath="/home/pi/dev/bossjones-github/scarlett-dbus-poc/espeak_tmp.wav")
                 tts_list = None
                 command_run = False
+        else:
+            logger.debug("THIS IS NOT A GLib.Variant: {} - TYPE {}".format(v, type(v)))
 
 if __name__ == "__main__":
     _INSTANCE = st = ScarlettTasker()
