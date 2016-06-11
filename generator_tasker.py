@@ -70,8 +70,9 @@ class SoundType:
     SCARLETT_RESPONSE = "pi-response"
     SCARLETT_FAILED = "pi-response2"
 
-    def get_path(self, sound_type):
-        return ["{}/{}/wav".format(STATIC_SOUNDS_PATH, sound_type)]
+    @staticmethod
+    def get_path(sound_type):
+        return ["{}/{}.wav".format(STATIC_SOUNDS_PATH, sound_type)]
 
 
 class SpeakerType:
@@ -273,10 +274,12 @@ def command_cb(*args, **kwargs):
             if command_run:
                 tts_list = SpeakerType.speaker_to_array(
                     'Hello sir. How are you doing this afternoon? I am full lee function nall, andd red ee for your commands')
+                logger.info('BEGIN PLAYING INTRO')
                 for scarlett_text in tts_list:
                     with generator_utils.time_logger('Scarlett Speaks'):
                         generator_speaker.ScarlettSpeaker(text_to_speak=scarlett_text,
                                                           wavpath="/home/pi/dev/bossjones-github/scarlett-dbus-poc/espeak_tmp.wav")
+                logger.info('FINISHED PLAYING INTRO')
                 tts_list = None
                 command_run = False
         else:
