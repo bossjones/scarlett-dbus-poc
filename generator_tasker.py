@@ -75,6 +75,7 @@ class SoundType:
 
 class SpeakerType:
     """Enum of Player Types."""
+
     def speaker_to_array(self, sentance):
         return ["{}".format(sentance)]
 
@@ -92,8 +93,6 @@ class _IdleObject(GObject.GObject):
     # @trace
     def emit(self, *args):
         GObject.idle_add(GObject.GObject.emit, self, *args)
-
-
 
 
 class ScarlettTasker(_IdleObject):
@@ -115,21 +114,54 @@ class ScarlettTasker(_IdleObject):
                                          # iface="org.scarlett.Listener1",
                                          iface=None,
                                          #  object="SttFailedSignal",
+                                         signal="SttFailedSignal",
+                                         object="/org/scarlett/Listener",
+                                         arg0=None,
+                                         flags=0,
+                                         signal_fired=player_cb)
+        ss_rdy_signal = bus.subscribe(sender=None,
+                                      # iface="org.scarlett.Listener1",
+                                      iface=None,
+                                      #  object="SttFailedSignal",
+                                      signal="ListenerReadySignal",
+                                      object="/org/scarlett/Listener",
+                                      arg0=None,
+                                      flags=0,
+                                      signal_fired=player_cb)
+        ss_kw_rec_signal = bus.subscribe(sender=None,
+                                         # iface="org.scarlett.Listener1",
+                                         iface=None,
+                                         #  object="SttFailedSignal",
+                                         signal="KeywordRecognizedSignal",
                                          object="/org/scarlett/Listener",
                                          arg0=None,
                                          flags=0,
                                          signal_fired=player_cb)
 
-        ss_rdy_signal = ss.ListenerReadySignal.connect(player_cb)
-        ss_kw_rec_signal = ss.KeywordRecognizedSignal.connect(player_cb)
-        ss_cmd_rec_signal = ss.CommandRecognizedSignal.connect(command_cb)
-        ss_cancel_signal = ss.ListenerCancelSignal.connect(player_cb)
+        ss_cmd_rec_signal = bus.subscribe(sender=None,
+                                          # iface="org.scarlett.Listener1",
+                                          iface=None,
+                                          #  object="SttFailedSignal",
+                                          signal="CommandRecognizedSignal",
+                                          object="/org/scarlett/Listener",
+                                          arg0=None,
+                                          flags=0,
+                                          signal_fired=command_cb)
+        ss_cancel_signal = bus.subscribe(sender=None,
+                                         # iface="org.scarlett.Listener1",
+                                         iface=None,
+                                         #  object="SttFailedSignal",
+                                         signal="ListenerCancelSignal",
+                                         object="/org/scarlett/Listener",
+                                         arg0=None,
+                                         flags=0,
+                                         signal_fired=player_cb)
 
         pp.pprint((ss_failed_signal,
-                  ss_rdy_signal,
-                  ss_kw_rec_signal,
-                  ss_cmd_rec_signal,
-                  ss_cancel_signal))
+                   ss_rdy_signal,
+                   ss_kw_rec_signal,
+                   ss_cmd_rec_signal,
+                   ss_cancel_signal))
 
         logger.debug("ss_failed_signal: {}".format(ss_failed_signal))
         logger.debug("ss_rdy_signal: {}".format(ss_rdy_signal))
@@ -160,6 +192,7 @@ class ScarlettTasker(_IdleObject):
 def fake_cb(*args, **kwargs):
     if SCARLETT_DEBUG:
         logger.debug("fake_cb")
+
 
 def print_keyword_args(**kwargs):
     # kwargs is a dict of the keyword args passed to the function
@@ -229,7 +262,8 @@ def command_cb(*args, **kwargs):
             logger.warning(" command: {}".format(command))
             command_run = True
             if command_run:
-                tts_list = SpeakerType.speaker_to_array('Hello sir. How are you doing this afternoon? I am full lee function nall, andd red ee for your commands')
+                tts_list = SpeakerType.speaker_to_array(
+                    'Hello sir. How are you doing this afternoon? I am full lee function nall, andd red ee for your commands')
                 for scarlett_text in tts_list:
                     with generator_speaker.time_logger('Scarlett Speaks'):
                         generator_speaker.ScarlettSpeaker(text_to_speak=scarlett_text,
