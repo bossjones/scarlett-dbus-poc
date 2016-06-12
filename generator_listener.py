@@ -30,10 +30,7 @@ os.putenv('GST_DEBUG_DUMP_DIR_DIR',
 
 import gi
 gi.require_version('Gst', '1.0')
-from gi.repository import GObject
-from gi.repository import Gst
-from gi.repository import GLib
-from gi.repository import Gio
+from gi.repository import GObject, Gst, GLib, Gio  # NOQA
 import threading
 
 GObject.threads_init()
@@ -79,7 +76,7 @@ import traceback
 from gettext import gettext as _
 
 import generator_utils
-from generator_utils import trace, abort_on_exception
+from generator_utils import trace, abort_on_exception, _IdleObject
 # import generator_subprocess
 # import generator_player
 
@@ -161,6 +158,7 @@ _loop_thread_lock = threading.RLock()
 _listener_thread_lock = threading.RLock()
 
 
+@abort_on_exception
 def get_loop_thread():
     """Get the shared main-loop thread."""
     global _shared_loop_thread
@@ -182,19 +180,6 @@ class MainLoopThread(threading.Thread):
 
     def run(self):
         self.loop.run()
-
-
-class _IdleObject(GObject.GObject):
-    """
-    Override GObject.GObject to always emit signals in the main thread
-    by emmitting on an idle handler
-    """
-
-    def __init__(self):
-        GObject.GObject.__init__(self)
-
-    def emit(self, *args):
-        GObject.idle_add(GObject.GObject.emit, self, *args)
 
 
 class FooThreadManager:
@@ -310,7 +295,7 @@ class ScarlettListenerI(threading.Thread, _IdleObject):
         threading.Thread.__init__(self)
         _IdleObject.__init__(self)
 
-        Gst.init(None)
+        # Gst.init(None)
 
         self.running = False
         self.finished = False

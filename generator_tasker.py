@@ -49,7 +49,7 @@ import Queue
 from pydbus import SessionBus
 
 import generator_utils
-from generator_utils import trace, abort_on_exception
+from generator_utils import trace, abort_on_exception, _IdleObject
 import generator_player
 import generator_speaker
 
@@ -81,21 +81,6 @@ class SpeakerType:
     @staticmethod
     def speaker_to_array(sentance):
         return ["{}".format(sentance)]
-
-
-class _IdleObject(GObject.GObject):
-    """
-    Override GObject.GObject to always emit signals in the main thread
-    by emmitting on an idle handler
-    """
-
-    # @trace
-    def __init__(self):
-        GObject.GObject.__init__(self)
-
-    # @trace
-    def emit(self, *args):
-        GObject.idle_add(GObject.GObject.emit, self, *args)
 
 
 class ScarlettTasker(_IdleObject):
@@ -224,6 +209,7 @@ def player_cb(*args, **kwargs):
             logger.warning(
                 " scarlett_sound: {}".format(scarlett_sound))
             player_run = True
+            logger.info('BEGIN PLAYING WITH SCARLETTPLAYER')
             if player_run:
                 wavefile = SoundType.get_path(scarlett_sound)
                 for path in wavefile:
@@ -236,6 +222,9 @@ def player_cb(*args, **kwargs):
                             pass
                 wavefile = None
                 player_run = False
+                logger.info('END PLAYING WITH SCARLETTPLAYER INSIDE IF')
+                return True
+            logger.info('END PLAYING WITH SCARLETTPLAYER OUTSIDE IF')
         else:
             logger.debug("THIS IS NOT A GLib.Variant: {} - TYPE {}".format(v, type(v)))
 
@@ -282,6 +271,7 @@ def command_cb(*args, **kwargs):
                 logger.info('FINISHED PLAYING INTRO')
                 tts_list = None
                 command_run = False
+                return True
         else:
             logger.debug("THIS IS NOT A GLib.Variant: {} - TYPE {}".format(v, type(v)))
 

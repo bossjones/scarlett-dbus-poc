@@ -44,6 +44,21 @@ integer_types = (int, long)
 number_types = (int, long, float)
 
 
+class _IdleObject(GObject.GObject):
+    """
+    Override GObject.GObject to always emit signals in the main thread
+    by emmitting on an idle handler
+    """
+
+    # @trace
+    def __init__(self):
+        GObject.GObject.__init__(self)
+
+    # @trace
+    def emit(self, *args):
+        GObject.idle_add(GObject.GObject.emit, self, *args)
+
+
 # source: https://github.com/hpcgam/dicomimport/blob/1f265b1a5c9e631a536333633893ab525da87f16/doc-dcm/SAMPLEZ/nostaples/utils/scanning.py  # NOQA
 def abort_on_exception(func):  # NOQA
     """

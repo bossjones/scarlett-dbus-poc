@@ -76,6 +76,7 @@ import logging
 logger = logging.getLogger('scarlettlogger')
 
 import generator_utils
+from generator_utils import trace, abort_on_exception, _IdleObject
 
 # Managing the Gobject main loop thread.
 
@@ -110,7 +111,7 @@ class MainLoopThread(threading.Thread):
 
 # The decoder.
 
-class ScarlettPlayer(object):
+class ScarlettPlayer(_IdleObject):
     # Anything defined here belongs to the class itself
 
     def __init__(self, path):
@@ -420,7 +421,6 @@ class ScarlettPlayer(object):
                 self.ready_sem.release()
 
     # Iteration.
-
     def next(self):
         # Wait for data from the Gstreamer callbacks.
         val = self.queue.get()
