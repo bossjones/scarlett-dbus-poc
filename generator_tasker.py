@@ -60,7 +60,8 @@ logger = logging.getLogger('scarlettlogger')
 STATIC_SOUNDS_PATH = '/home/pi/dev/bossjones-github/scarlett-dbus-poc/static/sounds'
 # /pi-listening.wav
 
-loop = GObject.MainLoop()
+# loop = GObject.MainLoop()
+loop = GLib.MainLoop()
 
 
 class SoundType:
@@ -170,6 +171,45 @@ class ScarlettTasker(_IdleObject):
 
 
 @abort_on_exception
+def signal_handler_player_thread(scarlett_sound):
+    '''No-Op Function to handle playing Gstreamer.'''
+    def function_calling_player_gst(event):
+        player_run = True
+        logger.info('BEGIN PLAYING WITH SCARLETTPLAYER')
+        if player_run:
+            wavefile = SoundType.get_path(scarlett_sound)
+            for path in wavefile:
+                path = os.path.abspath(os.path.expanduser(path))
+                with generator_player.ScarlettPlayer(path) as f:
+                    print(f.channels)
+                    print(f.samplerate)
+                    print(f.duration)
+                    for s in f:
+                        pass
+        event.set()
+        wavefile = None
+        player_run = False
+        logger.info('END PLAYING WITH SCARLETTPLAYER INSIDE IF')
+
+    event = threading.Event()
+    logger.info('event = threading.Event()')
+    GObject.idle_add(function_calling_player_gst, event)
+    event.wait()
+    logger.info('END PLAYING WITH SCARLETTPLAYER INSIDE IF')
+
+
+@abort_on_exception
+def signal_handler_speaker_thread():
+
+    def function_calling_speaker(event, result, tts_list):
+        for scarlett_text in tts_list:
+            with generator_utils.time_logger('Scarlett Speaks'):
+                generator_speaker.ScarlettSpeaker(text_to_speak=scarlett_text,
+                                                  wavpath="/home/pi/dev/bossjones-github/scarlett-dbus-poc/espeak_tmp.wav")
+        event.set()
+
+
+@abort_on_exception
 def fake_cb(*args, **kwargs):
     if SCARLETT_DEBUG:
         logger.debug("fake_cb")
@@ -208,22 +248,26 @@ def player_cb(*args, **kwargs):
             logger.warning(" msg: {}".format(msg))
             logger.warning(
                 " scarlett_sound: {}".format(scarlett_sound))
-            player_run = True
-            logger.info('BEGIN PLAYING WITH SCARLETTPLAYER')
-            if player_run:
-                wavefile = SoundType.get_path(scarlett_sound)
-                for path in wavefile:
-                    path = os.path.abspath(os.path.expanduser(path))
-                    with generator_player.ScarlettPlayer(path) as f:
-                        print(f.channels)
-                        print(f.samplerate)
-                        print(f.duration)
-                        for s in f:
-                            pass
-                wavefile = None
-                player_run = False
-                logger.info('END PLAYING WITH SCARLETTPLAYER INSIDE IF')
-                return True
+            # player_run = True
+            # logger.info('BEGIN PLAYING WITH SCARLETTPLAYER')
+            # wavefile = SoundType.get_path(scarlett_sound)
+            Tracer()()
+            signal_handler_player_thread(scarlett_sound)
+            return True
+            # if player_run:
+            #     wavefile = SoundType.get_path(scarlett_sound)
+            #     for path in wavefile:
+            #         path = os.path.abspath(os.path.expanduser(path))
+            #         with generator_player.ScarlettPlayer(path) as f:
+            #             print(f.channels)
+            #             print(f.samplerate)
+            #             print(f.duration)
+            #             for s in f:
+            #                 pass
+            #     wavefile = None
+            #     player_run = False
+            #     logger.info('END PLAYING WITH SCARLETTPLAYER INSIDE IF')
+            #     return True
             logger.info('END PLAYING WITH SCARLETTPLAYER OUTSIDE IF')
         else:
             logger.debug("THIS IS NOT A GLib.Variant: {} - TYPE {}".format(v, type(v)))
