@@ -29,16 +29,11 @@ os.putenv('GST_DEBUG_DUMP_DIR_DIR',
 
 import gi
 gi.require_version('Gst', '1.0')
-from gi.repository import GObject
-from gi.repository import Gst
-from gi.repository import GLib
-from gi.repository import Gio
+from gi.repository import GObject, Gst, GLib, Gio  # NOQA
 import threading
-
 
 GObject.threads_init()
 Gst.init(None)
-
 Gst.debug_set_active(True)
 Gst.debug_set_default_threshold(3)
 gst = Gst

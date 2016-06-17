@@ -40,7 +40,7 @@ sys.excepthook = ultratb.FormattedTB(mode='Verbose',
 import gi
 gi.require_version('Gst', '1.0')
 from gi.repository import GLib, GObject, Gst  # NOQA
-Gst.init(None)
+# Gst.init(None)
 
 
 import generator_log  # NOQA
