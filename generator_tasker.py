@@ -63,6 +63,12 @@ STATIC_SOUNDS_PATH = '/home/pi/dev/bossjones-github/scarlett-dbus-poc/static/sou
 # loop = GObject.MainLoop()
 loop = GLib.MainLoop()
 
+try:
+    from rfoo.utils import rconsole
+    rconsole.spawn_server()
+except ImportError:
+    logger.debug("No socket opened for debugging -> please install rfoo")
+
 
 class SoundType:
     """Enum of Player Types."""
@@ -152,6 +158,7 @@ class ScarlettTasker(_IdleObject):
         logger.debug("ss_cancel_signal: {}".format(ss_cancel_signal))
 
         ss.emitConnectedToListener('ScarlettTasker')
+
         loop.run()
 
         # THE ACTUAL THREAD BIT
@@ -170,10 +177,10 @@ class ScarlettTasker(_IdleObject):
             raise
 
 
-@abort_on_exception
 def signal_handler_player_thread(scarlett_sound):
     '''No-Op Function to handle playing Gstreamer.'''
-    def function_calling_player_gst(event):
+
+    def function_calling_player_gst(event, *args, **kwargs):
         player_run = True
         logger.info('BEGIN PLAYING WITH SCARLETTPLAYER')
         if player_run:
@@ -185,15 +192,17 @@ def signal_handler_player_thread(scarlett_sound):
                     print(f.samplerate)
                     print(f.duration)
                     for s in f:
-                        pass
+                        yield
         event.set()
         wavefile = None
         player_run = False
         logger.info('END PLAYING WITH SCARLETTPLAYER INSIDE IF')
+        event.clear()
 
     event = threading.Event()
     logger.info('event = threading.Event()')
-    GObject.idle_add(function_calling_player_gst, event)
+    GObject.idle_add(function_calling_player_gst, event, priority=GLib.PRIORITY_HIGH)
+    logger.info('BEFORE event.wait()')
     event.wait()
     logger.info('END PLAYING WITH SCARLETTPLAYER INSIDE IF')
 
@@ -207,6 +216,36 @@ def signal_handler_speaker_thread():
                 generator_speaker.ScarlettSpeaker(text_to_speak=scarlett_text,
                                                   wavpath="/home/pi/dev/bossjones-github/scarlett-dbus-poc/espeak_tmp.wav")
         event.set()
+
+# def signal_handler_speaker_thread(scarlett_sound):
+#     '''No-Op Function to handle playing Gstreamer.'''
+#     Tracer()()
+#
+#     def function_calling_player_gst(event, *args, **kwargs):
+#         player_run = True
+#         logger.info('BEGIN PLAYING WITH SCARLETTPLAYER')
+#         if player_run:
+#             wavefile = SoundType.get_path(scarlett_sound)
+#             for path in wavefile:
+#                 path = os.path.abspath(os.path.expanduser(path))
+#                 with generator_player.ScarlettPlayer(path) as f:
+#                     print(f.channels)
+#                     print(f.samplerate)
+#                     print(f.duration)
+#                     for s in f:
+#                         yield
+#         event.set()
+#         wavefile = None
+#         player_run = False
+#         logger.info('END PLAYING WITH SCARLETTPLAYER INSIDE IF')
+#         event.clear()
+#
+#     event = threading.Event()
+#     logger.info('event = threading.Event()')
+#     GObject.idle_add(function_calling_player_gst, event, priority=GLib.PRIORITY_HIGH)
+#     logger.info('BEFORE event.wait()')
+#     event.wait()
+#     logger.info('END PLAYING WITH SCARLETTPLAYER INSIDE IF')
 
 
 @abort_on_exception
@@ -236,6 +275,23 @@ def player_cb(*args, **kwargs):
         # iface='org.scarlett.Listener',
         # signal='CommandRecognizedSignal',
         # params=GLib.Variant('(sss)', ('  ScarlettListener caugh...ommand match', 'pi-response', 'what time is it')))
+
+        def player_generator_func():
+            wavefile = SoundType.get_path(scarlett_sound)
+            for path in wavefile:
+                path = os.path.abspath(os.path.expanduser(path))
+                with generator_player.ScarlettPlayer(path, False) as f:
+                    print(f.channels)
+                    print(f.samplerate)
+                    print(f.duration)
+                    for s in f:
+                        # logger.debug(type(s))
+                        yield s
+
+        def run_player(function):
+            gen = function()
+            GObject.idle_add(lambda: next(gen, False), priority=GLib.PRIORITY_HIGH)
+
     for i, v in enumerate(args):
         if SCARLETT_DEBUG:
             logger.debug("Type v: {}".format(type(v)))
@@ -251,8 +307,9 @@ def player_cb(*args, **kwargs):
             # player_run = True
             # logger.info('BEGIN PLAYING WITH SCARLETTPLAYER')
             # wavefile = SoundType.get_path(scarlett_sound)
-            Tracer()()
-            signal_handler_player_thread(scarlett_sound)
+            # Tracer()()
+            # DISABLED # signal_handler_player_thread(scarlett_sound)
+            run_player_result = run_player(player_generator_func)
             return True
             # if player_run:
             #     wavefile = SoundType.get_path(scarlett_sound)

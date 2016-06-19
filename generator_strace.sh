@@ -26,11 +26,14 @@ do
   echo "Pid list: $_PID_LIST"
   for i in $_PID_LIST
   do
-    if [[ -f /var/log/scarlett_debug/${i}_${_PROCESS}.out ]]
+    if [[ -f /var/log/scarlett_debug/${i}_${_PROCESS}.out.strace ]]
     then
       echo "skipping strace $i"
     else
-      strace -o /var/log/scarlett_debug/${i}_${_PROCESS}.out -s 40000 -vvtf -p $i &
+      strace -s 40000 -vvtf -p $i > /var/log/scarlett_debug/${i}_${_PROCESS}.out.strace 2>&1 &
+      # strace -o /var/log/scarlett_debug/${i}_${_PROCESS}.out.strace -s 40000 -vvtf -p $i &
+      # strace -s 40000 -p $i > /tmp/strace_debug/${i}.strace.txt 2>&1 &
+      # pystrace # strace -s 40000 -f -ttt -T -o /var/log/scarlett_debug/${i}_${_PROCESS}.out.strace -p $i &
     fi
   done
   sleep 1

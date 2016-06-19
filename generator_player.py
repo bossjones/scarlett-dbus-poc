@@ -109,10 +109,11 @@ class MainLoopThread(threading.Thread):
 class ScarlettPlayer(_IdleObject):
     # Anything defined here belongs to the class itself
 
-    def __init__(self, path):
+    def __init__(self, path, handle_error):
         # anythning defined here belongs to the INSTANCE of the class
         self.running = False
         self.finished = False
+        self.handle_error = False if handle_error is None else handle_error
 
         # Set up the Gstreamer pipeline.
         self.pipeline = Gst.Pipeline('main-pipeline')
@@ -460,6 +461,7 @@ class ScarlettPlayer(_IdleObject):
 
             # Halt the pipeline (closing file).
             self.pipeline.set_state(Gst.State.NULL)
+            logger.info("closing generator_player: {}".format(self))
 
             # Delete the pipeline object. This seems to be necessary on Python
             # 2, but not Python 3 for some reason: on 3.5, at least, the
@@ -467,15 +469,18 @@ class ScarlettPlayer(_IdleObject):
             del self.pipeline
 
     def __del__(self):
+        logger.info("delete time")
         self.close()
 
     # Context manager.
     def __enter__(self):
+        logger.info("enter time")
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        logger.info("exit time")
         self.close()
-        return False
+        return self.handle_error
 
 
 # Smoke test.
