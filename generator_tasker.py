@@ -277,16 +277,18 @@ def player_cb(*args, **kwargs):
         # params=GLib.Variant('(sss)', ('  ScarlettListener caugh...ommand match', 'pi-response', 'what time is it')))
 
         def player_generator_func():
-            wavefile = SoundType.get_path(scarlett_sound)
             for path in wavefile:
                 path = os.path.abspath(os.path.expanduser(path))
-                with generator_player.ScarlettPlayer(path, False) as f:
-                    print(f.channels)
-                    print(f.samplerate)
-                    print(f.duration)
-                    for s in f:
-                        # logger.debug(type(s))
-                        yield s
+                yield True
+                print("for path in wavefile")
+                p = generator_player.ScarlettPlayer(path, False)
+                while True:
+                    try:
+                        yield p.next()
+                    finally:
+                        time.sleep(p.duration)
+                        p.close(force=True)
+                        yield False
 
         def run_player(function):
             gen = function()
@@ -309,8 +311,10 @@ def player_cb(*args, **kwargs):
             # wavefile = SoundType.get_path(scarlett_sound)
             # Tracer()()
             # DISABLED # signal_handler_player_thread(scarlett_sound)
+
+            wavefile = SoundType.get_path(scarlett_sound)
             run_player_result = run_player(player_generator_func)
-            return True
+            # return True
             # if player_run:
             #     wavefile = SoundType.get_path(scarlett_sound)
             #     for path in wavefile:

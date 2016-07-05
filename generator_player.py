@@ -444,7 +444,13 @@ class ScarlettPlayer(_IdleObject):
             # Unregister for signals, which we registered for above with
             # `add_signal_watch`. (Without this, GStreamer leaks file
             # descriptors.)
-            self.pipeline.get_bus().remove_signal_watch()
+            try:
+                self.pipeline
+            except NameError:
+                logger.info("well, self.pipeline WASN'T defined after all!")
+            else:
+                logger.info("OK, self.pipeline IS defined.")
+                self.pipeline.get_bus().remove_signal_watch()
 
             # Stop reading the file.
             self.source.set_property("uri", None)
