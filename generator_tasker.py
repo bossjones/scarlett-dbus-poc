@@ -276,6 +276,8 @@ def player_cb(*args, **kwargs):
         # signal='CommandRecognizedSignal',
         # params=GLib.Variant('(sss)', ('  ScarlettListener caugh...ommand match', 'pi-response', 'what time is it')))
 
+        # NOTE: THIS IS WHAT FIXED THE GENERATOR NONSENSE
+        # source: https://www.python.org/dev/peps/pep-0343/
         def player_generator_func():
             for path in wavefile:
                 path = os.path.abspath(os.path.expanduser(path))
