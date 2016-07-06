@@ -52,6 +52,7 @@ import generator_utils
 from generator_utils import trace, abort_on_exception, _IdleObject
 import generator_player
 import generator_speaker
+import generator_commands
 
 import logging
 logger = logging.getLogger('scarlettlogger')
@@ -353,6 +354,51 @@ def command_cb(*args, **kwargs):
         # iface='org.scarlett.Listener',
         # signal='CommandRecognizedSignal',
         # params=GLib.Variant('(sss)', ('  ScarlettListener caugh...ommand match', 'pi-response', 'what time is it')))
+
+        # NOTE: THIS IS WHAT FIXED THE GENERATOR NONSENSE
+        # source: https://www.python.org/dev/peps/pep-0343/
+    def player_generator_func():
+        for path in wavefile:
+            path = os.path.abspath(os.path.expanduser(path))
+            yield True
+            print("for path in wavefile")
+            p = generator_player.ScarlettPlayer(path, False)
+            while True:
+                try:
+                    yield p.next()
+                finally:
+                    time.sleep(p.duration)
+                    p.close(force=True)
+                    yield False
+
+    def run_player(function):
+        gen = function()
+        GObject.idle_add(lambda: next(gen, False), priority=GLib.PRIORITY_HIGH)
+
+
+    def speaker_generator_func():
+        for scarlett_text in tts_list:
+            yield True
+            print("scarlett_text in tts_list")
+            _wavepath = "/home/pi/dev/bossjones-github/scarlett-dbus-poc/espeak_tmp.wav"
+            s = generator_speaker.ScarlettSpeaker(text_to_speak=scarlett_text,
+                                                  wavpath=_wavepath,
+                                                  skip_player=True)
+            p = generator_player.ScarlettPlayer(_wavepath, False)
+            logger.error("Duration: p.duration: {}".format(p.duration))
+            while True:
+                try:
+                    yield p.next()
+                finally:
+                    time.sleep(p.duration)
+                    p.close(force=True)
+                    s.close(force=True)
+                    yield False
+
+    def run_speaker(function):
+        gen = function()
+        GObject.idle_add(lambda: next(gen, False), priority=GLib.PRIORITY_HIGH)
+
     for i, v in enumerate(args):
         if SCARLETT_DEBUG:
             logger.debug("Type v: {}".format(type(v)))
@@ -366,19 +412,40 @@ def command_cb(*args, **kwargs):
             logger.warning(
                 " scarlett_sound: {}".format(scarlett_sound))
             logger.warning(" command: {}".format(command))
-            command_run = True
-            if command_run:
-                tts_list = SpeakerType.speaker_to_array(
-                    'Hello sir. How are you doing this afternoon? I am full lee function nall, andd red ee for your commands')
-                logger.info('BEGIN PLAYING INTRO')
-                for scarlett_text in tts_list:
-                    with generator_utils.time_logger('Scarlett Speaks'):
-                        generator_speaker.ScarlettSpeaker(text_to_speak=scarlett_text,
-                                                          wavpath="/home/pi/dev/bossjones-github/scarlett-dbus-poc/espeak_tmp.wav")
-                logger.info('FINISHED PLAYING INTRO')
-                tts_list = None
-                command_run = False
-                return True
+
+            # 1. play sound first
+            wavefile = SoundType.get_path(scarlett_sound)
+            run_player_result = run_player(player_generator_func)
+
+            # 2. Perform command
+            command_run_results = generator_commands.Command.check_cmd(command_tuple=v)
+
+            # 3. Verify it is not a command NO_OP
+            if command_run_results == '__SCARLETT_NO_OP__':
+                logger.error("__SCARLETT_NO_OP__")
+                return False
+
+            # 4. Scarlett Speaks
+            tts_list = SpeakerType.speaker_to_array(command_run_results)
+            run_speaker_result = run_speaker(speaker_generator_func)
+
+            # 5. Emit signal to reset keyword match
+            # 6. Finished call back
+
+            # command_run = True
+            # if command_run:
+            #     tts_list = SpeakerType.speaker_to_array(
+            #         'Hello sir. How are you doing this afternoon? I am full lee function nall, andd red ee for your commands')
+            #     logger.info('BEGIN PLAYING INTRO')
+            #     for scarlett_text in tts_list:
+            #         with generator_utils.time_logger('Scarlett Speaks'):
+            #             generator_speaker.ScarlettSpeaker(text_to_speak=scarlett_text,
+            #                                               wavpath="/home/pi/dev/bossjones-github/scarlett-dbus-poc/espeak_tmp.wav",
+            #                                               skip_player=True)
+            #     logger.info('FINISHED PLAYING INTRO')
+            #     tts_list = None
+            #     command_run = False
+            #     return True
         else:
             logger.debug("THIS IS NOT A GLib.Variant: {} - TYPE {}".format(v, type(v)))
 

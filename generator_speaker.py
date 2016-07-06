@@ -45,7 +45,7 @@ sys.excepthook = ultratb.FormattedTB(mode='Verbose',
 class ScarlettSpeaker(object):
     """Scarlett Speaker Class."""
 
-    def __init__(self, text_to_speak="", wavpath=""):
+    def __init__(self, text_to_speak="", wavpath="", skip_player=False):
         """ScarlettSpeaker object. Anything defined here belongs to the INSTANCE of the class."""
         self._wavefile = []
         self._pitch = 75
@@ -60,6 +60,8 @@ class ScarlettSpeaker(object):
                          "-w", self._wavpath, "-v%s" % self._voice,
                          ".   %s   ." % self._text]
 
+        self.path = None
+
         # Write espeak data
         with generator_utils.time_logger('Espeak Subprocess To File'):
             self.running = True
@@ -70,14 +72,15 @@ class ScarlettSpeaker(object):
             print "Did is run successfully? {}".format(self.res)
 
         # Have Gstreamer play it
-        for path in self._wavefile:
-            path = os.path.abspath(os.path.expanduser(path))
-            with generator_player.ScarlettPlayer(path) as f:
-                print(f.channels)
-                print(f.samplerate)
-                print(f.duration)
-                for s in f:
-                    pass
+        if skip_player != True:
+            for path in self._wavefile:
+                path = os.path.abspath(os.path.expanduser(path))
+                with generator_player.ScarlettPlayer(path) as f:
+                    print(f.channels)
+                    print(f.samplerate)
+                    print(f.duration)
+                    for s in f:
+                        pass
 
     # Cleanup.
     def close(self, force=False):
