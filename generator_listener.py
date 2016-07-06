@@ -371,7 +371,7 @@ class ScarlettListenerI(threading.Thread, _IdleObject):
         self.failed = 0
         self.kw_found = 0
 
-    def cancel_listening(self):
+    def cancel_listening(self, *args, **kwargs):
         logger.debug("Inside cancel_listening function")
         self.scarlett_reset_listen()
         logger.debug("self.failed = %i" % (self.failed))
@@ -502,6 +502,13 @@ class ScarlettListenerI(threading.Thread, _IdleObject):
         self.dbus_proxy.emitConnectedToListener('ScarlettListener')
         sleep(2)
         logger.info('_connect_to_dbus')
+        ss_cancel_signal = self.bus.subscribe(sender=None,
+                                         iface="org.scarlett.Listener",
+                                         signal="ListenerCancelSignal",
+                                         object="/org/scarlett/Listener",
+                                         arg0=None,
+                                         flags=0,
+                                         signal_fired=self.cancel_listening)
 
     # NOTE: This function generates the dot file, checks that graphviz in installed and
     # then finally generates a png file, which it then displays
