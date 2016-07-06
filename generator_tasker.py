@@ -429,23 +429,12 @@ def command_cb(*args, **kwargs):
             tts_list = SpeakerType.speaker_to_array(command_run_results)
             run_speaker_result = run_speaker(speaker_generator_func)
 
-            # 5. Emit signal to reset keyword match
+            # 5. Emit signal to reset keyword match ( need to implement this )
+            bus = SessionBus()
+            ss = bus.get("org.scarlett", object_path='/org/scarlett/Listener')  # NOQA
+            time.sleep(1)
+            ss.emitListenerCancelSignal()
             # 6. Finished call back
-
-            # command_run = True
-            # if command_run:
-            #     tts_list = SpeakerType.speaker_to_array(
-            #         'Hello sir. How are you doing this afternoon? I am full lee function nall, andd red ee for your commands')
-            #     logger.info('BEGIN PLAYING INTRO')
-            #     for scarlett_text in tts_list:
-            #         with generator_utils.time_logger('Scarlett Speaks'):
-            #             generator_speaker.ScarlettSpeaker(text_to_speak=scarlett_text,
-            #                                               wavpath="/home/pi/dev/bossjones-github/scarlett-dbus-poc/espeak_tmp.wav",
-            #                                               skip_player=True)
-            #     logger.info('FINISHED PLAYING INTRO')
-            #     tts_list = None
-            #     command_run = False
-            #     return True
         else:
             logger.debug("THIS IS NOT A GLib.Variant: {} - TYPE {}".format(v, type(v)))
 
