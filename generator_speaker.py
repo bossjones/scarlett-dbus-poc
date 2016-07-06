@@ -29,6 +29,7 @@ from IPython.core import ultratb
 from gettext import gettext as _
 
 import generator_utils
+from generator_utils import trace, abort_on_exception, _IdleObject
 import generator_subprocess
 import generator_player
 

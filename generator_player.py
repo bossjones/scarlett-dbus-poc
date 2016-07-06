@@ -29,16 +29,11 @@ os.putenv('GST_DEBUG_DUMP_DIR_DIR',
 
 import gi
 gi.require_version('Gst', '1.0')
-from gi.repository import GObject
-from gi.repository import Gst
-from gi.repository import GLib
-from gi.repository import Gio
+from gi.repository import GObject, Gst, GLib, Gio  # NOQA
 import threading
-
 
 GObject.threads_init()
 Gst.init(None)
-
 Gst.debug_set_active(True)
 Gst.debug_set_default_threshold(3)
 gst = Gst
@@ -76,6 +71,7 @@ import logging
 logger = logging.getLogger('scarlettlogger')
 
 import generator_utils
+from generator_utils import trace, abort_on_exception, _IdleObject
 
 # Managing the Gobject main loop thread.
 
@@ -110,13 +106,14 @@ class MainLoopThread(threading.Thread):
 
 # The decoder.
 
-class ScarlettPlayer(object):
+class ScarlettPlayer(_IdleObject):
     # Anything defined here belongs to the class itself
 
-    def __init__(self, path):
+    def __init__(self, path, handle_error):
         # anythning defined here belongs to the INSTANCE of the class
         self.running = False
         self.finished = False
+        self.handle_error = False if handle_error is None else handle_error
 
         # Set up the Gstreamer pipeline.
         self.pipeline = Gst.Pipeline('main-pipeline')
@@ -420,7 +417,6 @@ class ScarlettPlayer(object):
                 self.ready_sem.release()
 
     # Iteration.
-
     def next(self):
         # Wait for data from the Gstreamer callbacks.
         val = self.queue.get()
@@ -448,7 +444,13 @@ class ScarlettPlayer(object):
             # Unregister for signals, which we registered for above with
             # `add_signal_watch`. (Without this, GStreamer leaks file
             # descriptors.)
-            self.pipeline.get_bus().remove_signal_watch()
+            try:
+                self.pipeline
+            except NameError:
+                logger.info("well, self.pipeline WASN'T defined after all!")
+            else:
+                logger.info("OK, self.pipeline IS defined.")
+                self.pipeline.get_bus().remove_signal_watch()
 
             # Stop reading the file.
             self.source.set_property("uri", None)
@@ -465,6 +467,7 @@ class ScarlettPlayer(object):
 
             # Halt the pipeline (closing file).
             self.pipeline.set_state(Gst.State.NULL)
+            logger.info("closing generator_player: {}".format(self))
 
             # Delete the pipeline object. This seems to be necessary on Python
             # 2, but not Python 3 for some reason: on 3.5, at least, the
@@ -472,15 +475,18 @@ class ScarlettPlayer(object):
             del self.pipeline
 
     def __del__(self):
+        logger.info("delete time")
         self.close()
 
     # Context manager.
     def __enter__(self):
+        logger.info("enter time")
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        logger.info("exit time")
         self.close()
-        return False
+        return self.handle_error
 
 
 # Smoke test.
