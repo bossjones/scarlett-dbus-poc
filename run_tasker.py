@@ -494,7 +494,6 @@ if __name__ == '__main__':
         except Queue.Empty:
             time.sleep(.2)
             logger.info('nothing yet')
-            pass
         else:
             exc_type, exc_obj, exc_trace = exc
             # deal with the exception

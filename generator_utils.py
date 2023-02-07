@@ -93,8 +93,8 @@ class InstanceTracker(object):  # NOQA
         self.connect('destroy', self.__kinds[klass].remove)
 
     @classmethod
-    def instances(klass):
-        return klass.__kinds.get(klass, [])
+    def instances(cls):
+        return cls.__kinds.get(cls, [])
 
 
 def escape(str):
@@ -109,7 +109,7 @@ def unescape(str):
 
 def parse_time(timestr, err=(ValueError, re.error)):
     """Parse a time string in hh:mm:ss, mm:ss, or ss format."""
-    if timestr[0:1] == "-":
+    if timestr[:1] == "-":
         m = -1
         timestr = timestr[1:]
     else:
@@ -304,10 +304,7 @@ def spawn(argv, stdout=False):
     args = GLib.spawn_async(argv=argv, flags=GLib.SpawnFlags.SEARCH_PATH,
                             standard_output=stdout)
 
-    if stdout:
-        return os.fdopen(args[2])
-    else:
-        return args[0]
+    return os.fdopen(args[2]) if stdout else args[0]
 
 
 def fver(tup):
@@ -319,7 +316,7 @@ def uri_is_valid(uri):
 
 
 def make_case_insensitive(filename):
-    return "".join(["[%s%s]" % (c.lower(), c.upper()) for c in filename])
+    return "".join([f"[{c.lower()}{c.upper()}]" for c in filename])
 
 
 class DeferredSignal(object):
@@ -480,8 +477,7 @@ def gi_require_versions(name, versions):
             error = e
         else:
             return version
-    else:
-        raise error
+    raise error
 
 
 def is_main_thread():
@@ -708,21 +704,19 @@ def mkdir(dir_, *args):  # NOQA
             raise
 
 
-def iscommand(s):  # NOQA
+def iscommand(s):    # NOQA
     """True if an executable file `s` exists in the user's path, or is a
     fully qualified and existing executable file."""
 
     if s == "" or os.path.sep in s:
         return os.path.isfile(s) and os.access(s, os.X_OK)
-    else:
-        s = s.split()[0]
-        path = environ.get('PATH', '') or os.defpath
-        for p in path.split(os.path.pathsep):
-            p2 = os.path.join(p, s)
-            if os.path.isfile(p2) and os.access(p2, os.X_OK):
-                return True
-        else:
-            return False
+    s = s.split()[0]
+    path = environ.get('PATH', '') or os.defpath
+    for p in path.split(os.path.pathsep):
+        p2 = os.path.join(p, s)
+        if os.path.isfile(p2) and os.access(p2, os.X_OK):
+            return True
+    return False
 
 
 def is_fsnative(path):
@@ -760,14 +754,8 @@ def listdir(path, hidden=False):
 
     assert is_fsnative(path)
 
-    if hidden:
-        filt = None
-    else:
-        filt = lambda base: not base.startswith(".")  # NOQA
-    if path.endswith(os.sep):
-        join = "".join
-    else:
-        join = os.sep.join
+    filt = None if hidden else (lambda base: not base.startswith("."))
+    join = "".join if path.endswith(os.sep) else os.sep.join
     return [join([path, basename])
             for basename in sorted(os.listdir(path))
             if filt(basename)]
@@ -798,7 +786,7 @@ def expanduser(filename):  # NOQA
 def unexpand(filename, HOME=expanduser("~")):
     """Replace the user's home directory with ~/, if it appears at the
     start of the path name."""
-    sub = (os.name == "nt" and "%USERPROFILE%") or "~"
+    sub = "%USERPROFILE%" if os.name == "nt" else "~"
     if filename == HOME:
         return sub
     elif filename.startswith(HOME + os.path.sep):
@@ -851,9 +839,7 @@ class UnknownTypeError(GStreamerError):
     """Raised when Gstreamer can't decode the given file type."""
 
     def __init__(self, streaminfo):
-        super(UnknownTypeError, self).__init__(
-            "can't decode stream: " + streaminfo
-        )
+        super(UnknownTypeError, self).__init__(f"can't decode stream: {streaminfo}")
         self.streaminfo = streaminfo
 
 
@@ -919,11 +905,7 @@ def audio_open(path):
     # GStreamer.
     if _gst_available():
         from . import generator_player
-        try:
+        with contextlib.suppress(DecodeError):
             return generator_player.ScarlettPlayer(path)
-            # return gstdec.ScarlettPlayer(path)
-        except DecodeError:
-            pass
-
     # All backends failed!
     raise NoBackendError()

@@ -248,8 +248,7 @@ class ScarlettTasker():
         logger.debug("ScarlettTasker stopped")
 
     def run(self):
-        logger.debug(
-            "{}".format(self._tasker_connected(ScarlettTasker().__class__.__name__)))
+        logger.debug(f"{self._tasker_connected(ScarlettTasker().__class__.__name__)}")
 
     def quit(self):
         logger.debug("  shutting down ScarlettTasker")

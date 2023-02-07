@@ -234,7 +234,7 @@ class _FooThread(threading.Thread, _IdleObject):
         self.name = args[1]
         # TODO: Add one more option to pass in object ScarlettPlayer or
         # ScarlettSpeaker
-        self.setName("%s" % self.name)
+        self.setName(f"{self.name}")
         self.event_do_exit = threading.Event()
 
         # test_gdbus_player.ScarlettPlayer('pi-listening')
@@ -356,9 +356,8 @@ class FooThreadManager:
         """
         for thread in self.fooThreads.values():
             thread.cancel()
-            if block:
-                if thread.isAlive():
-                    thread.join()
+            if block and thread.isAlive():
+                thread.join()
 
 
 class ScarlettTasker(_IdleObject):
@@ -457,7 +456,7 @@ class ScarlettTasker(_IdleObject):
     def add_thread(self, sender):
         # make a thread and start it
         data = random.randint(20, 60)
-        name = "Thread #%s" % random.randint(0, 1000)
+        name = f"Thread #{random.randint(0, 1000)}"
         # rowref = self.pendingModel.insert(0, (name, 0))
         rowref = 'rowref userData'
 
@@ -501,18 +500,15 @@ def player_cb(*args, **kwargs):
         print_keyword_args(**kwargs)
     for i, v in enumerate(args):
         if SCARLETT_DEBUG:
-            logger.debug("Type v: {}".format(type(v)))
-            logger.debug("Type i: {}".format(type(i)))
+            logger.debug(f"Type v: {type(v)}")
+            logger.debug(f"Type i: {type(i)}")
         if type(v) is gi.overrides.GLib.Variant:
             if SCARLETT_DEBUG:
-                logger.debug(
-                    "THIS SHOULD BE A Tuple now: {}".format(v))
+                logger.debug(f"THIS SHOULD BE A Tuple now: {v}")
             msg, scarlett_sound = v
-            logger.warning(" msg: {}".format(msg))
-            logger.warning(
-                " scarlett_sound: {}".format(scarlett_sound))
-            player_run = True
-            if player_run:
+            logger.warning(f" msg: {msg}")
+            logger.warning(f" scarlett_sound: {scarlett_sound}")
+            if player_run := True:
                 test_gdbus_player.ScarlettPlayer(scarlett_sound)
                 player_run = False
             # NOTE: Create something like test_gdbus_player.ScarlettPlayer('pi-listening')
@@ -533,19 +529,16 @@ def command_cb(*args, **kwargs):
         print_keyword_args(**kwargs)
     for i, v in enumerate(args):
         if SCARLETT_DEBUG:
-            logger.debug("Type v: {}".format(type(v)))
-            logger.debug("Type i: {}".format(type(i)))
+            logger.debug(f"Type v: {type(v)}")
+            logger.debug(f"Type i: {type(i)}")
         if type(v) is gi.overrides.GLib.Variant:
             if SCARLETT_DEBUG:
-                logger.debug(
-                    "THIS SHOULD BE A Tuple now: {}".format(v))
+                logger.debug(f"THIS SHOULD BE A Tuple now: {v}")
             msg, scarlett_sound, command = v
-            logger.warning(" msg: {}".format(msg))
-            logger.warning(
-                " scarlett_sound: {}".format(scarlett_sound))
-            logger.warning(" command: {}".format(command))
-            command_run = True
-            if command_run:
+            logger.warning(f" msg: {msg}")
+            logger.warning(f" scarlett_sound: {scarlett_sound}")
+            logger.warning(f" command: {command}")
+            if command_run := True:
                 test_gdbus_speaker.ScarlettSpeaker('Hello sir. How are you doing this afternoon? I am full lee function nall, andd red ee for your commands')  # NOQA
                 command_run = False
             # NOTE: Create something like test_gdbus_player.ScarlettPlayer('pi-listening')

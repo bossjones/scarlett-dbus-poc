@@ -196,7 +196,7 @@ class Server(object):
 
         if type(result) is list:
             result = tuple(result)
-        elif not type(result) is tuple:
+        elif type(result) is not tuple:
             result = (result,)
 
         out_args = self.method_outargs[method_name]
@@ -228,7 +228,7 @@ class ScarlettListener(Server):
     LISTENER_EVENTS_IFACE = 'org.scarlett.Listener.event'
 
     def ListenerReadySignal(self, message, scarlett_sound):
-        logger.debug(" sending message: {}".format(message))
+        logger.debug(f" sending message: {message}")
         bus = self.dbus_stack[0]
         listener_rdy_status = GLib.Variant("(ss)", (message, scarlett_sound))
         bus.emit_signal(None,
@@ -296,9 +296,9 @@ class ScarlettListener(Server):
     def result(self, final_hyp):
         """Forward result signals on the bus to the main thread."""
         logger.debug("Inside result function")
-        logger.debug("final_hyp: {}".format(final_hyp))
+        logger.debug(f"final_hyp: {final_hyp}")
         pp.pprint(final_hyp)
-        logger.debug("kw_to_find: {}".format(self.kw_to_find))
+        logger.debug(f"kw_to_find: {self.kw_to_find}")
         if final_hyp in self.kw_to_find:
             logger.debug(
                 "HYP-IS-SOMETHING: " +
@@ -327,8 +327,7 @@ class ScarlettListener(Server):
         else:
             current_kw_identified = self.kw_found
             self.kw_found = current_kw_identified
-            logger.debug(
-                " Command = {}".format(final_hyp))
+            logger.debug(f" Command = {final_hyp}")
             logger.debug(
                 "AFTER run_cmd, self.kw_found = %i" %
                 (self.kw_found))

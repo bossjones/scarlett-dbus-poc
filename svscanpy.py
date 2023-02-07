@@ -28,13 +28,10 @@ class Service(dbus.service.Object):
 
     def taia_now(self):
         now = (long(time()) + 4611686018427387914) << 32
-        ret = ''
-        for i in range(11, -1, -1):
-            ret += chr(now >> (i * 8) & 0xff)
-        return ret
+        return ''.join(chr(now >> (i * 8) & 0xff) for i in range(11, -1, -1))
 
     def __init__(self, path, parent, name):
-        super(Service, self).__init__(parent.busName, '/Services/' + name)
+        super(Service, self).__init__(parent.busName, f'/Services/{name}')
         self.name = name
         self.path = path
         self.parent = parent
@@ -125,16 +122,14 @@ class Service(dbus.service.Object):
         if not os.path.exists(runner):
             self.lastDied = time()
             self.dead = True
-            self.parent.log(
-                'unable to start %s: run does not exist' % self.path)
+            self.parent.log(f'unable to start {self.path}: run does not exist')
             return
         if not os.access(runner, os.X_OK):
             self.lastDied = time()
             self.dead = True
-            self.parent.log(
-                'unable to start %s: run is not executable' % self.path)
+            self.parent.log(f'unable to start {self.path}: run is not executable')
             return
-        self.parent.log('starting service: %s' % self.path)
+        self.parent.log(f'starting service: {self.path}')
         (self.pid, stdin, stdout, stderr) = gobject.spawn_async(
             [runner], working_directory=self.path, flags=gobject.SPAWN_DO_NOT_REAP_CHILD)
         if self.pid <= 0:
@@ -184,7 +179,7 @@ class Service(dbus.service.Object):
         '''
         Catch a dying child
         '''
-        self.parent.log('%s exited with status %s' % (self.path, cond))
+        self.parent.log(f'{self.path} exited with status {cond}')
         self.dead = True
         self.paused = False
         self.changed('down')
@@ -192,20 +187,18 @@ class Service(dbus.service.Object):
             if time() - self.lastDied > self.interval:
                 self.launch()
             else:
-                self.parent.log(
-                    'service %s respawning too fast, delaying' % self.path)
+                self.parent.log(f'service {self.path} respawning too fast, delaying')
         else:
-            self.parent.log('service %s will not be restarted' % self.path)
+            self.parent.log(f'service {self.path} will not be restarted')
         self.lastDied = time()
 
     def check(self):
         '''
         Check service status and respawn it if needed
         '''
-        if self.dead:
-            if time() - self.lastDied >= self.interval and self.respawn:
-                self.parent.log('respawning dead service: %s' % self.path)
-                self.launch()
+        if self.dead and time() - self.lastDied >= self.interval and self.respawn:
+            self.parent.log(f'respawning dead service: {self.path}')
+            self.launch()
 
 
 class Supervisor(dbus.service.Object):
@@ -248,10 +241,10 @@ class Supervisor(dbus.service.Object):
         '''
         path = os.path.realpath(path)
         if len(self.services) >= self.maxServices:
-            self.log('unable to start %s: running too many services' % path)
+            self.log(f'unable to start {path}: running too many services')
             return
         if self.services.has_key(path):
-            self.log('unable to start %s: already running' % path)
+            self.log(f'unable to start {path}: already running')
             return
         if os.path.exists(os.path.join(path, 'run')):
             service = Service(path, self, name)
@@ -267,7 +260,10 @@ class Supervisor(dbus.service.Object):
 
     @dbus.service.method(dbus_interface='com.github.patrys.Supervisor', in_signature='', out_signature='as')
     def list(self):
-        return ['/Services/' + self.services[path].name for path in self.services.keys()]
+        return [
+            f'/Services/{self.services[path].name}'
+            for path in self.services.keys()
+        ]
 
     def shutdown(self):
         '''

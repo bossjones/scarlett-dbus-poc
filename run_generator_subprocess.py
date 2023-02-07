@@ -43,15 +43,24 @@ _pitch = 75
 _speed = 175
 _wavpath = "/home/pi/dev/bossjones-github/scarlett-dbus-poc/espeak_tmp.wav"
 _voice = "en+f3"
-_text = _('{}'.format("Hello sir. How are you doing this afternoon? I am full lee function nall, andd red ee for your commands"))
+_text = _(
+    'Hello sir. How are you doing this afternoon? I am full lee function nall, andd red ee for your commands'
+)
 _word_gap = 1
 _rate = 100
 
-_command = ["espeak", "-p%s" % _pitch,
-            "-s%s" % _speed, "-g%s" % _word_gap,
-            "-w", _wavpath, "-v%s" % _voice,
-            ".   %s   ." % _text]
+_command = [
+    "espeak",
+    f"-p{_pitch}",
+    f"-s{_speed}",
+    f"-g{_word_gap}",
+    "-w",
+    _wavpath,
+    f"-v{_voice}",
+    f".   {_text}   .",
+]
 
 res = generator_subprocess.Subprocess(_command, name='espeak_tmp', fork=False).run()
 
+import os
 print "Did is run successfully? {}".format(res)

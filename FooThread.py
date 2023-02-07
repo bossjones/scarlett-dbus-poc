@@ -139,7 +139,7 @@ class _FooThread(threading.Thread, _IdleObject):
         self.cancelled = False
         self.data = args[0]
         self.name = args[1]
-        self.setName("%s" % self.name)
+        self.setName(f"{self.name}")
 
     @trace
     def cancel(self):
@@ -231,9 +231,8 @@ class FooThreadManager:
         """
         for thread in self.fooThreads.values():
             thread.cancel()
-            if block:
-                if thread.isAlive():
-                    thread.join()
+            if block and thread.isAlive():
+                thread.join()
 
 
 class Demo:
@@ -290,7 +289,7 @@ class Demo:
     def add_thread(self, sender):
         # make a thread and start it
         data = random.randint(20, 60)
-        name = "Thread #%s" % random.randint(0, 1000)
+        name = f"Thread #{random.randint(0, 1000)}"
         rowref = self.pendingModel.insert(0, (name, 0))
 
         # THE ACTUAL THREAD BIT

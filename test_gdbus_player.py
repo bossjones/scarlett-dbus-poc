@@ -157,12 +157,12 @@ class ScarlettPlayer():
 
         # Element playbin automatic plays any sound
         player = Gst.ElementFactory.make('playbin', 'player')
-        logger.debug("ScarlettPlayer player %s" % (player))
+        logger.debug(f"ScarlettPlayer player {player}")
         self.end_cond = threading.Condition(threading.Lock())
 
         # Set the uri to the sound
-        filename = '%s/static/sounds/%s.wav' % (PWD, sound)
-        player.set_property('uri', 'file://%s' % filename)
+        filename = f'{PWD}/static/sounds/{sound}.wav'
+        player.set_property('uri', f'file://{filename}')
         self.sound = sound
 
         # Enable message bus to check for errors in the pipeline
@@ -185,8 +185,7 @@ class ScarlettPlayer():
 
         while True:
             try:
-                msg = gst_bus.timed_pop(Gst.CLOCK_TIME_NONE)
-                if msg:
+                if msg := gst_bus.timed_pop(Gst.CLOCK_TIME_NONE):
                     if msg.type == Gst.MessageType.EOS:
                         logger.debug("OKAY, Gst.MessageType.EOS: ".format(
                             Gst.MessageType.EOS))
@@ -201,7 +200,7 @@ class ScarlettPlayer():
                         self.loop.quit()
                         self.end_reached = True
                         err, debug = msg.parse_error()
-                        self.error_msg = "Error: %s" % err, debug
+                        self.error_msg = f"Error: {err}", debug
                         # self.end_cond.notify()
                         # self.end_cond.release()
                         self.quit()
@@ -211,6 +210,7 @@ class ScarlettPlayer():
 
         # Free resources
         player.set_state(Gst.State.NULL)
+        global PWD
         print "ScarlettPlayer stopped"
 
     # TODO: FIXEME ... having this enabled breaks player
@@ -225,7 +225,7 @@ class ScarlettPlayer():
 
     @trace
     def run(self):
-        logger.debug("ScarlettPlayer sound: {}".format(self.sound))
+        logger.debug(f"ScarlettPlayer sound: {self.sound}")
         self.loop.run()
 
     @trace

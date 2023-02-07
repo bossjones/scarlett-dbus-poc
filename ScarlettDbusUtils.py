@@ -34,15 +34,18 @@ def DBusMethod(dbus_interface, in_signature=None, out_signature=None, async=Fals
         func._dbus_method.out_signature = out_signature or ''
 
         func._dbus_method.in_args = []
-        in_signature_list = GLib.Variant.split_signature('('+in_signature+')')
+        in_signature_list = GLib.Variant.split_signature(f'({in_signature})')
         arg_names = inspect.getargspec(func).args
         arg_names.pop(0) # eat "self" argument
         if async: arg_names.pop(0) # eat "invocation"
         if len(in_signature) != len(arg_names):
-            raise TypeError('specified signature %s for method %s does not match length of arguments' % (str(in_signature_list), func.func_name))
+            raise TypeError(
+                f'specified signature {str(in_signature_list)} for method {func.func_name} does not match length of arguments'
+            )
         for pair in zip(in_signature_list, arg_names):
             func._dbus_method.in_args.append(pair)
         return func
+
     return decorator
 
 class DBusService:
@@ -98,13 +101,19 @@ class DBusService:
         '''Generate introspection XML'''
         parts = ['<node>']
         for interface in self.__dbus_info.methods:
-            parts.append('  <interface name="%s">' % interface)
+            parts.append(f'  <interface name="{interface}">')
             for method, data in self.__dbus_info.methods[interface].items():
-                parts.append('    <method name="%s">' % method)
-                for (sig, name) in data['in_args']:
-                    parts.append('      <arg type="%s" name="%s" direction="in"/>' % (sig, name))
-                parts.append('      <arg type="%s" name="return" direction="out"/>' % data['out_signature'])
-                parts.append('    </method>')
+                parts.append(f'    <method name="{method}">')
+                parts.extend(
+                    f'      <arg type="{sig}" name="{name}" direction="in"/>'
+                    for sig, name in data['in_args']
+                )
+                parts.extend(
+                    (
+                        f"""      <arg type="{data['out_signature']}" name="return" direction="out"/>""",
+                        '    </method>',
+                    )
+                )
             parts.append('  </interface>')
         parts.append('</node>')
         return '\n'.join(parts)
@@ -113,9 +122,11 @@ class DBusService:
         try:
             info = self.__dbus_info.methods[iface_name][method_name]
         except KeyError:
-            invocation.return_error_literal(Gio.dbus_error_quark(),
-                                            Gio.DBusError.UNKNOWN_METHOD,
-                                            'No such interface or method: %s.%s' % (iface_name, method_name))
+            invocation.return_error_literal(
+                Gio.dbus_error_quark(),
+                Gio.DBusError.UNKNOWN_METHOD,
+                f'No such interface or method: {iface_name}.{method_name}',
+            )
             return
 
         try:
@@ -126,9 +137,11 @@ class DBusService:
                 ret = func(*parameters.unpack())
                 invocation.return_value(GLib.Variant('(' + info['out_signature'] + ')', (ret,)))
         except Exception as e:
-            invocation.return_error_literal(Gio.dbus_error_quark(),
-                                            Gio.DBusError.IO_ERROR,
-                                            'Method %s.%s failed with: %s' % (iface_name, method_name, str(e)))
+            invocation.return_error_literal(
+                Gio.dbus_error_quark(),
+                Gio.DBusError.IO_ERROR,
+                f'Method {iface_name}.{method_name} failed with: {str(e)}',
+            )
 
     def __dbus_get_property(self, conn, sender, object_path, iface_name, prop_name, error):
         error = GLib.Error.new_literal(GLib.io_channel_error_quark(), 1, 'Not implemented yet')

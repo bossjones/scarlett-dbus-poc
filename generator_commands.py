@@ -185,42 +185,50 @@ class Command(object):
 
     @staticmethod
     def check_cmd(command_tuple=None):
-        logger.error("Value of command_tuple: {}".format(command_tuple))
+        logger.error(f"Value of command_tuple: {command_tuple}")
 
         if isinstance(command_tuple, tuple):
-            logger.info("Valid command_tuple: {}".format(command_tuple))
+            logger.info(f"Valid command_tuple: {command_tuple}")
         else:
-            logger.error("INValid command_tuple: {}".format(command_tuple))
+            logger.error(f"INValid command_tuple: {command_tuple}")
             return NO_OP
 
         msg, scarlett_sound, command = command_tuple
 
         if command in SPOTIFY_CMDS.keys():
-            logger.debug("** received {}, sending 'spotify {}'".format(command, SPOTIFY_CMDS[command]))
+            logger.debug(
+                f"** received {command}, sending 'spotify {SPOTIFY_CMDS[command]}'"
+            )
         elif command in LIGHT_CMDS.keys():
-            logger.debug("** received {}, sending 'light {}'".format(command, LIGHT_CMDS[command]))
-            # try:
-            #     logger.debug("trying light chit")
-            #     self.get_hue = scarlett.connect_hue(self.voice, self.brain)
-            #     return self.get_hue.get_light_names()
-            #     # REFACTOR ### light_play(LIGHT_CMDS[command])
-            # except Exception as e:
-            #     logger.debug("light exception b. \nCMD: {} \nException: {}" %(command, e))
-            #     # REFACTOR ### general_play("cancel")
+            logger.debug(f"** received {command}, sending 'light {LIGHT_CMDS[command]}'")
+                # try:
+                #     logger.debug("trying light chit")
+                #     self.get_hue = scarlett.connect_hue(self.voice, self.brain)
+                #     return self.get_hue.get_light_names()
+                #     # REFACTOR ### light_play(LIGHT_CMDS[command])
+                # except Exception as e:
+                #     logger.debug("light exception b. \nCMD: {} \nException: {}" %(command, e))
+                #     # REFACTOR ### general_play("cancel")
         elif command in TIME_CMDS.keys():
-            logger.debug("** received {}, sending 'time {}'".format(command, TIME_CMDS[command]))
+            logger.debug(f"** received {command}, sending 'time {TIME_CMDS[command]}'")
             return TimeCommand.get_current_time()
-            # try:
-            #     from scarlett.features.time import FeatureTime
-            #     self.get_time = FeatureTime(self.voice, self.brain)
-            #     return self.get_time.time_play()
-            # except Exception as e:
-            #     logger.debug(
-            #         "time exception b. \nCMD: {} \nException: {}" %
-            #         (command, e))
+                # try:
+                #     from scarlett.features.time import FeatureTime
+                #     self.get_time = FeatureTime(self.voice, self.brain)
+                #     return self.get_time.time_play()
+                # except Exception as e:
+                #     logger.debug(
+                #         "time exception b. \nCMD: {} \nException: {}" %
+                #         (command, e))
         elif command in GENERAL_CMDS.keys():
-            logger.debug("** received {}, sending 'general command: {}'".format(command, GENERAL_CMDS[command]))
+            logger.debug(
+                f"** received {command}, sending 'general command: {GENERAL_CMDS[command]}'"
+            )
         elif command in FORECAST_CMDS.keys():
-            logger.debug("** received {}, sending 'forecast command: {}'".format(command, FORECAST_CMDS[command]))
+            logger.debug(
+                f"** received {command}, sending 'forecast command: {FORECAST_CMDS[command]}'"
+            )
         elif command in TV_CMDS.keys():
-            logger.debug("** received {}, sending 'tv command: {}'".format(command, TV_CMDS[command]))
+            logger.debug(
+                f"** received {command}, sending 'tv command: {TV_CMDS[command]}'"
+            )

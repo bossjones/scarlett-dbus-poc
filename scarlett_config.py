@@ -19,21 +19,17 @@ except (AttributeError, ImportError):
 # By default we use two locations for the scarlett configurations,
 # /etc/scarlett.cfg and ~/.scarlett (which works on Windows and Unix).
 ScarlettConfigPath = '/etc/scarlett.cfg'
-ScarlettConfigLocations = [ScarlettConfigPath]
 UserConfigPath = os.path.join(expanduser('~'), '.scarlett')
-ScarlettConfigLocations.append(UserConfigPath)
-
+ScarlettConfigLocations = [ScarlettConfigPath, UserConfigPath]
 # If there's a SCARLETT_CONFIG variable set, we load ONLY
 # that variable
 if 'SCARLETT_CONFIG' in os.environ:
     ScarlettConfigLocations = [expanduser(os.environ['SCARLETT_CONFIG'])]
 
-# If there's a SCARLETT_PATH variable set, we use anything there
-# as the current configuration locations, split with colons
 elif 'SCARLETT_PATH' in os.environ:
-    ScarlettConfigLocations = []
-    for path in os.environ['SCARLETT_PATH'].split(":"):
-        ScarlettConfigLocations.append(expanduser(path))
+    ScarlettConfigLocations = [
+        expanduser(path) for path in os.environ['SCARLETT_PATH'].split(":")
+    ]
 
 
 class Config(ConfigParser.SafeConfigParser):
@@ -58,9 +54,8 @@ class Config(ConfigParser.SafeConfigParser):
     def load_from_path(self, path):
         file = open(path)
         for line in file.readlines():
-            match = re.match("^#import[\s\t]*([^\s^\t]*)[\s\t]*$", line)
-            if match:
-                extended_file = match.group(1)
+            if match := re.match("^#import[\s\t]*([^\s^\t]*)[\s\t]*$", line):
+                extended_file = match[1]
                 (dir, file) = os.path.split(path)
                 self.load_from_path(os.path.join(dir, extended_file))
         self.read(path)
@@ -76,9 +71,8 @@ class Config(ConfigParser.SafeConfigParser):
         if not config.has_section(section):
             config.add_section(section)
         config.set(section, option, value)
-        fp = open(path, 'w')
-        config.write(fp)
-        fp.close()
+        with open(path, 'w') as fp:
+            config.write(fp)
         if not self.has_section(section):
             self.add_section(section)
         self.set(section, option, value)
@@ -130,10 +124,7 @@ class Config(ConfigParser.SafeConfigParser):
     def getbool(self, section, name, default=False):
         if self.has_option(section, name):
             val = self.get(section, name)
-            if val.lower() == 'true':
-                val = True
-            else:
-                val = False
+            val = val.lower() == 'true'
         else:
             val = default
         return val

@@ -149,23 +149,23 @@ class ScarlettListener(dbus.service.Object):
     #########################################################
     @dbus.service.signal("com.example.service.event")
     def KeywordRecognizedSignal(self, message, scarlett_sound):
-        logger.debug(" sending message: {}".format(message))
+        logger.debug(f" sending message: {message}")
 
     @dbus.service.signal("com.example.service.event")
     def CommandRecognizedSignal(self, message, scarlett_sound, scarlett_cmd):
-        logger.debug(" sending message: {}".format(message))
+        logger.debug(f" sending message: {message}")
 
     @dbus.service.signal("com.example.service.event")
     def SttFailedSignal(self, message, scarlett_sound):
-        logger.debug(" sending message: {}".format(message))
+        logger.debug(f" sending message: {message}")
 
     @dbus.service.signal("com.example.service.event")
     def ListenerCancelSignal(self, message, scarlett_sound):
-        logger.debug(" sending message: {}".format(message))
+        logger.debug(f" sending message: {message}")
 
     @dbus.service.signal("com.example.service.event")
     def ListenerReadySignal(self, message, scarlett_sound):
-        logger.debug(" sending message: {}".format(message))
+        logger.debug(f" sending message: {message}")
 
     @dbus.service.signal("com.example.service.event")
     def ConnectedToListener(self, scarlett_plugin):
@@ -293,17 +293,14 @@ class ScarlettListener(dbus.service.Object):
     def result(self, final_hyp):
         """Forward result signals on the bus to the main thread."""
         logger.debug("Inside result function")
-        logger.debug("final_hyp: {}".format(final_hyp))
+        logger.debug(f"final_hyp: {final_hyp}")
         # logger.debug("Compare: {} {} is {}".format(final_hyp,self.kw_to_find,final_hyp in self.kw_to_find))
         pp.pprint(final_hyp)
-        logger.debug("kw_to_find: {}".format(self.kw_to_find))
+        logger.debug(f"kw_to_find: {self.kw_to_find}")
         if final_hyp in self.kw_to_find:
-            logger.debug(
-                "HYP-IS-SOMETHING: " +
-                final_hyp +
-                "\n\n\n")
-            self.failed = 0
+            logger.debug(f"HYP-IS-SOMETHING: {final_hyp}" + "\n\n\n")
             self.kw_found = 1
+            self.failed = 0
             self.emitKeywordRecognizedSignal()
         else:
             failed_temp = self.failed + 1
@@ -329,8 +326,7 @@ class ScarlettListener(dbus.service.Object):
             current_kw_identified = self.kw_found
             self.kw_found = current_kw_identified
             self.emitCommandRecognizedSignal(final_hyp)
-            logger.debug(
-                " Command = {}".format(final_hyp))
+            logger.debug(f" Command = {final_hyp}")
             logger.debug(
                 "AFTER run_cmd, self.kw_found = %i" %
                 (self.kw_found))
@@ -398,14 +394,15 @@ if __name__ == '__main__':
 
     LANGUAGE_VERSION = 1473
     HOMEDIR = "/home/pi"
-    LANGUAGE_FILE_HOME = "{}/dev/bossjones-github/scarlett-dbus-poc/tests/fixtures/lm".format(
-        HOMEDIR)
-    DICT_FILE_HOME = "{}/dev/bossjones-github/scarlett-dbus-poc/tests/fixtures/dict".format(
-        HOMEDIR)
-    LM_PATH = "{}/{}.lm".format(LANGUAGE_FILE_HOME, LANGUAGE_VERSION)
-    DICT_PATH = "{}/{}.dic".format(DICT_FILE_HOME, LANGUAGE_VERSION)
-    HMM_PATH = "{}/.virtualenvs/scarlett-dbus-poc/share/pocketsphinx/model/en-us/en-us".format(
-        HOMEDIR)
+    LANGUAGE_FILE_HOME = (
+        f"{HOMEDIR}/dev/bossjones-github/scarlett-dbus-poc/tests/fixtures/lm"
+    )
+    DICT_FILE_HOME = (
+        f"{HOMEDIR}/dev/bossjones-github/scarlett-dbus-poc/tests/fixtures/dict"
+    )
+    LM_PATH = f"{LANGUAGE_FILE_HOME}/{LANGUAGE_VERSION}.lm"
+    DICT_PATH = f"{DICT_FILE_HOME}/{LANGUAGE_VERSION}.dic"
+    HMM_PATH = f"{HOMEDIR}/.virtualenvs/scarlett-dbus-poc/share/pocketsphinx/model/en-us/en-us"
     bestpath = 0
     PS_DEVICE = 'plughw:CARD=Device,DEV=0'
 

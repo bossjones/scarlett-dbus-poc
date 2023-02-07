@@ -53,12 +53,18 @@ class ScarlettSpeaker(object):
         self._wavpath = wavpath
         self._wavefile.append(self._wavpath)
         self._voice = "en+f3"
-        self._text = _('{}'.format(text_to_speak))
+        self._text = _(f'{text_to_speak}')
         self._word_gap = 1
-        self._command = ["espeak", "-p%s" % self._pitch,
-                         "-s%s" % self._speed, "-g%s" % self._word_gap,
-                         "-w", self._wavpath, "-v%s" % self._voice,
-                         ".   %s   ." % self._text]
+        self._command = [
+            "espeak",
+            f"-p{self._pitch}",
+            f"-s{self._speed}",
+            f"-g{self._word_gap}",
+            "-w",
+            self._wavpath,
+            f"-v{self._voice}",
+            f".   {self._text}   .",
+        ]
 
         self.path = None
 
@@ -79,8 +85,6 @@ class ScarlettSpeaker(object):
                     print(f.channels)
                     print(f.samplerate)
                     print(f.duration)
-                    for s in f:
-                        pass
 
     # Cleanup.
     def close(self, force=False):
