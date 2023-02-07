@@ -20,8 +20,7 @@ def get_inputs():
         ('Use Default', 'default'),
     ]
     for line in cards:
-        match = CARD_MATCH.match(line)
-        if match:
+        if match := CARD_MATCH.match(line):
             description = '%(description)s: %(device_description)s' % match.groupdict(
             )
             device = 'hw:%(card)s,%(device)s' % match.groupdict()
@@ -36,8 +35,7 @@ def get_outputs():
         ('Use Default', 'default'),
     ]
     for line in cards:
-        match = CARD_MATCH.match(line)
-        if match:
+        if match := CARD_MATCH.match(line):
             description = '%(description)s: %(device_description)s' % match.groupdict(
             )
             device = 'hw:%(card)s,%(device)s' % match.groupdict()

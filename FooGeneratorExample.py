@@ -281,8 +281,7 @@ if __name__ == '__main__':
 
     @trace
     def counter(max):
-        for i in range(max):
-            yield i
+        yield from range(max)
 
     @trace
     def shower(queue):

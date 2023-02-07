@@ -80,7 +80,7 @@ class SoundType:
 
     @staticmethod
     def get_path(sound_type):
-        return ["{}/{}.wav".format(STATIC_SOUNDS_PATH, sound_type)]
+        return [f"{STATIC_SOUNDS_PATH}/{sound_type}.wav"]
 
 
 class SpeakerType:
@@ -88,7 +88,7 @@ class SpeakerType:
 
     @staticmethod
     def speaker_to_array(sentance):
-        return ["{}".format(sentance)]
+        return [f"{sentance}"]
 
 
 class ScarlettTasker(_IdleObject):
@@ -152,11 +152,11 @@ class ScarlettTasker(_IdleObject):
                    ss_cmd_rec_signal,
                    ss_cancel_signal))
 
-        logger.debug("ss_failed_signal: {}".format(ss_failed_signal))
-        logger.debug("ss_rdy_signal: {}".format(ss_rdy_signal))
-        logger.debug("ss_kw_rec_signal: {}".format(ss_kw_rec_signal))
-        logger.debug("ss_cmd_rec_signal: {}".format(ss_cmd_rec_signal))
-        logger.debug("ss_cancel_signal: {}".format(ss_cancel_signal))
+        logger.debug(f"ss_failed_signal: {ss_failed_signal}")
+        logger.debug(f"ss_rdy_signal: {ss_rdy_signal}")
+        logger.debug(f"ss_kw_rec_signal: {ss_kw_rec_signal}")
+        logger.debug(f"ss_cmd_rec_signal: {ss_cmd_rec_signal}")
+        logger.debug(f"ss_cancel_signal: {ss_cancel_signal}")
 
         ss.emitConnectedToListener('ScarlettTasker')
 
@@ -258,7 +258,7 @@ def fake_cb(*args, **kwargs):
 def print_keyword_args(**kwargs):
     # kwargs is a dict of the keyword args passed to the function
     for key, value in kwargs.iteritems():
-        print("%s = %s" % (key, value))
+        print(f"{key} = {value}")
 
 
 @abort_on_exception

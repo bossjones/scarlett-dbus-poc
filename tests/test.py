@@ -37,13 +37,15 @@ def main():
     known_args, remaining_args = parser.parse_known_args()
     attribute_args = []
     for service_attribute in known_args.service_tests:
-        attribute_args.extend(['-a',
-                               '!notdefault,' + service_attribute,
-                               '--with-coverage'
-                               '-v',
-                               '--cover-erase',
-                               '--cover-package=scarlett'
-                               '-d'])
+        attribute_args.extend(
+            [
+                '-a',
+                f'!notdefault,{service_attribute}',
+                '--with-coverage' '-v',
+                '--cover-erase',
+                '--cover-package=scarlett' '-d',
+            ]
+        )
     if not attribute_args:
         # If the user did not specify any filtering criteria, we at least
         # will filter out any test tagged 'notdefault'.
@@ -76,29 +78,32 @@ def main():
 
     all_args = [__file__] + attribute_args + remaining_args
     print("nose command:", ' '.join(all_args))
-    if run(argv=all_args):
-        # run will return True is all the tests pass.  We want
-        # this to equal a 0 rc
-        del os.environ['MAIN_DIR']
-        del os.environ['SCARLETT_CONFIG']
-        del os.environ['SCARLETT_HMM']
-        del os.environ['SCARLETT_LM']
-        del os.environ['SCARLETT_DICT']
-        return 0
-    else:
+    if not run(argv=all_args):
         return 1
+    # run will return True is all the tests pass.  We want
+    # this to equal a 0 rc
+    del os.environ['MAIN_DIR']
+    del os.environ['SCARLETT_CONFIG']
+    del os.environ['SCARLETT_HMM']
+    del os.environ['SCARLETT_LM']
+    del os.environ['SCARLETT_DICT']
+    return 0
 
 if __name__ == '__main__':
     os.environ['MAIN_DIR'] = os.path.abspath(os.path.dirname(__file__))
     #TODO: change these to be the correct variable paths
     os.environ[
-        'SCARLETT_CONFIG'] = "%s/tests/fixtures/.scarlett" % (os.environ['MAIN_DIR'])
+        'SCARLETT_CONFIG'
+    ] = f"{os.environ['MAIN_DIR']}/tests/fixtures/.scarlett"
     # TODO: FIX THIS RIGHT HERE
     # FIXME
     os.environ[
-        'SCARLETT_HMM'] = "$%s/tests/fixtures/model/hmm/en_US/hub4wsj_sc_8k" % (os.environ['MAIN_DIR'])
+        'SCARLETT_HMM'
+    ] = f"${os.environ['MAIN_DIR']}/tests/fixtures/model/hmm/en_US/hub4wsj_sc_8k"
     os.environ[
-        'SCARLETT_LM'] = "$%s/tests/fixtures/lm/1473.lm" % (os.environ['MAIN_DIR'])
+        'SCARLETT_LM'
+    ] = f"${os.environ['MAIN_DIR']}/tests/fixtures/lm/1473.lm"
     os.environ[
-        'SCARLETT_DICT'] = "$%s/tests/fixtures/dict/1473.dic" % (os.environ['MAIN_DIR'])
+        'SCARLETT_DICT'
+    ] = f"${os.environ['MAIN_DIR']}/tests/fixtures/dict/1473.dic"
     sys.exit(main())

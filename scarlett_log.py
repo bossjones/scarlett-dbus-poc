@@ -34,11 +34,13 @@ def log(fn):
         elapsed_time = ''
         if elapsed > 0.1:
             elapsed_time = ', took %02f' % elapsed
-        if elapsed_time or retval is not None:
-            if 'rateLimitedFunction' not in name:
-                logger.debug("%s  returned %s%s", '|' * tabbing, repr(retval), elapsed_time)
+        if (
+            elapsed_time or retval is not None
+        ) and 'rateLimitedFunction' not in name:
+            logger.debug("%s  returned %s%s", '|' * tabbing, repr(retval), elapsed_time)
 
         return retval
+
     return wrapped
 
 

@@ -190,7 +190,7 @@ class Server(object):
 
         if type(result) is list:
             result = tuple(result)
-        elif not type(result) is tuple:
+        elif type(result) is not tuple:
             result = (result,)
 
         out_args = self.method_outargs[method_name]
@@ -266,7 +266,7 @@ class ScarlettListener(Server):
     #########################################################
 
     def KeywordRecognizedSignal(self, message, scarlett_sound):
-        logger.debug(" sending message: {}".format(message))
+        logger.debug(f" sending message: {message}")
         bus = self.dbus_stack[0]
         logger.debug("Inside KeywordRecognizedSignal. Dump bus object")
         pp.pprint(bus)
@@ -278,7 +278,7 @@ class ScarlettListener(Server):
                         kw_rec_status)
 
     def CommandRecognizedSignal(self, message, scarlett_sound, scarlett_cmd):
-        logger.debug(" sending message: {}".format(message))
+        logger.debug(f" sending message: {message}")
         bus = self.dbus_stack[0]
         cmd_rec_status = GLib.Variant(
             "(sss)", (message, scarlett_sound, scarlett_cmd))
@@ -289,7 +289,7 @@ class ScarlettListener(Server):
                         cmd_rec_status)
 
     def SttFailedSignal(self, message, scarlett_sound):
-        logger.debug(" sending message: {}".format(message))
+        logger.debug(f" sending message: {message}")
         bus = self.dbus_stack[0]
         stt_failed_status = GLib.Variant("(ss)", (message, scarlett_sound))
         bus.emit_signal(None,
@@ -299,7 +299,7 @@ class ScarlettListener(Server):
                         stt_failed_status)
 
     def ListenerCancelSignal(self, message, scarlett_sound):
-        logger.debug(" sending message: {}".format(message))
+        logger.debug(f" sending message: {message}")
         bus = self.dbus_stack[0]
         listener_cancel_status = GLib.Variant(
             "(ss)", (message, scarlett_sound))
@@ -310,7 +310,7 @@ class ScarlettListener(Server):
                         listener_cancel_status)
 
     def ListenerReadySignal(self, message, scarlett_sound):
-        logger.debug(" sending message: {}".format(message))
+        logger.debug(f" sending message: {message}")
         bus = self.dbus_stack[0]
         listener_rdy_status = GLib.Variant("(ss)", (message, scarlett_sound))
         bus.emit_signal(None,
@@ -320,7 +320,7 @@ class ScarlettListener(Server):
                         listener_rdy_status)
 
     def ConnectedToListener(self, scarlett_plugin):
-        logger.debug(" sending message: {}".format(scarlett_plugin))
+        logger.debug(f" sending message: {scarlett_plugin}")
         bus = self.dbus_stack[0]
         conn_to_lis_status = GLib.Variant("s", scarlett_plugin)
         bus.emit_signal(None,
@@ -424,16 +424,13 @@ class ScarlettListener(Server):
     def result(self, final_hyp):
         """Forward result signals on the bus to the main thread."""
         logger.debug("Inside result function")
-        logger.debug("final_hyp: {}".format(final_hyp))
+        logger.debug(f"final_hyp: {final_hyp}")
         pp.pprint(final_hyp)
-        logger.debug("kw_to_find: {}".format(self.kw_to_find))
+        logger.debug(f"kw_to_find: {self.kw_to_find}")
         if final_hyp in self.kw_to_find:
-            logger.debug(
-                "HYP-IS-SOMETHING: " +
-                final_hyp +
-                "\n\n\n")
-            self.failed = 0
+            logger.debug(f"HYP-IS-SOMETHING: {final_hyp}" + "\n\n\n")
             self.kw_found = 1
+            self.failed = 0
             self.emitKeywordRecognizedSignal()
         else:
             failed_temp = self.failed + 1
@@ -459,8 +456,7 @@ class ScarlettListener(Server):
             current_kw_identified = self.kw_found
             self.kw_found = current_kw_identified
             self.emitCommandRecognizedSignal(final_hyp)
-            logger.debug(
-                " Command = {}".format(final_hyp))
+            logger.debug(f" Command = {final_hyp}")
             logger.debug(
                 "AFTER run_cmd, self.kw_found = %i" %
                 (self.kw_found))

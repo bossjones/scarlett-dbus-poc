@@ -309,7 +309,7 @@ class ScarlettListener(_IdleObject, Server):  # NOQA
     #########################################################
 
     def KeywordRecognizedSignal(self, message, scarlett_sound):
-        logger.debug(" sending message: {}".format(message))
+        logger.debug(f" sending message: {message}")
         bus = self.dbus_stack[0]
         logger.debug("Inside KeywordRecognizedSignal. Dump bus object")
         pp.pprint(bus)
@@ -321,7 +321,7 @@ class ScarlettListener(_IdleObject, Server):  # NOQA
                         kw_rec_status)
 
     def CommandRecognizedSignal(self, message, scarlett_sound, scarlett_cmd):
-        logger.debug(" sending message: {}".format(message))
+        logger.debug(f" sending message: {message}")
         bus = self.dbus_stack[0]
         cmd_rec_status = GLib.Variant(
             "(sss)", (message, scarlett_sound, scarlett_cmd))
@@ -332,7 +332,7 @@ class ScarlettListener(_IdleObject, Server):  # NOQA
                         cmd_rec_status)
 
     def SttFailedSignal(self, message, scarlett_sound):
-        logger.debug(" sending message: {}".format(message))
+        logger.debug(f" sending message: {message}")
         bus = self.dbus_stack[0]
         stt_failed_status = GLib.Variant("(ss)", (message, scarlett_sound))
         bus.emit_signal(None,
@@ -342,7 +342,7 @@ class ScarlettListener(_IdleObject, Server):  # NOQA
                         stt_failed_status)
 
     def ListenerCancelSignal(self, message, scarlett_sound):
-        logger.debug(" sending message: {}".format(message))
+        logger.debug(f" sending message: {message}")
         bus = self.dbus_stack[0]
         listener_cancel_status = GLib.Variant(
             "(ss)", (message, scarlett_sound))
@@ -353,7 +353,7 @@ class ScarlettListener(_IdleObject, Server):  # NOQA
                         listener_cancel_status)
 
     def ListenerReadySignal(self, message, scarlett_sound):
-        logger.debug(" sending message: {}".format(message))
+        logger.debug(f" sending message: {message}")
         bus = self.dbus_stack[0]
         listener_rdy_status = GLib.Variant("(ss)", (message, scarlett_sound))
         bus.emit_signal(None,
@@ -363,7 +363,7 @@ class ScarlettListener(_IdleObject, Server):  # NOQA
                         listener_rdy_status)
 
     def ConnectedToListener(self, scarlett_plugin):
-        logger.debug(" Client Connected: {}".format(scarlett_plugin))
+        logger.debug(f" Client Connected: {scarlett_plugin}")
         bus = self.dbus_stack[0]
         conn_to_lis_status = GLib.Variant("s", scarlett_plugin)
         bus.emit_signal(None,
@@ -407,7 +407,7 @@ class ScarlettListener(_IdleObject, Server):  # NOQA
     def emitConnectedToListener(self, scarlett_plugin):
         logger.debug("emitConnectedToListener")
         self.ConnectedToListener(scarlett_plugin)
-        return " {} is connected to ScarlettListener".format(scarlett_plugin)
+        return f" {scarlett_plugin} is connected to ScarlettListener"
 
     def emitListenerMessage(self):
         logger.debug("  sending message")
@@ -433,25 +433,23 @@ class ScarlettListener(_IdleObject, Server):  # NOQA
                 'Identity': GLib.Variant('s', 'Scarlett'),
                 'DesktopEntry': GLib.Variant('s', 'scarlett-listener')
             }
-        elif interface_name == 'org.freedesktop.DBus.Properties':
-            return {}
-        elif interface_name == 'org.freedesktop.DBus.Introspectable':
+        elif interface_name in [
+            'org.freedesktop.DBus.Properties',
+            'org.freedesktop.DBus.Introspectable',
+        ]:
             return {}
         else:
             raise Exception(
                 'org.scarlett.ScarlettListener1',
-                'This object does not implement the %s interface'
-                % interface_name)
+                f'This object does not implement the {interface_name} interface',
+            )
 
     def Set(self, interface_name, property_name, new_value):
-        if interface_name == ScarlettListener.LISTENER_IFACE:
-            if property_name == 'Fullscreen':
-                pass
-        else:
+        if interface_name != ScarlettListener.LISTENER_IFACE:
             raise Exception(
                 'org.scarlett.ScarlettListener1',
-                'This object does not implement the %s interface'
-                % interface_name)
+                f'This object does not implement the {interface_name} interface',
+            )
 
     def PropertiesChanged(self, interface_name, changed_properties,
                           invalidated_properties):

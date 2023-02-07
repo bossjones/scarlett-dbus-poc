@@ -161,10 +161,10 @@ class ScarlettSpeaker():
         #######################################################################
         espeak_pipeline = 'espeak name=source ! queue2 name=q ! autoaudiosink'
         player = Gst.parse_launch(espeak_pipeline)
-        print '********************************************************'
-        print 'player from espeak_pipeline: '
+        global PWD
+        global PWD
         pp.pprint(player)
-        print '********************************************************'
+        global PWD
         self.end_cond = threading.Condition(threading.Lock())
 
         #######################################################################
@@ -178,7 +178,7 @@ class ScarlettSpeaker():
         source.props.pitch = 50
         source.props.rate = 20
         source.props.voice = "en+f3"
-        source.props.text = _('{}'.format(cmd))
+        source.props.text = _(f'{cmd}')
         self.text = source.props.text
 
         # Enable message bus to check for errors in the pipeline
@@ -227,7 +227,7 @@ class ScarlettSpeaker():
             self.loop.quit()
             self.quit()
 
-        print "ScarlettSpeaker stopped"
+        global PWD
         player.set_state(Gst.State.NULL)
 
         # while True:
@@ -273,7 +273,7 @@ class ScarlettSpeaker():
 
     @trace
     def run(self):
-        logger.debug("ScarlettSpeaker sound: {}".format(self.sound))
+        logger.debug(f"ScarlettSpeaker sound: {self.sound}")
         self.loop.run()
 
     @trace

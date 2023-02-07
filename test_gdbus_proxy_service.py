@@ -101,14 +101,14 @@ def player_cb(*args, **kwargs):
         pp.pprint(args)
     for i, v in enumerate(args):
         if SCARLETT_DEBUG:
-            logger.debug("Type v: {}".format(type(v)))
-            logger.debug("Type i: {}".format(type(i)))
+            logger.debug(f"Type v: {type(v)}")
+            logger.debug(f"Type i: {type(i)}")
         if type(v) is gi.overrides.GLib.Variant:
             if SCARLETT_DEBUG:
-                logger.debug("THIS SHOULD BE A Tuple now: {}".format(v))
+                logger.debug(f"THIS SHOULD BE A Tuple now: {v}")
             msg, scarlett_sound = v
-            logger.warning(" msg: {}".format(msg))
-            logger.warning(" scarlett_sound: {}".format(scarlett_sound))
+            logger.warning(f" msg: {msg}")
+            logger.warning(f" scarlett_sound: {scarlett_sound}")
 
 # NOTE: enumerate req to iterate through tuple and find GVariant
 
@@ -120,15 +120,15 @@ def command_cb(*args, **kwargs):
         pp.pprint(args)
     for i, v in enumerate(args):
         if SCARLETT_DEBUG:
-            logger.debug("Type v: {}".format(type(v)))
-            logger.debug("Type i: {}".format(type(i)))
+            logger.debug(f"Type v: {type(v)}")
+            logger.debug(f"Type i: {type(i)}")
         if type(v) is gi.overrides.GLib.Variant:
             if SCARLETT_DEBUG:
-                logger.debug("THIS SHOULD BE A Tuple now: {}".format(v))
+                logger.debug(f"THIS SHOULD BE A Tuple now: {v}")
             msg, scarlett_sound, command = v
-            logger.warning(" msg: {}".format(msg))
-            logger.warning(" scarlett_sound: {}".format(scarlett_sound))
-            logger.warning(" command: {}".format(command))
+            logger.warning(f" msg: {msg}")
+            logger.warning(f" scarlett_sound: {scarlett_sound}")
+            logger.warning(f" command: {command}")
 
 # with SessionBus() as bus:
 bus = SessionBus()

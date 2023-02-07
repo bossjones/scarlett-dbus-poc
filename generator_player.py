@@ -136,7 +136,7 @@ class ScarlettPlayer(_IdleObject):
             raise generator_utils.IncompleteGStreamerError()
 
         # 2. Set properties
-        uri = 'file://' + quote(os.path.abspath(path))
+        uri = f'file://{quote(os.path.abspath(path))}'
         self.source.set_property('uri', uri)
 
         # 3. Add them to the pipeline
@@ -190,11 +190,13 @@ class ScarlettPlayer(_IdleObject):
 
         # link tee to queueA
         tee_src_pad_to_appsink_bin = self.splitter.get_request_pad('src_%u')
-        logger.debug("Obtained request pad Name({}) Type({}) for audio branch.".format(
-            self.splitter.name, self.splitter))
+        logger.debug(
+            f"Obtained request pad Name({self.splitter.name}) Type({self.splitter}) for audio branch."
+        )
         queueAsinkPad = self.queueA.get_static_pad('sink')
         logger.debug(
-            "Obtained sink pad for element ({}) for tee -> queueA.".format(queueAsinkPad))
+            f"Obtained sink pad for element ({queueAsinkPad}) for tee -> queueA."
+        )
         tee_src_pad_to_appsink_bin.link(queueAsinkPad)
 
         #######################################################################
@@ -213,11 +215,13 @@ class ScarlettPlayer(_IdleObject):
 
         # link tee to queueB
         tee_src_pad_to_appsink_bin = self.splitter.get_request_pad('src_%u')
-        logger.debug("Obtained request pad Name({}) Type({}) for audio branch.".format(
-            self.splitter.name, self.splitter))
+        logger.debug(
+            f"Obtained request pad Name({self.splitter.name}) Type({self.splitter}) for audio branch."
+        )
         queueAsinkPad = self.queueB.get_static_pad('sink')
         logger.debug(
-            "Obtained sink pad for element ({}) for tee -> queueB.".format(queueAsinkPad))
+            f"Obtained sink pad for element ({queueAsinkPad}) for tee -> queueB."
+        )
         tee_src_pad_to_appsink_bin.link(queueAsinkPad)
 
         # recursively print elements
@@ -246,8 +250,8 @@ class ScarlettPlayer(_IdleObject):
             raise self.read_exc
 
     def _source_setup_cb(self, discoverer, source):
-        logger.debug("Discoverer object: ({})".format(discoverer))
-        logger.debug("Source object: ({})".format(source))
+        logger.debug(f"Discoverer object: ({discoverer})")
+        logger.debug(f"Source object: ({source})")
 
     def _on_state_changed(self, bus, msg):
         states = msg.parse_state_changed()
@@ -288,7 +292,7 @@ class ScarlettPlayer(_IdleObject):
                 pad = iterator.next()
                 if pad[1] is None:
                     break
-                logger.debug('pad: ' + str(pad[1]))
+                logger.debug(f'pad: {str(pad[1])}')
         except AttributeError:
             pass
 
@@ -313,10 +317,9 @@ class ScarlettPlayer(_IdleObject):
         # The sink has started to receive data, so the stream is ready.
         # This also is our opportunity to read information about the
         # stream.
-        logger.debug("pad: {}".format(pad))
-        logger.debug("pad name: {} parent: {}".format(
-            pad.name, pad.get_parent()))
-        logger.debug("args: {}".format(args))
+        logger.debug(f"pad: {pad}")
+        logger.debug(f"pad name: {pad.name} parent: {pad.get_parent()}")
+        logger.debug(f"args: {args}")
         self.got_caps = True
         info = pad.get_current_caps().get_structure(0)
 
@@ -328,7 +331,7 @@ class ScarlettPlayer(_IdleObject):
         success, length = pad.get_peer().query_duration(Gst.Format.TIME)
         if success:
             self.duration = length / 1000000000
-            logger.debug("FILE DURATION: {}".format(self.duration))
+            logger.debug(f"FILE DURATION: {self.duration}")
         else:
             self.read_exc = generator_utils.MetadataMissingError('duration not available')
 
@@ -342,9 +345,8 @@ class ScarlettPlayer(_IdleObject):
         """
         # Decoded data is ready. Connect up the decoder, finally.
         name = pad.query_caps(None).to_string()
-        logger.debug("pad: {}".format(pad))
-        logger.debug("pad name: {} parent: {}".format(
-            pad.name, pad.get_parent()))
+        logger.debug(f"pad: {pad}")
+        logger.debug(f"pad name: {pad.name} parent: {pad.get_parent()}")
         if name.startswith('audio/x-raw'):
             nextpad = self.audioconvert.get_static_pad('sink')
             if not nextpad.is_linked():
@@ -385,7 +387,7 @@ class ScarlettPlayer(_IdleObject):
             # Ignore non-audio (e.g., video) decode errors.
             return
         logger.error("Ignore non-audio (e.g., video) decode errors.")
-        logger.error("streaminfo: {}".format(streaminfo))
+        logger.error(f"streaminfo: {streaminfo}")
         self.read_exc = generator_utils.UnknownTypeError(streaminfo)
         self.ready_sem.release()
 
@@ -393,28 +395,29 @@ class ScarlettPlayer(_IdleObject):
         """The callback for GstBus's "message" signal (for two kinds of
         messages).
         """
-        if not self.finished:
-            if message.type == Gst.MessageType.EOS:
-                # The file is done. Tell the consumer thread.
-                self.queue.put(SENTINEL)
-                if not self.got_caps:
-                    logger.error(
-                        "If the stream ends before _notify_caps was called, this is an invalid file.")
-                    # If the stream ends before _notify_caps was called, this
-                    # is an invalid file.
-                    self.read_exc = generator_utils.NoStreamError()
-                    self.ready_sem.release()
-
-            elif message.type == Gst.MessageType.ERROR:
-                gerror, debug = message.parse_error()
-                if 'not-linked' in debug:
-                    logger.error('not-linked')
-                    self.read_exc = generator_utils.NoStreamError()
-                elif 'No such file' in debug:
-                    self.read_exc = IOError('resource not found')
-                else:
-                    self.read_exc = generator_utils.FileReadError(debug)
+        if self.finished:
+            return
+        if message.type == Gst.MessageType.EOS:
+            # The file is done. Tell the consumer thread.
+            self.queue.put(SENTINEL)
+            if not self.got_caps:
+                logger.error(
+                    "If the stream ends before _notify_caps was called, this is an invalid file.")
+                # If the stream ends before _notify_caps was called, this
+                # is an invalid file.
+                self.read_exc = generator_utils.NoStreamError()
                 self.ready_sem.release()
+
+        elif message.type == Gst.MessageType.ERROR:
+            gerror, debug = message.parse_error()
+            if 'not-linked' in debug:
+                logger.error('not-linked')
+                self.read_exc = generator_utils.NoStreamError()
+            elif 'No such file' in debug:
+                self.read_exc = IOError('resource not found')
+            else:
+                self.read_exc = generator_utils.FileReadError(debug)
+            self.ready_sem.release()
 
     # Iteration.
     def next(self):
@@ -437,42 +440,43 @@ class ScarlettPlayer(_IdleObject):
 
         Calling `close()` a second time has no effect.
         """
-        if self.running or force:
-            self.running = False
-            self.finished = True
+        if not self.running and not force:
+            return
+        self.running = False
+        self.finished = True
 
-            # Unregister for signals, which we registered for above with
-            # `add_signal_watch`. (Without this, GStreamer leaks file
-            # descriptors.)
-            try:
-                self.pipeline
-            except NameError:
-                logger.info("well, self.pipeline WASN'T defined after all!")
-            else:
-                logger.info("OK, self.pipeline IS defined.")
-                self.pipeline.get_bus().remove_signal_watch()
+        # Unregister for signals, which we registered for above with
+        # `add_signal_watch`. (Without this, GStreamer leaks file
+        # descriptors.)
+        try:
+            self.pipeline
+        except NameError:
+            logger.info("well, self.pipeline WASN'T defined after all!")
+        else:
+            logger.info("OK, self.pipeline IS defined.")
+            self.pipeline.get_bus().remove_signal_watch()
 
-            # Stop reading the file.
-            self.source.set_property("uri", None)
-            # Block spurious signals.
-            self.appsink.get_static_pad("sink").disconnect(self.caps_handler)
+        # Stop reading the file.
+        self.source.set_property("uri", None)
+        # Block spurious signals.
+        self.appsink.get_static_pad("sink").disconnect(self.caps_handler)
 
-            # Make space in the output queue to let the decoder thread
-            # finish. (Otherwise, the thread blocks on its enqueue and
-            # the interpreter hangs.)
-            try:
-                self.queue.get_nowait()
-            except queue.Empty:
-                pass
+        # Make space in the output queue to let the decoder thread
+        # finish. (Otherwise, the thread blocks on its enqueue and
+        # the interpreter hangs.)
+        try:
+            self.queue.get_nowait()
+        except queue.Empty:
+            pass
 
-            # Halt the pipeline (closing file).
-            self.pipeline.set_state(Gst.State.NULL)
-            logger.info("closing generator_player: {}".format(self))
+        # Halt the pipeline (closing file).
+        self.pipeline.set_state(Gst.State.NULL)
+        logger.info(f"closing generator_player: {self}")
 
-            # Delete the pipeline object. This seems to be necessary on Python
-            # 2, but not Python 3 for some reason: on 3.5, at least, the
-            # pipeline gets dereferenced automatically.
-            del self.pipeline
+        # Delete the pipeline object. This seems to be necessary on Python
+        # 2, but not Python 3 for some reason: on 3.5, at least, the
+        # pipeline gets dereferenced automatically.
+        del self.pipeline
 
     def __del__(self):
         logger.info("delete time")
@@ -500,6 +504,4 @@ if __name__ == '__main__':
             print(f.channels)
             print(f.samplerate)
             print(f.duration)
-            for s in f:
-                pass
                 # READ IN BLOCKS # print(len(s), ord(s[0]))

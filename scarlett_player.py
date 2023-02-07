@@ -121,8 +121,8 @@ class ScarlettPlayer():
         self.end_cond = threading.Condition(threading.Lock())
 
         # Set the uri to the sound
-        filename = '%s/static/sounds/%s.wav' % (PWD, sound)
-        self.player.set_property('uri', 'file://%s' % filename)
+        filename = f'{PWD}/static/sounds/{sound}.wav'
+        self.player.set_property('uri', f'file://{filename}')
         self.sound = sound
 
         # Enable message bus to check for errors in the pipeline
@@ -150,7 +150,7 @@ class ScarlettPlayer():
             raise IOError(self.error_msg)
 
     def run(self):
-        logger.debug("ScarlettPlayer sound: {}".format(self.sound))
+        logger.debug(f"ScarlettPlayer sound: {self.sound}")
         # self.player.set_state(gst.STATE_PLAYING)
         self._loop.run()
 
@@ -202,7 +202,7 @@ class ScarlettPlayer():
             self._loop.quit()
             self.end_reached = True
             err, debug = message.parse_error()
-            self.error_msg = "Error: %s" % err, debug
+            self.error_msg = f"Error: {err}", debug
             self.end_cond.notify()
             self.end_cond.release()
             self.quit()

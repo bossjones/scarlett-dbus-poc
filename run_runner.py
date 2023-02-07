@@ -211,7 +211,6 @@ def main():
             # print "GOT FROM BUCKET QUEUE: ", exc
         except Queue.Empty:
             time.sleep(.2)
-            pass
         else:
             exc_type, exc_obj, exc_trace = exc
             # deal with the exception

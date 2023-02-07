@@ -132,7 +132,7 @@ class ScarlettSpeaker():
         source.props.pitch = 50
         source.props.rate = 100
         source.props.voice = "en+f3"
-        source.props.text = _('{}'.format(cmd))
+        source.props.text = _(f'{cmd}')
         self.text = source.props.text
 
         # Enable message bus to check for errors in the pipeline
@@ -149,7 +149,7 @@ class ScarlettSpeaker():
         self.player.set_state(gst.STATE_PLAYING)
 
     def run(self):
-        logger.debug("ScarlettSpeaker text: {}".format(self.self.text))
+        logger.debug(f"ScarlettSpeaker text: {self.self.text}")
         # self.player.set_state(gst.STATE_PLAYING)
         self._loop.run()
 
@@ -189,7 +189,7 @@ class ScarlettSpeaker():
             self._loop.quit()
             self.end_reached = True
             err, debug = message.parse_error()
-            self.error_msg = "Error: %s" % err, debug
+            self.error_msg = f"Error: {err}", debug
             self.end_cond.notify()
             self.end_cond.release()
             self.quit()

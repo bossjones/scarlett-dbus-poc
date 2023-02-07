@@ -3,6 +3,7 @@
 
 """Scarlett Listener Module."""
 
+
 # NOTE: THIS IS THE CLASS THAT WILL BE REPLACING scarlett_speaker.py eventually.
 # It is cleaner, more object oriented, and will allows us to run proper tests.
 # Also threading.RLock() and threading.Semaphore() works correctly.
@@ -140,11 +141,15 @@ loop = GObject.MainLoop()
 # Pocketsphinx defaults
 LANGUAGE_VERSION = 1473
 HOMEDIR = "/home/pi"
-LANGUAGE_FILE_HOME = "{}/dev/bossjones-github/scarlett-dbus-poc/tests/fixtures/lm".format(HOMEDIR)
-DICT_FILE_HOME = "{}/dev/bossjones-github/scarlett-dbus-poc/tests/fixtures/dict".format(HOMEDIR)
-LM_PATH = "{}/{}.lm".format(LANGUAGE_FILE_HOME, LANGUAGE_VERSION)
-DICT_PATH = "{}/{}.dic".format(DICT_FILE_HOME, LANGUAGE_VERSION)
-HMM_PATH = "{}/.virtualenvs/scarlett-dbus-poc/share/pocketsphinx/model/en-us/en-us".format(HOMEDIR)
+LANGUAGE_FILE_HOME = (
+    f"{HOMEDIR}/dev/bossjones-github/scarlett-dbus-poc/tests/fixtures/lm"
+)
+DICT_FILE_HOME = (
+    f"{HOMEDIR}/dev/bossjones-github/scarlett-dbus-poc/tests/fixtures/dict"
+)
+LM_PATH = f"{LANGUAGE_FILE_HOME}/{LANGUAGE_VERSION}.lm"
+DICT_PATH = f"{DICT_FILE_HOME}/{LANGUAGE_VERSION}.dic"
+HMM_PATH = f"{HOMEDIR}/.virtualenvs/scarlett-dbus-poc/share/pocketsphinx/model/en-us/en-us"
 bestpath = 0
 PS_DEVICE = 'plughw:CARD=Device,DEV=0'
 
@@ -250,9 +255,8 @@ class FooThreadManager:
         """
         for thread in self.fooThreads.values():
             thread.cancel()
-            if block:
-                if thread.isAlive():
-                    thread.join()
+            if block and thread.isAlive():
+                thread.join()
 
 
 class ScarlettListenerI(threading.Thread, _IdleObject):
@@ -308,7 +312,7 @@ class ScarlettListenerI(threading.Thread, _IdleObject):
 
         self.cancelled = False
         self.name = args[0]
-        self.setName("%s" % self.name)
+        self.setName(f"{self.name}")
 
         self.pipelines_stack = []
         self.elements_stack = []
@@ -448,30 +452,20 @@ class ScarlettListenerI(threading.Thread, _IdleObject):
         """
         logger.debug("Inside get_pocketsphinx_definition")
 
-        if override:
-            _gst_launch = override
-        else:
-            _gst_launch = ['alsasrc device=' +
-                           ScarlettListenerI.device,
-                           # source: https://github.com/walterbender/story/blob/master/grecord.py
-                           # without a buffer here, gstreamer struggles at the start of the
-                           # recording and then the A/V sync is bad for the whole video
-                           # (possibly a gstreamer/ALSA bug -- even if it gets caught up, it
-                           # should be able to resync without problem)
-                           'queue name=capsfilter_queue silent=false leaky=2 max-size-buffers=0 max-size-time=0 max-size-bytes=0',
-                           'capsfilter name=capsfilter caps=audio/x-raw,format=S16LE,channels=1,layout=interleaved',
-                           'audioconvert name=audioconvert',
-                           'audioresample name=audioresample',
-                           'identity name=ident',
-                           'pocketsphinx name=asr',
-                           'tee name=tee',
-                           'queue name=appsink_queue silent=false leaky=2 max-size-buffers=0 max-size-time=0 max-size-bytes=0',
-                           #  caps=audio/x-raw,format=(string)S16LE,rate=(int)16000,channels=(int)1,layout=(string)interleaved   # NOQA
-                           'appsink name=appsink drop=false max-buffers=10 sync=false emit-signals=true tee.',
-                           'queue leaky=2 name=fakesink_queue',
-                           'fakesink']
-
-        return _gst_launch
+        return override or [
+            f'alsasrc device={ScarlettListenerI.device}',
+            'queue name=capsfilter_queue silent=false leaky=2 max-size-buffers=0 max-size-time=0 max-size-bytes=0',
+            'capsfilter name=capsfilter caps=audio/x-raw,format=S16LE,channels=1,layout=interleaved',
+            'audioconvert name=audioconvert',
+            'audioresample name=audioresample',
+            'identity name=ident',
+            'pocketsphinx name=asr',
+            'tee name=tee',
+            'queue name=appsink_queue silent=false leaky=2 max-size-buffers=0 max-size-time=0 max-size-bytes=0',
+            'appsink name=appsink drop=false max-buffers=10 sync=false emit-signals=true tee.',
+            'queue leaky=2 name=fakesink_queue',
+            'fakesink',
+        ]
 
     # @trace
     def cancel(self):
@@ -526,16 +520,13 @@ class ScarlettListenerI(threading.Thread, _IdleObject):
     def result(self, final_hyp):
         """Forward result signals on the bus to the main thread."""
         logger.debug("Inside result function")
-        logger.debug("final_hyp: {}".format(final_hyp))
+        logger.debug(f"final_hyp: {final_hyp}")
         pp.pprint(final_hyp)
-        logger.debug("kw_to_find: {}".format(self.kw_to_find))
+        logger.debug(f"kw_to_find: {self.kw_to_find}")
         if final_hyp in self.kw_to_find and final_hyp != '':
-            logger.debug(
-                "HYP-IS-SOMETHING: " +
-                final_hyp +
-                "\n\n\n")
-            self.failed = 0
+            logger.debug(f"HYP-IS-SOMETHING: {final_hyp}" + "\n\n\n")
             self.kw_found = 1
+            self.failed = 0
             self.dbus_proxy.emitKeywordRecognizedSignal()  # CHANGEME
         else:
             failed_temp = self.failed + 1
@@ -561,8 +552,7 @@ class ScarlettListenerI(threading.Thread, _IdleObject):
             current_kw_identified = self.kw_found
             self.kw_found = current_kw_identified
             self.dbus_proxy.emitCommandRecognizedSignal(final_hyp)  # CHANGEME
-            logger.info(
-                " Command = {}".format(final_hyp))
+            logger.info(f" Command = {final_hyp}")
             logger.debug(
                 "AFTER run_cmd, self.kw_found = %i" %
                 (self.kw_found))
@@ -669,7 +659,6 @@ class ScarlettListenerI(threading.Thread, _IdleObject):
                 self.channels = struct["channels"]
             except:
                 logger.debug('on_handoff: missing caps')
-                pass
 
         # raw = str(buf)
         #
@@ -687,12 +676,12 @@ class ScarlettListenerI(threading.Thread, _IdleObject):
         # To state is PLAYING
         if msg.src.get_name() == "pipeline0" and states[1] == 4:
             logger.info('Inside pipeline0 on _on_state_changed')
-            logger.info("State: {}".format(states[1]))
+            logger.info(f"State: {states[1]}")
             self.ready_sem.release()
             return False
         else:
             # logger.error('NOTHING RETURNED in _on_state_changed')
-            logger.info("State: {}".format(states[1]))
+            logger.info(f"State: {states[1]}")
 
     def _on_overrun(self, element):
         logging.debug('on_overrun')
@@ -739,44 +728,45 @@ class ScarlettListenerI(threading.Thread, _IdleObject):
         messages).
         """
         # logger.debug("[_on_message](%s, %s)", bus, message)
-        if not self.finished:
-            struct = message.get_structure()
+        if self.finished:
+            return
+        struct = message.get_structure()
 
-            if message.type == Gst.MessageType.EOS:
-                # The file is done. Tell the consumer thread.
-                self.queue.put(SENTINEL)
-                if not self.got_caps:
-                    logger.error(
-                        "If the stream ends before _notify_caps was called, this is an invalid stream.")
-                    # If the stream ends before _notify_caps was called, this
-                    # is an invalid file.
-                    self.read_exc = generator_utils.NoStreamError()
-                    self.ready_sem.release()
-            elif struct and struct.get_name() == 'pocketsphinx':
-                        if struct['final']:
-                            logger.info(struct['hypothesis'])
-                            if self.kw_found == 1:
-                                # If keyword is set AND qualifier
-                                # then perform action
-                                self.run_cmd(struct['hypothesis'])
-                            else:
-                                # If it's the main keyword,
-                                # set values wait for qualifier
-                                self.result(struct['hypothesis'])
-            elif message.type == Gst.MessageType.ERROR:
-                gerror, debug = message.parse_error()
-                pp.pprint(("gerror,debug:", gerror, debug))
-                if 'not-linked' in debug:
-                    logger.error('not-linked')
-                    self.read_exc = generator_utils.NoStreamError()
-                elif 'No such device' in debug:
-                    logger.error('No such device')
-                    self.read_exc = generator_utils.NoStreamError()
-                else:
-                    logger.info("FileReadError")
-                    pp.pprint(("SOME FileReadError", bus, message, struct, struct.get_name()))
-                    self.read_exc = generator_utils.FileReadError(debug)
+        if message.type == Gst.MessageType.EOS:
+            # The file is done. Tell the consumer thread.
+            self.queue.put(SENTINEL)
+            if not self.got_caps:
+                logger.error(
+                    "If the stream ends before _notify_caps was called, this is an invalid stream.")
+                # If the stream ends before _notify_caps was called, this
+                # is an invalid file.
+                self.read_exc = generator_utils.NoStreamError()
                 self.ready_sem.release()
+        elif struct and struct.get_name() == 'pocketsphinx':
+                    if struct['final']:
+                        logger.info(struct['hypothesis'])
+                        if self.kw_found == 1:
+                            # If keyword is set AND qualifier
+                            # then perform action
+                            self.run_cmd(struct['hypothesis'])
+                        else:
+                            # If it's the main keyword,
+                            # set values wait for qualifier
+                            self.result(struct['hypothesis'])
+        elif message.type == Gst.MessageType.ERROR:
+            gerror, debug = message.parse_error()
+            pp.pprint(("gerror,debug:", gerror, debug))
+            if 'not-linked' in debug:
+                logger.error('not-linked')
+                self.read_exc = generator_utils.NoStreamError()
+            elif 'No such device' in debug:
+                logger.error('No such device')
+                self.read_exc = generator_utils.NoStreamError()
+            else:
+                logger.info("FileReadError")
+                pp.pprint(("SOME FileReadError", bus, message, struct, struct.get_name()))
+                self.read_exc = generator_utils.FileReadError(debug)
+            self.ready_sem.release()
 
     # Cleanup.
     def close(self, force=False):
@@ -784,60 +774,59 @@ class ScarlettListenerI(threading.Thread, _IdleObject):
 
         Calling `close()` a second time has no effect.
         """
-        if self.running or force:
-            self.running = False
-            self.finished = True
+        if not self.running and not force:
+            return
+        self.running = False
+        self.finished = True
 
-            try:
-                gst_bus = self.gst_bus_stack[0]
-            except:
-                logger.error("Failed to get gst_bus from gst_bus_stack[0]")
-                pass
+        try:
+            gst_bus = self.gst_bus_stack[0]
+        except:
+            logger.error("Failed to get gst_bus from gst_bus_stack[0]")
+        if gst_bus:
+            gst_bus.remove_signal_watch()
+            if self.bus_message_element_handler_id:
+                gst_bus.disconnect(self.bus_message_element_handler_id)
+            if self.bus_message_error_handler_id:
+                gst_bus.disconnect(self.bus_message_error_handler_id)
+            if self.bus_message_eos_handler_id:
+                gst_bus.disconnect(self.bus_message_eos_handler_id)
+            if self.bus_message_state_changed_handler_id:
+                gst_bus.disconnect(self.bus_message_state_changed_handler_id)
 
-            if gst_bus:
-                gst_bus.remove_signal_watch()
-                if self.bus_message_element_handler_id:
-                    gst_bus.disconnect(self.bus_message_element_handler_id)
-                if self.bus_message_error_handler_id:
-                    gst_bus.disconnect(self.bus_message_error_handler_id)
-                if self.bus_message_eos_handler_id:
-                    gst_bus.disconnect(self.bus_message_eos_handler_id)
-                if self.bus_message_state_changed_handler_id:
-                    gst_bus.disconnect(self.bus_message_state_changed_handler_id)
+        self.bus = None
+        self.pipeline = None
+        self.codec = None
+        self.bitrate = -1
+        self.state = None
 
-            self.bus = None
-            self.pipeline = None
-            self.codec = None
-            self.bitrate = -1
-            self.state = None
+        # Unregister for signals, which we registered for above with
+        # `add_signal_watch`. (Without this, GStreamer leaks file
+        # descriptors.)
+        logger.debug('BEFORE p = self.pipelines_stack[0]')
+        p = self.pipelines_stack[0]
+        p.get_bus().remove_signal_watch()
+        logger.debug('AFTER p.get_bus().remove_signal_watch()')
 
-            # Unregister for signals, which we registered for above with
-            # `add_signal_watch`. (Without this, GStreamer leaks file
-            # descriptors.)
-            logger.debug('BEFORE p = self.pipelines_stack[0]')
-            p = self.pipelines_stack[0]
-            p.get_bus().remove_signal_watch()
-            logger.debug('AFTER p.get_bus().remove_signal_watch()')
+        # Block spurious signals.
+        appsink = self.elements_stack[0]
+        appsink.get_static_pad("sink").disconnect(self.caps_handler)
 
-            # Block spurious signals.
-            appsink = self.elements_stack[0]
-            appsink.get_static_pad("sink").disconnect(self.caps_handler)
+        # Make space in the output queue to let the decoder thread
+        # finish. (Otherwise, the thread blocks on its enqueue and
+        # the interpreter hangs.)
+        try:
+            self.queue.get_nowait()
+        except queue.Empty:
+            pass
 
-            # Make space in the output queue to let the decoder thread
-            # finish. (Otherwise, the thread blocks on its enqueue and
-            # the interpreter hangs.)
-            try:
-                self.queue.get_nowait()
-            except queue.Empty:
-                pass
+        # Halt the pipeline (closing file).
+        self.stop()
 
-            # Halt the pipeline (closing file).
-            self.stop()
-
-            # Delete the pipeline object. This seems to be necessary on Python
-            # 2, but not Python 3 for some reason: on 3.5, at least, the
-            # pipeline gets dereferenced automatically.
-            del p
+        # Delete the pipeline object. This seems to be necessary on Python
+        # 2, but not Python 3 for some reason: on 3.5, at least, the
+        # pipeline gets dereferenced automatically.
+        del p
 
     def __del__(self):
         self.close()
@@ -869,7 +858,7 @@ class Demo:
     def add_thread(self):
         # NOTE: if we do this via a gobject connect we need def add_thread(self, sender):
         # make a thread and start it
-        name = "Thread #%s" % random.randint(0, 1000)
+        name = f"Thread #{random.randint(0, 1000)}"
         self.manager.make_thread(
             self.thread_finished,  # completedCb
             self.thread_progress,  # progressCb

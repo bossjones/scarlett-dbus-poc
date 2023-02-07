@@ -67,12 +67,10 @@ class ScarlettTestCase(unittest.TestCase):
         pass
 
     def assertExists(self, path):
-        self.assertTrue(os.path.exists(path),
-                        'file does not exist: %s' % path)
+        self.assertTrue(os.path.exists(path), f'file does not exist: {path}')
 
     def assertNotExists(self, path):
-        self.assertFalse(os.path.exists(path),
-                         'file exists: %s' % path)
+        self.assertFalse(os.path.exists(path), f'file exists: {path}')
 
 
 class MockScarlettWithConfigTestCase(ScarlettTestCase):
